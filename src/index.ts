@@ -27,7 +27,6 @@ const completion = omelette(`chjs|chjs`);
 completion.tree({
   connect: ['--user', '--password'],
   lfs: ['ls', 'mkdir', 'touch'],
-  // Add more commands and options as needed
 });
 
 completion.init();
@@ -36,7 +35,6 @@ if (~process.argv.indexOf('--completion')) {
   completion.setupShellInitFile();
 }
 
-// Add any global options here
 program
   .option('-v, --verbose', 'Enable verbose output')
   .option('-c, --config <path>', 'Path to config file');
@@ -53,10 +51,8 @@ async function main() {
 
   if (options.config) {
     console.log(`Using config file: ${options.config}`);
-    // Here you could load and process the config file
   }
 
-  // You can add any other global async operations here
 }
 
 main().catch(error => {
