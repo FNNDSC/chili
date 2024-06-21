@@ -1,0 +1,31 @@
+{
+  "name": "chjs",
+  "version": "1.0.0",
+  "description": "A nodejs CLI REPL for ChRIS",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "main": "index.js",
+  "bin": {
+    "chjs": "./dist/index.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@fnndsc/chrisapi": "^1.20.0",
+    "commander": "^12.1.0",
+    "figlet": "^1.7.0",
+    "node-fetch": "^3.3.2",
+    "omelette": "^0.4.17"
+  },
+  "devDependencies": {
+    "@types/figlet": "^1.5.8",
+    "@types/node": "^20.14.7",
+    "@types/node-fetch": "^2.6.11",
+    "@types/omelette": "^0.4.4",
+    "typescript": "^5.5.2"
+  }
+}
