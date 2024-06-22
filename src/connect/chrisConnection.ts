@@ -19,6 +19,7 @@ class ChRISConnection {
   private chrisURLfile: string;
   private chrisURL: string | null = null;
   private client: typeof Client | null = null;
+  private instanceDataSet: boolean = false;
 
   constructor() {
     const configBase: string = process.env.XDG_CONFIG_HOME || path.join(os.homedir(), '.config');
@@ -32,6 +33,7 @@ class ChRISConnection {
     this.chrisURL = "";
     if (this.user) {
       this.instanceData_set(this.user);
+      this.instanceDataSet = true;
     }
     this.client = null;
   }
@@ -56,11 +58,9 @@ class ChRISConnection {
   private userConfigSet(user: string, url: string): void {
     this.user = user;
     this.saveToFile(this.userFile, user);
-    this.instanceData_set(user);
-    // this.instanceDir = path.join(this.configDir, user)
-    // this.ensureDirExists(this.instanceDir);
-    // this.tokenFile = path.join(this.instanceDir, this.tokenFile);
-    // this.chrisURLfile = path.join(this.instanceDir, this.chrisURLfile);
+    if(!this.instanceDataSet) {
+      this.instanceData_set(user);
+    }
   }
 
   async connect(options: ConnectOptions): Promise<void> {
