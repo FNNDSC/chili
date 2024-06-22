@@ -22,7 +22,7 @@ npm run build && npm link
 
 ## Usage
 
-Assuming all worked, you should have a `chjs` application on your path.
+Assuming all worked, you should have `chili` ready to spice things up.
 
 ```
 chili --help
