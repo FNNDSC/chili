@@ -6,22 +6,22 @@ import omelette from 'omelette';
 
 const program = new Command();
 
-console.log(figlet.textSync("chjs"));
+console.log(figlet.textSync("ChILI"));
+console.log("The ChRIS Interactive Line Interface");
 
-import { setupConnectCommand } from './connect/connect.js';
+import { setupConnectCommand } from './connect/connectHandler.js';
 import { listDir } from './chfs/chfs.js';
-import { fetchFeed } from './feed/feed.js';
+import { setupFeedCommand} from './feed/feed.js';
 import { setupLfsCommand } from './lfs/lfs.js';
 
 program
   .version("1.0.0")
   .description("A CLI for ChRIS");
 
-// Setup the connect subcommand
+// Setup the subcommands
 setupConnectCommand(program);
-
-// Setup the lfs subcommand
 setupLfsCommand(program);
+setupFeedCommand(program);
 
 const completion = omelette(`chjs|chjs`);
 completion.tree({
