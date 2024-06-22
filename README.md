@@ -1,10 +1,10 @@
-# chjs
+# ChILI
 
-_A nodejs CLI REPL for ChRIS_
+_ChRIS Interactive Line Interface_
 
 ## Abstract
 
-`chjs` is a first attempt at a nodejs CLI and REPL for ChRIS.
+`chili` is a first attempt at a nodejs CLI and REPL for ChRIS. It's also _hot_!
 
 ## Installation
 
@@ -25,7 +25,7 @@ npm run build && npm link
 Assuming all worked, you should have a `chjs` application on your path.
 
 ```
-chjs --help
+chili --help
 ```
 
 _-30-_
