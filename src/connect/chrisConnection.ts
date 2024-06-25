@@ -1,7 +1,7 @@
-import fs from 'fs';
-import path from 'path';
-import os from 'os';
-import Client from '@fnndsc/chrisapi';
+import fs from "fs";
+import path from "path";
+import os from "os";
+import Client from "@fnndsc/chrisapi";
 
 interface ConnectOptions {
   user: string;
@@ -22,10 +22,11 @@ class ChRISConnection {
   private instanceDataSet: boolean = false;
 
   constructor() {
-    const configBase: string = process.env.XDG_CONFIG_HOME || path.join(os.homedir(), '.config');
-    this.configDir = path.join(configBase, 'chili');
+    const configBase: string =
+      process.env.XDG_CONFIG_HOME || path.join(os.homedir(), ".config");
+    this.configDir = path.join(configBase, "chili");
     this.ensureDirExists(this.configDir);
-    this.userFile = path.join(this.configDir, 'lastUser.txt');
+    this.userFile = path.join(this.configDir, "lastUser.txt");
     this.instanceDir = "";
     this.loadUser();
     this.tokenFile = "chili_token.txt";
@@ -43,13 +44,13 @@ class ChRISConnection {
       try {
         fs.mkdirSync(dir, { recursive: true, mode: 0o700 });
       } catch (error) {
-        console.error('Error creating directory:', error);
+        console.error("Error creating directory:", error);
       }
     }
   }
 
   private instanceData_set(user: string): void {
-    this.instanceDir = path.join(this.configDir, user)
+    this.instanceDir = path.join(this.configDir, user);
     this.ensureDirExists(this.instanceDir);
     this.tokenFile = path.join(this.instanceDir, this.tokenFile);
     this.chrisURLfile = path.join(this.instanceDir, this.chrisURLfile);
@@ -58,14 +59,14 @@ class ChRISConnection {
   private userConfigSet(user: string, url: string): void {
     this.user = user;
     this.saveToFile(this.userFile, user);
-    if(!this.instanceDataSet) {
+    if (!this.instanceDataSet) {
       this.instanceData_set(user);
     }
   }
 
-  async connect(options: ConnectOptions): Promise<void> {
+  async connect(options: ConnectOptions): Promise<string | null> {
     const { user, password, url }: ConnectOptions = options;
-    const authUrl: string = url + 'auth-token/';
+    const authUrl: string = url + "auth-token/";
     this.chrisURL = url;
 
     console.log(`Connecting to ${url} with user ${user}`);
@@ -74,16 +75,18 @@ class ChRISConnection {
     try {
       this.authToken = await Client.getAuthToken(authUrl, user, password);
       if (this.authToken) {
-        console.log('Auth token: ' + this.authToken)
+        console.log("Auth token: " + this.authToken);
         this.saveToFile(this.tokenFile, this.authToken);
         this.saveToFile(this.chrisURLfile, url);
-        console.log('Auth token saved successfully');
-        console.log('ChRIS URL  saved successfully');
+        console.log("Auth token saved successfully");
+        console.log("ChRIS URL  saved successfully");
+        return this.authToken;
       } else {
-        console.log('Failed to receive auth token');
+        console.log("Failed to receive auth token");
+        return null;
       }
     } catch (error) {
-      console.error('Error during connection:', error);
+      console.error("Error during connection:", error);
       throw error;
     }
   }
@@ -104,7 +107,7 @@ class ChRISConnection {
 
   getClient(): typeof Client | null {
     if (this.getAuthToken() && this.getChRISurl()) {
-      this.client = new Client(this.chrisURL, {token: this.authToken});
+      this.client = new Client(this.chrisURL, { token: this.authToken });
     }
     return this.client;
   }
@@ -117,32 +120,32 @@ class ChRISConnection {
     this.authToken = null;
     try {
       fs.unlinkSync(this.tokenFile);
-      console.log('Logged out successfully');
+      console.log("Logged out successfully");
     } catch (error) {
-      console.error('Error during logout:', error);
+      console.error("Error during logout:", error);
     }
   }
 
   private saveToFile(file: string, info: string): void {
     try {
-      fs.writeFileSync(file, info || '', { mode: 0o600});
+      fs.writeFileSync(file, info || "", { mode: 0o600 });
     } catch (error) {
-      console.error('For info: ', info);
-      console.error('Error saving to file ', file, ': ', error);
+      console.error("For info: ", info);
+      console.error("Error saving to file ", file, ": ", error);
     }
   }
 
   private saveToken(): void {
     try {
-      fs.writeFileSync(this.tokenFile, this.authToken || '', { mode: 0o600 });
+      fs.writeFileSync(this.tokenFile, this.authToken || "", { mode: 0o600 });
     } catch (error) {
-      console.error('Error saving token:', error);
+      console.error("Error saving token:", error);
     }
   }
 
   private loadUser(): void {
     try {
-      this.user = fs.readFileSync(this.userFile, 'utf-8');
+      this.user = fs.readFileSync(this.userFile, "utf-8");
     } catch (error) {
       this.user = null;
     }
@@ -150,7 +153,7 @@ class ChRISConnection {
 
   private loadToken(): void {
     try {
-      this.authToken = fs.readFileSync(this.tokenFile, 'utf-8');
+      this.authToken = fs.readFileSync(this.tokenFile, "utf-8");
     } catch (error) {
       this.authToken = null;
     }
@@ -158,13 +161,11 @@ class ChRISConnection {
 
   private loadChRISurl(): void {
     try {
-      this.chrisURL = fs.readFileSync(this.chrisURLfile, 'utf-8');
+      this.chrisURL = fs.readFileSync(this.chrisURLfile, "utf-8");
     } catch (error) {
       this.chrisURL = null;
     }
   }
-
 }
 
 export const chrisConnection = new ChRISConnection();
-

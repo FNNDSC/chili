@@ -1,13 +1,14 @@
 {
-  "name": "chili",
+  "name": "@fnndsc/chili",
   "version": "1.0.0",
   "description": "The ChRIS Interactive Line Agent -- a nodejs CLI REPL for ChRIS",
+  "type": "module",
   "scripts": {
     "build": "tsc",
     "start": "node dist/index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "main": "index.js",
+  "main": "dist/index.js",
   "bin": {
     "chili": "./dist/index.js"
   },
@@ -16,6 +17,7 @@
   "license": "ISC",
   "dependencies": {
     "@fnndsc/chrisapi": "^1.20.0",
+    "@fnndsc/cumin": "^0.1.0",
     "commander": "^12.1.0",
     "figlet": "^1.7.0",
     "node-fetch": "^3.3.2",
@@ -27,5 +29,14 @@
     "@types/node-fetch": "^2.6.11",
     "@types/omelette": "^0.4.4",
     "typescript": "^5.5.2"
-  }
+  },
+  "compilerOptions": {
+    "typeRoots": [
+      "./node_modules/@types",
+      "./src/types"
+    ]
+  },
+  "include": [
+    "src/**/*"
+  ]
 }
