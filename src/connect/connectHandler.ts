@@ -1,6 +1,6 @@
 import { Command } from "commander";
 // import { chrisConnection } from './chrisConnection';
-import { ChrisConnection } from "@fnndsc/cumin";
+import { chrisConnection } from "@fnndsc/cumin";
 
 export function setupConnectCommand(program: Command): void {
   program
@@ -11,7 +11,7 @@ export function setupConnectCommand(program: Command): void {
     .argument("<url>", "URL of the ChRIS instance")
     .action(async (url, options) => {
       try {
-        await ChrisConnection.connect({
+        await chrisConnection.connect({
           user: options.user,
           password: options.password,
           url: url,
@@ -25,6 +25,6 @@ export function setupConnectCommand(program: Command): void {
     .command("logout")
     .description("Log out from ChRIS")
     .action(() => {
-      ChrisConnection.logout();
+      chrisConnection.logout();
     });
 }
