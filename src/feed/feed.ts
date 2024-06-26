@@ -114,13 +114,13 @@ async function addDataToFeed(data: string): Promise<void> {
     return;
   }
 
-  try {
-    const client = new Client(authToken);
-    const updatedFeed = await client.addDataToLatestFeed(data);
-    console.log("Data added to feed:", updatedFeed);
-  } catch (error) {
-    console.error("Error adding data to feed:", error);
-  }
+  // try {
+  //   const client = new Client(authToken);
+  //   const updatedFeed = await client.addDataToLatestFeed(data);
+  //   console.log("Data added to feed:", updatedFeed);
+  // } catch (error) {
+  //   console.error("Error adding data to feed:", error);
+  // }
 }
 
 export function setupFeedCommand(program: Command): void {
