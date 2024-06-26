@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { Command } from "commander";
-import * as figlet from "figlet";
+import figlet from "figlet";
 import omelette from "omelette";
 
 const program = new Command();
