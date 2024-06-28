@@ -1,5 +1,7 @@
 {
   "compilerOptions": {
+    "declaration": true,
+    "declarationDir": "./dist/types",
     "target": "ES2020",
     "module": "ESNext",
     "outDir": "./dist",
@@ -7,7 +9,7 @@
     "strict": true,
     "esModuleInterop": true,
     "moduleResolution": "node",
-    "typeRoots": ["./node_modules/@types", "./types", "./node_modules/@fnndsc/cumin/dist"],
+    "typeRoots": ["./node_modules/@types", "./types"],
     "skipLibCheck": true,
     "noImplicitAny": false,
     "declaration": true
