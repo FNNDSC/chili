@@ -1,5 +1,4 @@
 import { Command } from "commander";
-// import { chrisConnection } from './chrisConnection';
 import { chrisConnection } from "@fnndsc/cumin";
 
 export function setupConnectCommand(program: Command): void {
