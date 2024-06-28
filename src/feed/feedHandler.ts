@@ -1,7 +1,5 @@
-// feed.ts
-
 import { Command } from "commander";
-import { chrisConnection } from "@fnndsc/cumin";
+import { chrisFeed } from "@fnndsc/cumin";
 
 interface ListFeedsOptions {
   page?: string;
@@ -13,6 +11,16 @@ interface FeedItem {
   data: Array<{ name: string; value: any }>;
   href: string;
   links: Array<any>;
+}
+
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+async function listFeeds(options: ListFeedsOptions): Promise<void> {
+  await sleep(100);
+}
+
+async function createFeed(options: ListFeedsOptions): Promise<void> {
+  await sleep(100);
 }
 
 export function setupFeedCommand(program: Command): void {
