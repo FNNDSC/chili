@@ -11,7 +11,7 @@ console.log("The ChRIS Interactive Line Interface");
 
 import { setupConnectCommand } from "./connect/connectHandler.js";
 // import { listDir } from './chfs/chfs.js';
-import { setupFeedCommand } from "./feed/feed.js";
+import { setupFeedCommand } from "./feed/feedHandler.js";
 import { setupLfsCommand } from "./lfs/lfs.js";
 
 program.version("1.0.0").description("A CLI for ChRIS");
