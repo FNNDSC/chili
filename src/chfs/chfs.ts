@@ -1,7 +1,7 @@
 import { Command } from "commander";
 // import { chrisConnection } from "../connect/chrisConnection.js";
 import { chrisConnection } from "@fnndsc/cumin";
-import Client from "@fnndsc/chrisapi";
+//import Client from "@fnndsc/chrisapi";
 
 import * as fs from "fs";
 import * as path from "path";
@@ -31,11 +31,11 @@ function touch(filePath: string): void {
 }
 
 export function setupCHFSCommand(program: Command): void {
-  const feedCommand = program
+  const chfsCommand = program
     .command("chfs")
     .description("Interact with the ChRIS filesystem");
 
-  feedCommand
+  chfsCommand
     .command("ls")
     .description("List filesystem elements")
     .option("-p, --page <size>", "Page size (default 20)")
@@ -47,7 +47,7 @@ export function setupCHFSCommand(program: Command): void {
       await ls(options);
     });
 
-  feedCommand
+  chfsCommand
     .command("mkdir")
     .description("Create a new folder")
     .action(async (options) => {
