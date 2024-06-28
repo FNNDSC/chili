@@ -21,7 +21,7 @@ setupConnectCommand(program);
 setupLfsCommand(program);
 setupFeedCommand(program);
 
-const completion = omelette(`chjs|chjs`);
+const completion = omelette(`chili|chili`);
 completion.tree({
   connect: ["--user", "--password"],
   lfs: ["ls", "mkdir", "touch"],
