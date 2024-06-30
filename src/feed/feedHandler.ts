@@ -1,18 +1,18 @@
 import { Command } from "commander";
-import { chrisFeed } from "@fnndsc/cumin";
+import { chrisFeed, ListFeedsOptions, FeedItem } from "@fnndsc/cumin";
 
-interface ListFeedsOptions {
-  page?: string;
-  fields?: string;
-  [key: string]: any;
-}
-
-interface FeedItem {
-  data: Array<{ name: string; value: any }>;
-  href: string;
-  links: Array<any>;
-}
-
+// interface ListFeedsOptions {
+//   page?: string;
+//   fields?: string;
+//   [key: string]: any;
+// }
+//
+// interface FeedItem {
+//   data: Array<{ name: string; value: any }>;
+//   href: string;
+//   links: Array<any>;
+// }
+//
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 async function listFeeds(options: ListFeedsOptions): Promise<void> {
