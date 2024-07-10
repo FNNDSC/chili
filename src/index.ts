@@ -5,7 +5,7 @@ import figlet from "figlet";
 import omelette from "omelette";
 
 import * as cumin from "@fnndsc/cumin";
-console.log(Object.keys(cumin));
+// console.log(Object.keys(cumin));
 
 const program = new Command();
 
@@ -14,7 +14,8 @@ console.log("The ChRIS Interactive Line Interface");
 
 import { setupConnectCommand } from "./connect/connectHandler.js";
 // import { listDir } from './chfs/chfs.js';
-import { setupFeedCommand } from "./feed/feedHandler.js";
+import { setupFeedCommand } from "./feeds/feedHandler.js";
+import { setupPluginsCommand } from "./plugins/pluginHandler.js";
 import { setupLfsCommand } from "./lfs/lfs.js";
 
 program.version("1.0.0").description("A CLI for ChRIS");
@@ -23,6 +24,7 @@ program.version("1.0.0").description("A CLI for ChRIS");
 setupConnectCommand(program);
 setupLfsCommand(program);
 setupFeedCommand(program);
+setupPluginsCommand(program);
 
 const completion = omelette(`chili|chili`);
 completion.tree({
