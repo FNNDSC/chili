@@ -16,7 +16,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@fnndsc/cumin": "file:/home/rudolph/src/cumin",
+    "@fnndsc/cumin": "file:/home/rudolph/src/tui/cumin",
     "commander": "^12.1.0",
     "figlet": "^1.7.0",
     "node-fetch": "^3.3.2",
