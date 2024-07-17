@@ -4,7 +4,7 @@ import { Command } from "commander";
 import figlet from "figlet";
 import omelette from "omelette";
 
-import * as cumin from "@fnndsc/cumin";
+// import * as cumin from "@fnndsc/cumin";
 // console.log(Object.keys(cumin));
 
 const program = new Command();
@@ -17,7 +17,7 @@ import { setupConnectCommand } from "./connect/connectHandler.js";
 import { setupFeedCommand } from "./feeds/feedHandler.js";
 import { setupPluginsCommand } from "./plugins/pluginHandler.js";
 import { setupLfsCommand } from "./lfs/lfs.js";
-
+import { setupFileBrowserCommand } from "./filesystem/filesystemHandler.js";
 program.version("1.0.0").description("A CLI for ChRIS");
 
 // Setup the subcommands
@@ -25,6 +25,7 @@ setupConnectCommand(program);
 setupLfsCommand(program);
 setupFeedCommand(program);
 setupPluginsCommand(program);
+setupFileBrowserCommand(program);
 
 const completion = omelette(`chili|chili`);
 completion.tree({
