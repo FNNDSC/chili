@@ -16,6 +16,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@fnndsc/chrisapi": "^1.21.0",
     "@fnndsc/cumin": "file:/home/rudolph/src/tui/cumin",
     "commander": "^12.1.0",
     "figlet": "^1.7.0",
