@@ -41,11 +41,12 @@ async function listFileResourceFields(): Promise<void> {
   );
   console.log("In listFileResourceFields");
   console.log(chrisFiles);
+  process.exit(1);
   const results = await chrisFiles.inode.resource.resourceFields_get();
   console.table(results.fields);
 }
 
-export function setupFileBrowserCommand(program: Command): void {
+export async function setupFileBrowserCommand(program: Command): Promise<void> {
   const pluginsCommand = program
     .command("inode")
     .description("Interact with ChRIS inodes");
