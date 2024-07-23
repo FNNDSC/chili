@@ -4,9 +4,6 @@ import { Command } from "commander";
 import figlet from "figlet";
 import omelette from "omelette";
 
-// import * as cumin from "@fnndsc/cumin";
-// console.log(Object.keys(cumin));
-
 const program = new Command();
 
 console.log(figlet.textSync("ChILI"));
