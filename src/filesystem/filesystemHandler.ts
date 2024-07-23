@@ -1,9 +1,10 @@
 import { Command } from "commander";
 import {
-  ChRISFilesGetFiles,
-  createChrisFilesGetFiles,
+  ChRISinode,
+  ChRISinode_create,
   ListOptions,
   FilteredResourceData,
+  ResourcesByFields
 } from "@fnndsc/cumin";
 
 interface FSCLIoptions {
@@ -22,7 +23,7 @@ function optionsToParams(pluginOptions: FSCLIoptions): ListOptions {
 }
 
 async function listFileResources(options: FSCLIoptions): Promise<void> {
-  const chrisFiles: ChRISFilesGetFiles = await createChrisFilesGetFiles();
+  const chrisFiles: ChRISinode|null = await ChRISinode_create();
   const params: ListOptions = optionsToParams(options);
   console.log("In listFileResources");
   const results: FilteredResourceData =
@@ -34,16 +35,29 @@ async function listFileResources(options: FSCLIoptions): Promise<void> {
   console.table(results.tableData, results.selectedFields);
 }
 
+function fieldsList(inodeType: string, dataObj: ResourcesByFields): boolean {
+  if(!dataObj) {
+    console.log("No " + inodeType + " at this path");
+    return false;
+  }
+  if(dataObj.fields) {
+    console.log(inodeType);
+    console.table(dataObj.fields);
+    return true;
+  }
+  return false;
+} 
+
 async function listFileResourceFields(): Promise<void> {
-  console.log("Declarig new ChRISFiles...");
-  const chrisFiles: ChRISFilesGetFiles = await createChrisFilesGetFiles(
-    "rudolphpienaar/uploads",
+  const chrisFiles: ChRISinode|null = await ChRISinode_create(
+    "home/rudolphpienaar/uploads",
   );
-  console.log("In listFileResourceFields");
-  console.log(chrisFiles);
-  process.exit(1);
-  const results = await chrisFiles.inode.resource.resourceFields_get();
-  console.table(results.fields);
+  let fileFields: ResourcesByFields = await chrisFiles.fileBrowser.resource.resourceFields_get();
+  fieldsList("file properties", fileFields);
+  let linkFields: ResourcesByFields = await chrisFiles.linkBrowser.resource.resourceFields_get();
+  fieldsList("link properties", linkFields)
+  let dirFields: ResourcesByFields = await chrisFiles.dirBrowser.resource.resourceFields_get();
+  fieldsList("dir properties", dirFields);
 }
 
 export async function setupFileBrowserCommand(program: Command): Promise<void> {
