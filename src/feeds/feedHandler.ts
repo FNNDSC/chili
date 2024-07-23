@@ -1,5 +1,5 @@
 import { Command } from "commander";
-import { chrisFeed, ListOptions, FilteredResourceData } from "@fnndsc/cumin";
+import { ChRISFeed, ChRISFeed_create, ListOptions, FilteredResourceData } from "@fnndsc/cumin";
 
 interface FeedCLIoptions {
   page?: string;
@@ -17,6 +17,7 @@ function optionsToParams(pluginOptions: FeedCLIoptions): ListOptions {
 }
 
 async function listFeeds(options: FeedCLIoptions): Promise<void> {
+  const chrisFeed = ChRISFeed();
   const params: ListOptions = optionsToParams(options);
   const results: FilteredResourceData =
     await chrisFeed.asset.resources_filterByFields(
@@ -28,6 +29,8 @@ async function listFeeds(options: FeedCLIoptions): Promise<void> {
 }
 
 async function listFeedFields(): Promise<void> {
+  const chrisFeed = new ChRISFeed();
+  console.log("listing properties of feeds...");
   const results = await chrisFeed.asset.resourceFields_get();
   console.table(results.fields);
 }
