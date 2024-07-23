@@ -1,5 +1,5 @@
 import { Command } from "commander";
-import { chrisPlugin, ListOptions, FilteredResourceData } from "@fnndsc/cumin";
+import { ChRISPlugin, ListOptions, FilteredResourceData } from "@fnndsc/cumin";
 
 interface PluginCLIoptions {
   page?: string;
@@ -17,6 +17,7 @@ function optionsToParams(pluginOptions: PluginCLIoptions): ListOptions {
 }
 
 async function listPlugins(options: PluginCLIoptions): Promise<void> {
+  const chrisPlugin = new ChRISPlugin();
   const params: ListOptions = optionsToParams(options);
   const results: FilteredResourceData =
     await chrisPlugin.asset.resources_filterByFields(
@@ -28,6 +29,7 @@ async function listPlugins(options: PluginCLIoptions): Promise<void> {
 }
 
 async function listPluginFields(): Promise<void> {
+  const chrisPlugin = new ChRISPlugin();
   const results = await chrisPlugin.asset.resourceFields_get();
   console.table(results.fields);
 }
