@@ -17,7 +17,7 @@ function optionsToParams(pluginOptions: FeedCLIoptions): ListOptions {
 }
 
 async function listFeeds(options: FeedCLIoptions): Promise<void> {
-  const chrisFeed = ChRISFeed();
+  const chrisFeed = new ChRISFeed();
   const params: ListOptions = optionsToParams(options);
   const results: FilteredResourceData =
     await chrisFeed.asset.resources_filterByFields(
