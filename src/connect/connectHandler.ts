@@ -7,12 +7,14 @@ export function setupConnectCommand(program: Command): void {
     .description("Connect to a ChRIS instance")
     .requiredOption("--user <user>", "Username for authentication")
     .requiredOption("--password <password>", "Password for authentication")
+    .option("--debug", "if errors, throw debug info to console", false)
     .argument("<url>", "URL of the ChRIS instance")
     .action(async (url, options) => {
       try {
         await chrisConnection.connect({
           user: options.user,
           password: options.password,
+          debug: options.debug,
           url: url,
         });
       } catch (error) {
