@@ -1,60 +1,46 @@
 import { Command } from "commander";
-import { ChRISPlugin, ListOptions, FilteredResourceData } from "@fnndsc/cumin";
+import { BaseHandler } from '../handlers/baseHandler.js';
+import { ChRISPlugin } from "@fnndsc/cumin";
+import { CLIoptions } from '../utils/cli';
 
-interface PluginCLIoptions {
-  page?: string;
-  fields?: string;
-  [key: string]: any;
-}
+export class PluginHandler {
+  private baseHandler: BaseHandler;
+  assetName = "plugins";
 
-function optionsToParams(pluginOptions: PluginCLIoptions): ListOptions {
-  return {
-    limit: pluginOptions.page ? parseInt(pluginOptions.page, 10) : 20,
-    offset: 0,
-    name: undefined,
-    fields: pluginOptions.fields,
-  };
-}
+  constructor() {
+    const chrisPlugin = new ChRISPlugin();
+    this.baseHandler = new BaseHandler(this.assetName, chrisPlugin);
+  }
 
-async function listPlugins(options: PluginCLIoptions): Promise<void> {
-  const chrisPlugin = new ChRISPlugin();
-  const params: ListOptions = optionsToParams(options);
-  const results: FilteredResourceData =
-    await chrisPlugin.asset.resources_filterByFields(
-      await chrisPlugin.asset.resourceFields_get(
-        await chrisPlugin.asset.resources_getList(params),
-      ),
-    );
-  console.table(results.tableData, results.selectedFields);
-}
+  async getPluginInfo(pluginId: string): Promise<void> {
+    try {
+      // This is a placeholder. Replace with actual implementation using cumin
+      console.log(`Fetching info for plugin with ID: ${pluginId}`);
+      // const pluginInfo = await this.asset.getPluginInfo(pluginId);
+      // console.log(JSON.stringify(pluginInfo, null, 2));
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        console.error(`Error fetching plugin info: ${error.message}`);
+      } else {
+        console.error('An unknown error occurred while fetching plugin info');
+      }
+    }
+  }
 
-async function listPluginFields(): Promise<void> {
-  const chrisPlugin = new ChRISPlugin();
-  const results = await chrisPlugin.asset.resourceFields_get();
-  console.table(results.fields);
-}
+  setupCommand(program: Command): void {
+    this.baseHandler.setupCommand(program);
 
-export function setupPluginsCommand(program: Command): void {
-  const pluginsCommand = program
-    .command("plugins")
-    .description("Interact with ChRIS plugins");
-
-  pluginsCommand
-    .command("list")
-    .description("List plugins")
-    .option("-p, --page <size>", "Page size (default 20)")
-    .option(
-      "-f, --fields <fields>",
-      "Comma-separated list of fields to display",
-    )
-    .action(async (options) => {
-      await listPlugins(options);
-    });
-
-  pluginsCommand
-    .command("fieldslist")
-    .description("List the plugin resource fields")
-    .action(async () => {
-      await listPluginFields();
-    });
+    const pluginCommand = program.commands.find(cmd => cmd.name() === this.assetName);
+    
+    if (pluginCommand) {
+      pluginCommand
+        .command("info <pluginId>")
+        .description("Get detailed information about a specific plugin")
+        .action(async (pluginId: string, options: CLIoptions) => {
+          await this.getPluginInfo(pluginId);
+        });
+    } else {
+      console.error(`Failed to find '${this.assetName}' command. The 'info' subcommand was not added.`);
+    }
+  }
 }
