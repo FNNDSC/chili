@@ -1,15 +1,15 @@
 import { Command } from "commander";
-import { BaseHandler } from '../handlers/baseHandler.js';
-import { ChRISPlugin } from "@fnndsc/cumin";
+import { BaseGroupHandler } from '../handlers/baseGroupHandler.js';
+import { ChRISPluginGroup } from "@fnndsc/cumin";
 import { CLIoptions } from '../utils/cli';
 
-export class PluginHandler {
-  private baseHandler: BaseHandler;
+export class PluginGroupHandler {
+  private baseHandler: BaseGroupHandler;
   assetName = "plugins";
 
   constructor() {
-    const chrisPlugin = new ChRISPlugin();
-    this.baseHandler = new BaseHandler(this.assetName, chrisPlugin);
+    const chrisPluginGroup = new ChRISPluginGroup();
+    this.baseHandler = new BaseGroupHandler(this.assetName, chrisPluginGroup);
   }
 
   async getPluginInfo(pluginId: string): Promise<void> {
