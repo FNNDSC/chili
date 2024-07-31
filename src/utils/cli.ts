@@ -1,14 +1,15 @@
 import { ListOptions } from '@fnndsc/cumin';  
-import { applySearchParams } from '@fnndsc/cumin';
+import { applyKeyPairParams } from '@fnndsc/cumin';
 
 export interface CLIoptions {
   page?: string;
   fields?: string;
   search?: string;
+  params?: string;
   [key: string]: any;
 }
 
-export function optionsToParams(options: CLIoptions): ListOptions {
+export function optionsToParams(options: CLIoptions, keyPairField: keyof CLIoptions = 'search'): ListOptions {
   const baseParams: ListOptions = {
     limit: options.page ? parseInt(options.page, 10) : 20,
     offset: 0,
@@ -16,5 +17,11 @@ export function optionsToParams(options: CLIoptions): ListOptions {
     fields: options.fields,
   };
 
-  return applySearchParams(baseParams, options.search);
+  const keyPairValue = options[keyPairField];
+  
+  if (typeof keyPairValue === 'string') {
+    return applyKeyPairParams(baseParams, keyPairValue);
+  }
+
+  return baseParams;
 }
