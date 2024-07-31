@@ -6,8 +6,8 @@ import omelette from "omelette";
 
 import { setupConnectCommand } from "./connect/connectHandler.js";
 // import { listDir } from './chfs/chfs.js';
-import { FeedHandler } from "./feeds/feedHandler.js";
-import { PluginHandler } from "./plugins/pluginHandler.js";
+import { FeedGroupHandler, FeedMemberHandler } from "./feeds/feedHandler.js";
+import { PluginGroupHandler } from "./plugins/pluginHandler.js";
 import { setupLfsCommand } from "./lfs/lfs.js";
 import { setupFileBrowserCommand } from "./filesystem/filesystemHandler.js";
 
@@ -23,11 +23,14 @@ setupConnectCommand(program);
 setupLfsCommand(program);
 setupFileBrowserCommand(program);
 
-const pluginHandler = new PluginHandler();
-pluginHandler.setupCommand(program);
+const pluginGroupHandler = new PluginGroupHandler();
+pluginGroupHandler.setupCommand(program);
 
-const feedHandler = new FeedHandler();
-feedHandler.setupCommand(program);
+const feedGroupHandler = new FeedGroupHandler();
+feedGroupHandler.setupCommand(program);
+
+const feedMemberHandler = new FeedMemberHandler();
+feedMemberHandler.setupCommand(program);
 
 const completion = omelette(`chili|chili`);
 completion.tree({
