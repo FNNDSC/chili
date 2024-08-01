@@ -18,13 +18,6 @@ interface FSCLIoptions {
   [key: string]: any;
 }
 
-// function optionsToParams(pluginOptions: FSCLIoptions): ListOptions {
-//   return {
-//     limit: pluginOptions.page ? parseInt(pluginOptions.page, 10) : 20,
-//     offset: 0,
-//   };
-// }
-
 async function listInodeResources(
   path: string,
   options: FSCLIoptions
@@ -38,7 +31,6 @@ async function listInodeResources(
     ...options,
     returnFilter: "limit,offset",
   });
-  console.log(params);
   const browserTypes: BrowserType[] = [
     BrowserType.Files,
     BrowserType.Links,
