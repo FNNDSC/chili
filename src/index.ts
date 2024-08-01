@@ -13,9 +13,6 @@ import { setupFileBrowserCommand } from "./filesystem/filesystemHandler.js";
 
 const program = new Command();
 
-console.log(figlet.textSync("ChILI"));
-console.log("The ChRIS Interactive Line Interface");
-
 program.version("1.0.0").description("A CLI for ChRIS");
 
 // Setup the subcommands
@@ -55,14 +52,20 @@ if (~process.argv.indexOf("--completion")) {
 }
 
 program
-  .option("-v, --verbose", "Enable verbose output")
-  .option("-c, --config <path>", "Path to config file");
+  .option("-v, --verbose", "enable verbose output")
+  .option("-c, --config <path>", "path to config file")
+  .option("-s, --nosplash", "disable splash screen");
 
 async function main() {
   program.parse(process.argv);
 
   const options = program.opts();
 
+  if (!options.nosplash) {
+    console.log(figlet.textSync("ChILI"));
+    console.log("The ChRIS Interactive Line Interface");
+  }
+  
   // Handle global options
   if (options.verbose) {
     console.log("Verbose mode enabled");
