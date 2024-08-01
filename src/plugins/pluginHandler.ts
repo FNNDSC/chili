@@ -1,15 +1,18 @@
 import { Command } from "commander";
-import { BaseGroupHandler } from '../handlers/baseGroupHandler.js';
+import { BaseGroupHandler } from "../handlers/baseGroupHandler.js";
 import { ChRISPluginGroup } from "@fnndsc/cumin";
-import { CLIoptions } from '../utils/cli';
+import { CLIoptions } from "../utils/cli";
 
 export class PluginGroupHandler {
-  private baseHandler: BaseGroupHandler;
+  private baseGroupHandler: BaseGroupHandler;
   assetName = "plugins";
 
   constructor() {
     const chrisPluginGroup = new ChRISPluginGroup();
-    this.baseHandler = new BaseGroupHandler(this.assetName, chrisPluginGroup);
+    this.baseGroupHandler = new BaseGroupHandler(
+      this.assetName,
+      chrisPluginGroup
+    );
   }
 
   async getPluginInfo(pluginId: string): Promise<void> {
@@ -22,16 +25,18 @@ export class PluginGroupHandler {
       if (error instanceof Error) {
         console.error(`Error fetching plugin info: ${error.message}`);
       } else {
-        console.error('An unknown error occurred while fetching plugin info');
+        console.error("An unknown error occurred while fetching plugin info");
       }
     }
   }
 
   setupCommand(program: Command): void {
-    this.baseHandler.setupCommand(program);
+    this.baseGroupHandler.setupCommand(program);
 
-    const pluginCommand = program.commands.find(cmd => cmd.name() === this.assetName);
-    
+    const pluginCommand = program.commands.find(
+      (cmd) => cmd.name() === this.assetName
+    );
+
     if (pluginCommand) {
       pluginCommand
         .command("info <pluginId>")
@@ -40,7 +45,9 @@ export class PluginGroupHandler {
           await this.getPluginInfo(pluginId);
         });
     } else {
-      console.error(`Failed to find '${this.assetName}' command. The 'info' subcommand was not added.`);
+      console.error(
+        `Failed to find '${this.assetName}' command. The 'info' subcommand was not added.`
+      );
     }
   }
 }
