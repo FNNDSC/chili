@@ -13,6 +13,7 @@ import {
   Client,
   applyKeyPairParams,
   optionsToParams,
+  SimpleRecord,
 } from "@fnndsc/cumin";
 import { PluginInstance } from "@fnndsc/chrisapi";
 
@@ -70,57 +71,20 @@ export class FeedMemberHandler {
     this.assetName = "feed";
   }
 
-  async pl_dircopy_getID(): Promise<number | null> {
-    const chrisPluginGroup = new ChRISPluginGroup();
-    const searchCLI: CLIoptions = { search: "name_exact: pl-dircopy" };
-    const searchParams: ListOptions = optionsToParams(searchCLI);
-    const searchResults: FilteredResourceData | null =
-      await chrisPluginGroup.asset.resources_listAndFilterByOptions(
-        searchParams
-      );
-    if (!searchResults) {
+  async createFeed(options: CLIoptions): Promise<SimpleRecord | null> {
+    const chrisFeed: ChRISFeed = new ChRISFeed();
+    const feedInfo: SimpleRecord = await chrisFeed.createFromDirs(
+      options.dirs,
+      optionsToParams({ ...options, returnFilter: "params" })
+    );
+    if (!feedInfo) {
+      console.error("A feed creation error occurred.");
       return null;
     }
-    return searchResults.tableData[0].id;
-  }
-
-  async createFeed(options: CLIoptions): Promise<number> {
-    const chrisFeed: ChRISFeed = new ChRISFeed();
-    const feedID: number = await chrisFeed.createFromDirs(
-      options.dirs,
-      optionsToParams({ ...options, returnFilter: options.params })
+    console.log(
+      `Feed ${feedInfo.id} with name "${feedInfo.name}" and owned by "${feedInfo.owner_username}" successfully created.`
     );
-    return feedID;
-
-    // try {
-    //   console.log("Creating new feed...");
-    //   const pluginID: number | null = await this.pl_dircopy_getID();
-    //   if (pluginID === null) {
-    //     console.error(
-    //       "pl-dircopy plugin was not found! No feeds can be created."
-    //     );
-    //     return;
-    //   }
-
-    //   const client: Client = chrisConnection.getClient();
-    //   console.log(options);
-    //   const createParams: Record<string, string> = applyKeyPairParams(
-    //     { dir: options.dir },
-    //     options.params
-    //   );
-    //   console.log(createParams);
-    //   const pluginInstance: PluginInstance = await client.createPluginInstance(
-    //     pluginID,
-    //     createParams
-    //   );
-    //   console.log(pluginInstance);
-    // } catch (error: unknown) {
-    //   if (error instanceof Error) {
-    //     console.error(`Error creating feed: ${error.message}`);
-    //   } else {
-    //     console.error("An unknown error occurred while creating the feed");
-    //   }
-    // }
+    return feedInfo;
   }
 
   setupCommand(program: Command): void {
@@ -137,7 +101,7 @@ export class FeedMemberHandler {
           "comma separated list of feed parameters ('title', 'cpu_limit', etc.)"
         )
         .option(
-          "-d, --dir <ChRISpath>",
+          "-d, --dirs <ChRISpath>",
           "a (comma separated) path inside the ChRIS FS containing data for the root node"
         )
         .action(async (options: CLIoptions) => {
