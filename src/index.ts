@@ -8,6 +8,7 @@ import { setupConnectCommand } from "./connect/connectHandler.js";
 // import { listDir } from './chfs/chfs.js';
 import { FeedGroupHandler, FeedMemberHandler } from "./feeds/feedHandler.js";
 import { PluginGroupHandler } from "./plugins/pluginHandler.js";
+import { PluginMetaGroupHandler } from "./plugins/pluginMetaHandler.js";
 import { setupLfsCommand } from "./lfs/lfs.js";
 import { setupFileBrowserCommand } from "./filesystem/filesystemHandler.js";
 
@@ -22,6 +23,9 @@ setupFileBrowserCommand(program);
 
 const pluginGroupHandler = new PluginGroupHandler();
 pluginGroupHandler.setupCommand(program);
+
+const pluginMetaGroupHandler = new PluginMetaGroupHandler();
+pluginMetaGroupHandler.setupCommand(program);
 
 const feedGroupHandler = new FeedGroupHandler();
 feedGroupHandler.setupCommand(program);
@@ -65,7 +69,7 @@ async function main() {
     console.log(figlet.textSync("ChILI"));
     console.log("The ChRIS Interactive Line Interface");
   }
-  
+
   // Handle global options
   if (options.verbose) {
     console.log("Verbose mode enabled");
