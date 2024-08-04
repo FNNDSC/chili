@@ -18,12 +18,15 @@ import {
 import { PluginInstance } from "@fnndsc/chrisapi";
 
 export class FeedGroupHandler {
-  private baseHandler: BaseGroupHandler;
+  private baseGroupHandler: BaseGroupHandler;
   assetName = "feeds";
 
   constructor() {
     const chrisFeedGroup = new ChRISFeedGroup();
-    this.baseHandler = new BaseGroupHandler(this.assetName, chrisFeedGroup);
+    this.baseGroupHandler = new BaseGroupHandler(
+      this.assetName,
+      chrisFeedGroup
+    );
   }
 
   async deleteFeeds(options: CLIoptions): Promise<void> {
@@ -39,7 +42,7 @@ export class FeedGroupHandler {
   }
 
   setupCommand(program: Command): void {
-    this.baseHandler.setupCommand(program);
+    this.baseGroupHandler.setupCommand(program);
 
     const feedGroupCommand = program.commands.find(
       (cmd) => cmd.name() === this.assetName
