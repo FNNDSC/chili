@@ -3,9 +3,11 @@ import {
   FilteredResourceData,
   ChRISPluginGroup,
   ChRISFeedGroup,
+  ListOptions,
+  QueryHits,
+  extractRecordToQueryHits,
 } from "@fnndsc/cumin";
 import { CLIoptions, optionsToParams } from "../utils/cli.js";
-// import { ChRISElementsGet, optionsToParams} from "@fnndsc/cumin";
 
 export class BaseGroupHandler {
   assetName: string = "";
@@ -67,6 +69,25 @@ export class BaseGroupHandler {
     }
   }
 
+  async deleteResources(): Promise<boolean> {
+    let status: boolean = true;
+    return true;
+  }
+
+  async IDs_getFromSearch(options: CLIoptions): Promise<string[] | null> {
+    const params: ListOptions = optionsToParams(options);
+    const searchResults: FilteredResourceData | null =
+      this.chrisObject.asset.resources_listAndFilterByOptions(params);
+    if (!searchResults) {
+      return null;
+    }
+    const queryHits: QueryHits = extractRecordToQueryHits(
+      searchResults.table,
+      "id"
+    );
+    return queryHits;
+  }
+
   setupCommand(program: Command): void {
     const command = program
       .command(this.assetName)
@@ -94,5 +115,28 @@ export class BaseGroupHandler {
       .action(async () => {
         await this.listResourceFields();
       });
+
+    command
+      .command("delete [ID]")
+      .description(
+        `Delete target ${this.assetName} -- either by direct ID (comma separated list) or specified in a --search`
+      )
+      .action(
+        async (
+          ID: string | undefined,
+          IDs: string[] | null,
+          options: CLIoptions & { search?: string }
+        ) => {
+          let targetID: string | null;
+          if (ID === undefined) {
+            IDs = await this.IDs_getFromSearch(options);
+          } else {
+            targetID = ID;
+          }
+          if (ID) {
+            await this.deleteResources();
+          }
+        }
+      );
   }
 }
