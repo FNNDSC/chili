@@ -39,14 +39,14 @@ export class PluginGroupHandler {
 
     if (pluginCommand) {
       pluginCommand
-        .command("info <pluginId>")
-        .description("Get detailed information about a specific plugin")
+        .command("readme <pluginId>")
+        .description("Get the readme of a specific plugin")
         .action(async (pluginId: string, options: CLIoptions) => {
           await this.getPluginInfo(pluginId);
         });
     } else {
       console.error(
-        `Failed to find '${this.assetName}' command. The 'info' subcommand was not added.`
+        `Failed to find '${this.assetName}' command. The 'readme' subcommand was not added.`
       );
     }
   }
