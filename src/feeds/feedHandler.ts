@@ -29,12 +29,12 @@ export class FeedGroupHandler {
     );
   }
 
-  async deleteFeeds(options: CLIoptions): Promise<void> {
+  async shareFeeds(options: CLIoptions): Promise<void> {
     try {
-      console.log("Delete feeds...");
+      console.log("Share feeds...");
     } catch (error: unknown) {
       if (error instanceof Error) {
-        console.error(`Error deleting feed(s): ${error.message}`);
+        console.error(`Error sharing feed(s): ${error.message}`);
       } else {
         console.error("An unknown error occurred while deleting the feed(s)");
       }
@@ -50,18 +50,18 @@ export class FeedGroupHandler {
 
     if (feedGroupCommand) {
       feedGroupCommand
-        .command("delete")
-        .description("delete a (group of) feed(s)")
+        .command("share")
+        .description("share a (group of) feed(s)")
         .option(
           "-f, --force",
           "force deletion (do not ask for user confirmation)"
         )
         .action(async (options: CLIoptions) => {
-          await this.deleteFeeds(options);
+          await this.shareFeeds(options);
         });
     } else {
       console.error(
-        `Failed to find '${this.assetName}' command. The 'tag' subcommand was not added.`
+        `Failed to find '${this.assetName}' command. The 'share' subcommand was not added.`
       );
     }
   }
