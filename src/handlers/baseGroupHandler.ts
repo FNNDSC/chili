@@ -8,6 +8,8 @@ import {
   extractRecordToQueryHits,
 } from "@fnndsc/cumin";
 import { CLIoptions, optionsToParams } from "../utils/cli.js";
+import * as util from "util";
+import * as readline from "readline";
 
 export class BaseGroupHandler {
   assetName: string = "";
@@ -69,23 +71,105 @@ export class BaseGroupHandler {
     }
   }
 
-  async deleteResources(): Promise<boolean> {
-    let status: boolean = true;
+  private async confirmOperation(ID: number, opName: string): Promise<boolean> {
+    const rl = readline.createInterface({
+      input: process.stdin,
+      output: process.stdout,
+    });
+
+    return new Promise((resolve) => {
+      rl.question(
+        `Are you sure you want to ${opName} ${this.assetName} resource id ${ID}? (y/N) `,
+        (answer) => {
+          rl.close();
+          resolve(answer.toLowerCase() === "y");
+        }
+      );
+    });
+  }
+
+  async resource_printGivenID(ID: number, fields?: string): Promise<void> {
+    if (!fields) {
+      if (this.chrisObject instanceof ChRISFeedGroup) {
+        fields = "id,name,creation_date,owner_username";
+      } else {
+        fields = "id";
+      }
+    }
+    await this.listResources({
+      fields: fields,
+      search: `id: ${ID}`,
+    });
+  }
+
+  async userContinue(
+    ID: number,
+    operation: string,
+    fields?: string
+  ): Promise<boolean> {
+    await this.resource_printGivenID(ID);
+    const confirmed = await this.confirmOperation(ID, operation);
+    return confirmed;
+  }
+
+  OKorNot_echo(obj: any | null, failureNotice?: string): void {
+    let failMessage: string;
+    if (!failureNotice) {
+      failMessage = "[ Failed ]";
+    } else {
+      failMessage = failureNotice;
+    }
+    if (obj) {
+      console.log("[ OK ]");
+    } else {
+      console.log(failMessage);
+    }
+  }
+
+  async deleteResources(IDs: number[], force: boolean): Promise<boolean> {
+    let delop: boolean = true;
+    let confirm: boolean = false;
+    for (const id of IDs) {
+      try {
+        process.stdout.write(
+          util.format("checking %s id %d... ", this.assetName, id)
+        );
+        const searchResults: FilteredResourceData | null =
+          await this.chrisObject.asset.resources_listAndFilterByOptions({
+            id: id,
+          });
+        this.OKorNot_echo(searchResults);
+        if (!force) {
+          confirm = await this.userContinue(id, "delete");
+          if (!confirm) {
+            continue;
+          }
+        }
+        process.stdout.write(
+          util.format("deleting %s id %d... ", this.assetName, id)
+        );
+        delop = await this.chrisObject.asset.resourceItem_delete(id);
+        this.OKorNot_echo(true);
+      } catch (error) {
+        console.error(`${error}`);
+        return false;
+      }
+    }
     return true;
   }
 
-  async IDs_getFromSearch(options: CLIoptions): Promise<string[] | null> {
+  async IDs_getFromSearch(options: CLIoptions): Promise<number[] | null> {
     const params: ListOptions = optionsToParams(options);
     const searchResults: FilteredResourceData | null =
-      this.chrisObject.asset.resources_listAndFilterByOptions(params);
+      await this.chrisObject.asset.resources_listAndFilterByOptions(params);
     if (!searchResults) {
       return null;
     }
     const queryHits: QueryHits = extractRecordToQueryHits(
-      searchResults.table,
+      searchResults.tableData,
       "id"
     );
-    return queryHits;
+    return queryHits.hits;
   }
 
   setupCommand(program: Command): void {
@@ -95,15 +179,15 @@ export class BaseGroupHandler {
 
     command
       .command("list")
-      .description(`List ${this.assetName}`)
+      .description(`list ${this.assetName}`)
       .option("-p, --page <size>", "Page size (default 20)")
       .option(
         "-f, --fields <fields>",
-        "Comma-separated list of fields to display"
+        `comma-separated list of ${this.assetName} fields to display`
       )
       .option(
         "-s, --search <searchTerms>",
-        "Search terms in key:value format, separated by commas"
+        `search for ${this.assetName} using comma-separated key-value pairs`
       )
       .action(async (options) => {
         await this.listResources(options);
@@ -111,30 +195,45 @@ export class BaseGroupHandler {
 
     command
       .command("fieldslist")
-      .description(`List the ${this.assetName} resource fields`)
+      .description(`list the ${this.assetName} resource fields`)
       .action(async () => {
         await this.listResourceFields();
       });
 
     command
-      .command("delete [ID]")
+      .command("delete [IDs]")
       .description(
-        `Delete target ${this.assetName} -- either by direct ID (comma separated list) or specified in a --search`
+        `delete target ${this.assetName} -- either by direct ID (comma separated list) or specified in a --search`
+      )
+      .option(
+        "-s, --search <searchTerms>",
+        `search for ${this.assetName} using a comma-separated key-value pairs`
+      )
+      .option(
+        "-f, --force",
+        `force the deletion without prompting for user confirmation`
       )
       .action(
         async (
           ID: string | undefined,
-          IDs: string[] | null,
           options: CLIoptions & { search?: string }
         ) => {
-          let targetID: string | null;
+          let nIDs: number[] | null;
+          let targetID: string | null = null;
           if (ID === undefined) {
-            IDs = await this.IDs_getFromSearch(options);
+            nIDs = await this.IDs_getFromSearch(options);
+            if (!nIDs) {
+              console.error(
+                `No ${this.assetName} matched the search criteria.`
+              );
+              return;
+            }
           } else {
-            targetID = ID;
+            const sIDs: string[] = ID.split(",");
+            nIDs = sIDs.map(Number);
           }
-          if (ID) {
-            await this.deleteResources();
+          if (nIDs) {
+            await this.deleteResources(nIDs, options.force);
           }
         }
       );
