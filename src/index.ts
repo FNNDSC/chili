@@ -9,6 +9,8 @@ import { setupConnectCommand } from "./connect/connectHandler.js";
 import { FeedGroupHandler, FeedMemberHandler } from "./feeds/feedHandler.js";
 import { PluginGroupHandler } from "./plugins/pluginHandler.js";
 import { PluginMetaGroupHandler } from "./plugins/pluginMetaHandler.js";
+import { FileGroupHandler } from "./filesystem/fileGroupHandler.js";
+import { setupInodeCommand } from "./filesystem/inodeCommand.js";
 import { setupLfsCommand } from "./lfs/lfs.js";
 import { setupFileBrowserCommand } from "./filesystem/filesystemHandler.js";
 
@@ -20,6 +22,7 @@ program.version("1.0.0").description("A CLI for ChRIS");
 setupConnectCommand(program);
 setupLfsCommand(program);
 setupFileBrowserCommand(program);
+setupInodeCommand(program);
 
 const pluginGroupHandler = new PluginGroupHandler();
 pluginGroupHandler.setupCommand(program);
@@ -33,6 +36,12 @@ feedGroupHandler.setupCommand(program);
 const feedMemberHandler = new FeedMemberHandler();
 feedMemberHandler.setupCommand(program);
 
+const fileGroupHandler = new FileGroupHandler(
+  "/home/rudolphpienaar/uploads/mail"
+);
+await fileGroupHandler.initialize();
+fileGroupHandler.setupCommand(program);
+
 const completion = omelette(`chili|chili`);
 completion.tree({
   connect: ["--user", "--password"],
@@ -41,11 +50,26 @@ completion.tree({
     list: ["--page", "--fields", "--search"],
     info: ["<pluginId>"],
     fieldslist: [],
+    delete: ["<IDs>", "--search", "--force"],
   },
   feeds: {
     list: ["--page", "--fields", "--search"],
     new: ["--name", "--path"],
     fieldslist: [],
+    delete: ["<IDs>", "--search", "--force"],
+  },
+  inode: {
+    "<path>": {
+      files: {
+        list: ["--page", "--fields", "--search"],
+        fieldslist: [],
+        delete: ["<IDs>", "--search", "--force"],
+        share: ["--force"],
+      },
+      file: {
+        view: ["--type"],
+      },
+    },
   },
 });
 
