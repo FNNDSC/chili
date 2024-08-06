@@ -1,21 +1,8 @@
 import { Command } from "commander";
 import { BaseGroupHandler } from "../handlers/baseGroupHandler.js";
-import {
-  ChRISFeedGroup,
-  ChRISFeed,
-  ChRISPluginGroup,
-  FilteredResourceData,
-  ListOptions,
-} from "@fnndsc/cumin";
+import { ChRISFeedGroup, ChRISFeed } from "@fnndsc/cumin";
 import { CLIoptions } from "../utils/cli.js";
-import {
-  chrisConnection,
-  Client,
-  applyKeyPairParams,
-  optionsToParams,
-  SimpleRecord,
-} from "@fnndsc/cumin";
-import { PluginInstance } from "@fnndsc/chrisapi";
+import { optionsToParams, SimpleRecord } from "@fnndsc/cumin";
 
 export class FeedGroupHandler {
   private baseGroupHandler: BaseGroupHandler;
