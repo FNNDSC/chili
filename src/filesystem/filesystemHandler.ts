@@ -93,8 +93,8 @@ async function listInodeResourceFields(path: string = ""): Promise<void> {
 
 export async function setupFileBrowserCommand(program: Command): Promise<void> {
   const pluginsCommand = program
-    .command("inode")
-    .description("Interact with ChRIS inodes");
+    .command("fobj")
+    .description("Interact with ChRIS file system objects");
 
   pluginsCommand
     .command("list [path]")
