@@ -3,6 +3,7 @@ import {
   FilteredResourceData,
   ChRISPluginGroup,
   ChRISFeedGroup,
+  ChRISFilesGroup,
   ListOptions,
   QueryHits,
   extractRecordToQueryHits,
@@ -13,11 +14,11 @@ import * as readline from "readline";
 
 export class BaseGroupHandler {
   assetName: string = "";
-  chrisObject: ChRISPluginGroup | ChRISFeedGroup;
+  chrisObject: ChRISPluginGroup | ChRISFeedGroup | ChRISFilesGroup;
 
   constructor(
     assetName: string,
-    chrisObject: ChRISPluginGroup | ChRISFeedGroup
+    chrisObject: ChRISPluginGroup | ChRISFeedGroup | ChRISFilesGroup
   ) {
     this.assetName = assetName;
     this.chrisObject = chrisObject;
@@ -219,7 +220,6 @@ export class BaseGroupHandler {
           options: CLIoptions & { search?: string }
         ) => {
           let nIDs: number[] | null;
-          let targetID: string | null = null;
           if (ID === undefined) {
             nIDs = await this.IDs_getFromSearch(options);
             if (!nIDs) {
