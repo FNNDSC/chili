@@ -36,11 +36,10 @@ feedGroupHandler.setupCommand(program);
 const feedMemberHandler = new FeedMemberHandler();
 feedMemberHandler.setupCommand(program);
 
-const fileGroupHandler = new FileGroupHandler(
-  "/home/rudolphpienaar/uploads/mail"
-);
-await fileGroupHandler.initialize();
-fileGroupHandler.setupCommand(program);
+// const fileGroupHandler = await FileGroupHandler.create(
+//   "/home/rudolphpienaar/uploads/mail"
+// );
+// fileGroupHandler.setupCommand(program);
 
 const completion = omelette(`chili|chili`);
 completion.tree({
