@@ -17,44 +17,18 @@ export class FileGroupHandler {
   private _path: string;
   assetName = "files";
 
-  constructor(path: string) {
+  constructor(chrisFilesGroup: ChRISFilesGroup, path: string) {
     this._path = path;
+    this.chrisFilesGroup = chrisFilesGroup;
+    this.baseGroupHandler = new BaseGroupHandler(
+      this.assetName,
+      chrisFilesGroup
+    );
   }
 
-  async initialize(): Promise<void> {
-    try {
-      console.log(`Initializing FileGroupHandler for path: ${this._path}`);
-      this.chrisFilesGroup = await ChRISFilesGroup.create(this._path);
-      if (!this.chrisFilesGroup) {
-        throw new InitializationError("Failed to create ChRISFilesGroup");
-      }
-      this.baseGroupHandler = new BaseGroupHandler(
-        this.assetName,
-        this.chrisFilesGroup
-      );
-      console.log("FileGroupHandler initialized successfully");
-    } catch (error) {
-      console.error("An initialization error occurred:");
-      console.error(error);
-      throw new InitializationError("Failed to initialize FileGroupHandler");
-    }
-  }
-
-  setupCommand(program: Command): void {
-    console.log("Setting up FileGroupHandler commands");
-    if (this.baseGroupHandler) {
-      this.baseGroupHandler.setupCommand(program);
-    }
-
-    program
-      .command("share")
-      .description("share a (group of) file(s)")
-      .option("-f, --force", "force sharing (do not ask for user confirmation)")
-      .action(async (options: CLIoptions) => {
-        await this.shareFiles(options);
-      });
-
-    console.log("FileGroupHandler commands set up successfully");
+  static async create(path: string): Promise<FileGroupHandler> {
+    const chrisFilesGroup = await ChRISFilesGroup.create(path);
+    return new FileGroupHandler(chrisFilesGroup, path);
   }
 
   async shareFiles(options: CLIoptions): Promise<void> {
@@ -72,26 +46,54 @@ export class FileGroupHandler {
       }
     }
   }
+
+  setupCommand(program: Command): void {
+    console.log("Setting up FileGroupHandler commands");
+    if (this.baseGroupHandler) {
+      this.baseGroupHandler.setupCommand(program);
+    }
+
+    const fileGroupCommand = program.commands.find(
+      (cmd) => cmd.name() === this.assetName
+    );
+
+    if (fileGroupCommand) {
+      fileGroupCommand
+        .command("share")
+        .description("share a (group of) file(s)")
+        .option(
+          "-f, --force",
+          "force sharing (do not ask for user confirmation)"
+        )
+        .action(async (options: CLIoptions) => {
+          await this.shareFiles(options);
+        });
+    } else {
+      console.error(
+        `Failed to find '${this.assetName}' command. The 'share' subcommand was not added.`
+      );
+    }
+  }
 }
 
 export class FileMemberHandler {
+  private baseGroupHandler: BaseGroupHandler | null = null;
+  private chrisFilesGroup: ChRISFilesGroup | null = null;
   private _path: string;
-  private assetName: string = "file";
+  assetName = "file";
 
-  constructor(path: string) {
+  private constructor(chrisFilesGroup: ChRISFilesGroup, path: string) {
     this._path = path;
+    this.chrisFilesGroup = chrisFilesGroup;
+    this.baseGroupHandler = new BaseGroupHandler(
+      this.assetName,
+      chrisFilesGroup
+    );
   }
 
-  async initialize(): Promise<void> {
-    try {
-      console.log(`Initializing FileMemberHandler for path: ${this._path}`);
-      // Add any necessary initialization logic here
-      console.log("FileMemberHandler initialized successfully");
-    } catch (error) {
-      console.error("An initialization error occurred:");
-      console.error(error);
-      throw new InitializationError("Failed to initialize FileMemberHandler");
-    }
+  static async create(path: string): Promise<FileMemberHandler> {
+    const chrisFilesGroup = await ChRISFilesGroup.create(path);
+    return new FileMemberHandler(chrisFilesGroup, path);
   }
 
   setupCommand(program: Command): void {
