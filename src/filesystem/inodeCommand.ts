@@ -1,7 +1,7 @@
 import { Command } from "commander";
 import { FileGroupHandler, FileMemberHandler } from "./fileGroupHandler.js";
 
-export function setupInodeCommand(program: Command): void {
+export async function setupInodeCommand(program: Command): Promise<void> {
   const inodeCommand = program
     .command("inode <path>")
     .description("Interact with ChRIS filesystem resources at a specific path")
