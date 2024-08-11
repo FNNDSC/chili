@@ -120,7 +120,7 @@ async function main() {
   program
     .option(
       "--context <context>",
-      "Specify the ChRIS context URL and/or unextpath"
+      "specify the ChRIS context URL and/or unextpath"
     )
     .hook("preAction", (thisCommand, actionCommand) => {
       const context = thisCommand.opts().context;
