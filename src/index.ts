@@ -9,6 +9,7 @@ import { FeedGroupHandler, FeedMemberHandler } from "./feeds/feedHandler.js";
 import { PluginGroupHandler } from "./plugins/pluginHandler.js";
 import { PluginMetaGroupHandler } from "./plugins/pluginMetaHandler.js";
 import { setupInodeCommand } from "./filesystem/inodeCommand.js";
+import { setupContextCommand } from "./context/contextCommand.js";
 import { setupFileBrowserCommand } from "./filesystem/filesystemHandler.js";
 import { chrisConnection } from "@fnndsc/cumin";
 
@@ -67,6 +68,7 @@ async function setupOtherCommands() {
 
   // Setup other commands here
   setupFileBrowserCommand(program);
+  setupContextCommand(program);
   await setupInodeCommand(program);
 
   const pluginGroupHandler = new PluginGroupHandler();
