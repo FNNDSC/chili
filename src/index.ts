@@ -12,6 +12,7 @@ import { setupInodeCommand } from "./filesystem/inodeCommand.js";
 import { setupContextCommand } from "./context/contextCommand.js";
 import { setupFileBrowserCommand } from "./filesystem/filesystemHandler.js";
 import { chrisConnection } from "@fnndsc/cumin";
+import { FileGroupHandler } from "./filesystem/fileGroupHandler.js";
 
 const program = new Command();
 
@@ -71,17 +72,21 @@ async function setupOtherCommands() {
   setupContextCommand(program);
   await setupInodeCommand(program);
 
-  const pluginGroupHandler = new PluginGroupHandler();
+  const pluginGroupHandler: PluginGroupHandler = new PluginGroupHandler();
   pluginGroupHandler.setupCommand(program);
 
-  const pluginMetaGroupHandler = new PluginMetaGroupHandler();
+  const pluginMetaGroupHandler: PluginMetaGroupHandler =
+    new PluginMetaGroupHandler();
   pluginMetaGroupHandler.setupCommand(program);
 
-  const feedGroupHandler = new FeedGroupHandler();
+  const feedGroupHandler: FeedGroupHandler = new FeedGroupHandler();
   feedGroupHandler.setupCommand(program);
 
-  const feedMemberHandler = new FeedMemberHandler();
+  const feedMemberHandler: FeedMemberHandler = new FeedMemberHandler();
   feedMemberHandler.setupCommand(program);
+
+  const fileGroupHandler: FileGroupHandler = await FileGroupHandler.create();
+  fileGroupHandler.setupCommand(program);
 
   // Setup command completion
   setupCommandCompletion();
@@ -122,7 +127,7 @@ async function main() {
   program
     .option(
       "--context <context>",
-      "specify the ChRIS context URL and/or unextpath"
+      "specify the ChRIS context: username, url, folderpath, feed, etc"
     )
     .hook("preAction", (thisCommand, actionCommand) => {
       const context = thisCommand.opts().context;
