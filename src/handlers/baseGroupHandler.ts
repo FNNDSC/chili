@@ -7,10 +7,13 @@ import {
   ListOptions,
   QueryHits,
   extractRecordToQueryHits,
+  chrisContext,
+  Context,
 } from "@fnndsc/cumin";
 import { CLIoptions, optionsToParams } from "../utils/cli.js";
 import * as util from "util";
 import * as readline from "readline";
+import { FileGroupHandler } from "../filesystem/fileGroupHandler.js";
 
 export class BaseGroupHandler {
   assetName: string = "";
