@@ -1,7 +1,7 @@
 // fileGroupHandler.ts
 import { Command } from "commander";
 import { BaseGroupHandler } from "../handlers/baseGroupHandler.js";
-import { ChRISFilesGroup } from "@fnndsc/cumin";
+import { ChRISFilesGroup, chrisContext, Context } from "@fnndsc/cumin";
 import { CLIoptions } from "../utils/cli.js";
 
 class InitializationError extends Error {
@@ -26,7 +26,14 @@ export class FileGroupHandler {
     );
   }
 
-  static async create(path: string): Promise<FileGroupHandler> {
+  static async create(path?: string): Promise<FileGroupHandler> {
+    if (!path) {
+      const fileContext: string | null = chrisContext.getCurrent(
+        Context.ChRISfolder
+      );
+      path = fileContext ? fileContext : "/";
+    }
+    console.log("Setting file context to ", path);
     const chrisFilesGroup = await ChRISFilesGroup.create(path);
     return new FileGroupHandler(chrisFilesGroup, path);
   }
