@@ -1,7 +1,13 @@
-// fileGroupHandler.ts
 import { Command } from "commander";
 import { BaseGroupHandler } from "../handlers/baseGroupHandler.js";
-import { ChRISFilesGroup, chrisContext, Context } from "@fnndsc/cumin";
+import {
+  ChRISFileSystemGroup,
+  ChRISFilesGroup,
+  ChRISLinksGroup,
+  ChRISDirsGroup,
+  chrisContext,
+  Context,
+} from "@fnndsc/cumin";
 import { CLIoptions } from "../utils/cli.js";
 
 class InitializationError extends Error {
@@ -13,49 +19,73 @@ class InitializationError extends Error {
 
 export class FileGroupHandler {
   private baseGroupHandler: BaseGroupHandler | null = null;
-  private chrisFilesGroup: ChRISFilesGroup | null = null;
+  private chrisFileSystemGroup: ChRISFileSystemGroup | null = null;
   private _path: string;
-  assetName = "files";
+  readonly assetName: string;
 
-  constructor(chrisFilesGroup: ChRISFilesGroup, path: string) {
+  private constructor(
+    chrisFileSystemGroup: ChRISFileSystemGroup,
+    path: string,
+    assetName: string
+  ) {
     this._path = path;
-    this.chrisFilesGroup = chrisFilesGroup;
+    this.chrisFileSystemGroup = chrisFileSystemGroup;
+    this.assetName = assetName;
     this.baseGroupHandler = new BaseGroupHandler(
       this.assetName,
-      chrisFilesGroup
+      chrisFileSystemGroup
     );
   }
 
-  static async create(path?: string): Promise<FileGroupHandler> {
+  static async create(
+    assetName: string,
+    path?: string
+  ): Promise<FileGroupHandler> {
     if (!path) {
       const fileContext: string | null = chrisContext.getCurrent(
         Context.ChRISfolder
       );
       path = fileContext ? fileContext : "/";
     }
-    console.log("Setting file context to ", path);
-    const chrisFilesGroup = await ChRISFilesGroup.create(path);
-    return new FileGroupHandler(chrisFilesGroup, path);
+
+    let chrisFileSystemGroup: ChRISFileSystemGroup;
+
+    switch (assetName) {
+      case "files":
+        chrisFileSystemGroup = await ChRISFilesGroup.create(path);
+        break;
+      case "links":
+        chrisFileSystemGroup = await ChRISLinksGroup.create(path);
+        break;
+      case "dirs":
+        chrisFileSystemGroup = await ChRISDirsGroup.create(path);
+        break;
+      default:
+        throw new InitializationError(`Unsupported asset type: ${assetName}`);
+    }
+
+    return new FileGroupHandler(chrisFileSystemGroup, path, assetName);
   }
 
   async shareFiles(options: CLIoptions): Promise<void> {
     try {
-      console.log(`Sharing files from ${this._path}...`);
+      console.log(`Sharing ${this.assetName} from ${this._path}...`);
       if (options.force) {
         console.log("Force sharing enabled");
       }
       // Implement actual file sharing logic here
     } catch (error: unknown) {
       if (error instanceof Error) {
-        console.error(`Error sharing file(s): ${error.message}`);
+        console.error(`Error sharing ${this.assetName}: ${error.message}`);
       } else {
-        console.error("An unknown error occurred while sharing the file(s)");
+        console.error(
+          `An unknown error occurred while sharing the ${this.assetName}`
+        );
       }
     }
   }
 
   setupCommand(program: Command): void {
-    console.log("Setting up FileGroupHandler commands");
     if (this.baseGroupHandler) {
       this.baseGroupHandler.setupCommand(program);
     }
@@ -67,7 +97,7 @@ export class FileGroupHandler {
     if (fileGroupCommand) {
       fileGroupCommand
         .command("share")
-        .description("share a (group of) file(s)")
+        .description(`share a (group of) ${this.assetName}`)
         .option(
           "-f, --force",
           "force sharing (do not ask for user confirmation)"
@@ -104,7 +134,6 @@ export class FileMemberHandler {
   }
 
   setupCommand(program: Command): void {
-    console.log("Setting up FileMemberHandler commands");
     program
       .command("view")
       .description("view a file")
