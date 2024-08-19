@@ -18,17 +18,19 @@
   "dependencies": {
     "@fnndsc/chrisapi": "^1.21.0",
     "@fnndsc/cumin": "file:/home/rudolph/src/tui/cumin",
-    "commander": "^12.1.0",
-    "figlet": "^1.7.0",
-    "node-fetch": "^3.3.2",
     "axios": "^1.6.0",
     "chalk": "^4.1.2",
-    "marked": "^9.1.0",
+    "cli-progress": "^3.12.0",
     "cli-table3": "^0.6.3",
+    "commander": "^12.1.0",
+    "figlet": "^1.7.0",
+    "marked": "^9.1.0",
     "marked-terminal": "^6.1.0",
+    "node-fetch": "^3.3.2",
     "omelette": "^0.4.17"
   },
   "devDependencies": {
+    "@types/cli-progress": "^3.11.6",
     "@types/figlet": "^1.5.8",
     "@types/node": "^20.14.7",
     "@types/node-fetch": "^2.6.11",
