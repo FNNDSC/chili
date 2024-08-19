@@ -7,13 +7,13 @@ import {
   ListOptions,
   QueryHits,
   extractRecordToQueryHits,
-  chrisContext,
-  Context,
+  // chrisContext,
+  // Context,
 } from "@fnndsc/cumin";
 import { CLIoptions, optionsToParams } from "../utils/cli.js";
 import * as util from "util";
 import * as readline from "readline";
-import { FileGroupHandler } from "../filesystem/fileGroupHandler.js";
+// import { FileGroupHandler } from "../filesystem/fileGroupHandler.js";
 
 export class BaseGroupHandler {
   assetName: string = "";
@@ -34,7 +34,9 @@ export class BaseGroupHandler {
         await this.chrisObject.asset.resources_listAndFilterByOptions(params);
 
       if (!results) {
-        console.error(`No ${this.assetName} resources found.`);
+        console.error(
+          `No ${this.assetName} resources found. Perhaps check your current context?`
+        );
         return;
       }
 
