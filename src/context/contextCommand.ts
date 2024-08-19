@@ -34,8 +34,6 @@ function context_getFull(options): string {
 
   const currentUser: string = fullContext.currentUser;
   const currentURL: string = fullContext.currentURL;
-  output += `Current User: ${currentUser || "Not set"}\n`;
-  output += `Current URL:  ${currentURL || "Not set"}\n\n`;
 
   Object.entries(fullContext.users).forEach(
     ([user, userContext]: [string, UserContext]) => {
@@ -81,40 +79,62 @@ function context_getFull(options): string {
 }
 
 function context_getSingle(options: ContextCLIoptions): string {
-  const results: string[] = [];
   chrisContext.currentContext_update();
 
-  if (options.ChRISurl || options.full) {
-    results.push(`ChRIS URL: ${chrisContext.singleContext.URL || "Not set"}`);
-  }
+  if (options.full) {
+    const table = new Table({
+      head: [chalk.cyan("Context"), chalk.cyan("Value")],
+      colWidths: [20, 50],
+    });
 
-  if (options.ChRISuser || options.full) {
-    results.push(`ChRIS User: ${chrisContext.singleContext.user || "Not set"}`);
-  }
-
-  if (options.ChRISfolder || options.full) {
-    results.push(
-      `ChRIS Folder: ${chrisContext.singleContext.folder || "Not set"}`
+    table.push(
+      ["ChRIS URL", chrisContext.singleContext.URL || "Not set"],
+      ["ChRIS User", chrisContext.singleContext.user || "Not set"],
+      ["ChRIS Folder", chrisContext.singleContext.folder || "Not set"],
+      ["ChRIS Feed", chrisContext.singleContext.feed || "Not set"],
+      ["ChRIS Plugin", chrisContext.singleContext.plugin || "Not set"]
     );
-  }
 
-  if (options.ChRISfeed || options.full) {
-    results.push(`ChRIS Feed: ${chrisContext.singleContext.feed || "Not set"}`);
-  }
+    return table.toString();
+  } else {
+    const results: string[] = [];
 
-  if (options.ChRISplugin || options.full) {
-    results.push(
-      `ChRIS Plugin: ${chrisContext.singleContext.plugin || "Not set"}`
-    );
-  }
+    if (options.ChRISurl) {
+      results.push(`ChRIS URL: ${chrisContext.singleContext.URL || "Not set"}`);
+    }
 
-  if (results.length === 0) {
-    results.push(
-      "No specific context requested. Use --ChRISurl, --ChRISuser, --ChRISfolder, --ChRISfeed, or --full"
-    );
-  }
+    if (options.ChRISuser) {
+      results.push(
+        `ChRIS User: ${chrisContext.singleContext.user || "Not set"}`
+      );
+    }
 
-  return results.join("\n");
+    if (options.ChRISfolder) {
+      results.push(
+        `ChRIS Folder: ${chrisContext.singleContext.folder || "Not set"}`
+      );
+    }
+
+    if (options.ChRISfeed) {
+      results.push(
+        `ChRIS Feed: ${chrisContext.singleContext.feed || "Not set"}`
+      );
+    }
+
+    if (options.ChRISplugin) {
+      results.push(
+        `ChRIS Plugin: ${chrisContext.singleContext.plugin || "Not set"}`
+      );
+    }
+
+    if (results.length === 0) {
+      results.push(
+        "No specific context requested. Use --ChRISurl, --ChRISuser, --ChRISfolder, --ChRISfeed, or --full"
+      );
+    }
+
+    return results.join("\n");
+  }
 }
 
 function context_set(options: ContextCLIoptions): string {
