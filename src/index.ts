@@ -10,6 +10,7 @@ import { PluginGroupHandler } from "./plugins/pluginHandler.js";
 import { PluginMetaGroupHandler } from "./plugins/pluginMetaHandler.js";
 import { setupInodeCommand } from "./filesystem/inodeCommand.js";
 import { setupContextCommand } from "./context/contextCommand.js";
+import { setupHostCommand } from "./host/hostCommand.js";
 import { setupFileBrowserCommand } from "./filesystem/filesystemHandler.js";
 import { chrisConnection } from "@fnndsc/cumin";
 import { FileGroupHandler } from "./filesystem/fileGroupHandler.js";
@@ -57,8 +58,7 @@ function setupCommandCompletion() {
   }
 }
 
-async function setupOtherCommands() {
-  // Check if we have a valid ChRIS connection
+async function initializeHandlers() {
   const client = chrisConnection.getClient();
   if (!client) {
     console.error(
@@ -67,9 +67,9 @@ async function setupOtherCommands() {
     process.exit(1);
   }
 
-  // Setup other commands here
   setupFileBrowserCommand(program);
   setupContextCommand(program);
+  setupHostCommand(program);
   await setupInodeCommand(program);
 
   const pluginGroupHandler: PluginGroupHandler = new PluginGroupHandler();
@@ -85,24 +85,37 @@ async function setupOtherCommands() {
   const feedMemberHandler: FeedMemberHandler = new FeedMemberHandler();
   feedMemberHandler.setupCommand(program);
 
-  const fileGroupHandler: FileGroupHandler = await FileGroupHandler.create();
-  fileGroupHandler.setupCommand(program);
+  const filesGroupHandler: FileGroupHandler = await FileGroupHandler.create(
+    "files"
+  );
+  filesGroupHandler.setupCommand(program);
 
-  // Setup command completion
+  const linksGroupHandler: FileGroupHandler = await FileGroupHandler.create(
+    "links"
+  );
+  linksGroupHandler.setupCommand(program);
+
+  const dirsGroupHandler: FileGroupHandler = await FileGroupHandler.create(
+    "dirs"
+  );
+  dirsGroupHandler.setupCommand(program);
+
   setupCommandCompletion();
 }
 
 async function main() {
-  // Setup basic program info
   program
     .option("-v, --verbose", "enable verbose output")
     .option("-c, --config <path>", "path to config file")
-    .option("-s, --nosplash", "disable splash screen");
+    .option("-s, --nosplash", "disable splash screen")
+    .option(
+      "--context <context>",
+      "specify the ChRIS context: username, url, folderpath, feed, etc"
+    );
 
-  // Setup connect command early
   setupConnectCommand(program);
 
-  // Parse arguments to check if it's a connect command
+  // Parse arguments to handle global options and context
   program.parseOptions(process.argv);
   const options = program.opts();
 
@@ -111,7 +124,6 @@ async function main() {
     console.log("The ChRIS Interactive Line Interface");
   }
 
-  // Handle global options
   if (options.verbose) {
     console.log("Verbose mode enabled");
   }
@@ -120,22 +132,16 @@ async function main() {
     console.log(`Using config file: ${options.config}`);
   }
 
-  // If it's not a connect command, setup other commands
-  if (!process.argv.includes("connect")) {
-    await setupOtherCommands();
+  // Set context if provided
+  if (options.context) {
+    chrisConnection.setContext(options.context);
   }
-  program
-    .option(
-      "--context <context>",
-      "specify the ChRIS context: username, url, folderpath, feed, etc"
-    )
-    .hook("preAction", (thisCommand, actionCommand) => {
-      const context = thisCommand.opts().context;
-      if (context) {
-        // Set the context for the ChRIS connection
-        chrisConnection.setContext(context);
-      }
-    });
+
+  // If it's not a connect command, initialize other handlers
+  if (!process.argv.includes("connect")) {
+    await initializeHandlers();
+  }
+
   // Re-parse arguments to handle the selected command
   program.parse(process.argv);
 }
