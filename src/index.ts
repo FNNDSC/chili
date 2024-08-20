@@ -8,6 +8,7 @@ import { setupConnectCommand } from "./connect/connectHandler.js";
 import { FeedGroupHandler, FeedMemberHandler } from "./feeds/feedHandler.js";
 import { PluginGroupHandler } from "./plugins/pluginHandler.js";
 import { PluginMetaGroupHandler } from "./plugins/pluginMetaHandler.js";
+import { PluginContextGroupHandler } from "./plugins/pluginGroupHandler.js";
 import { setupInodeCommand } from "./filesystem/inodeCommand.js";
 import { setupContextCommand } from "./context/contextCommand.js";
 import { setupHostCommand } from "./host/hostCommand.js";
@@ -99,6 +100,18 @@ async function initializeHandlers() {
     "dirs"
   );
   dirsGroupHandler.setupCommand(program);
+
+  const pluginComputeHandler: PluginContextGroupHandler =
+    await PluginContextGroupHandler.create("plugincompute");
+  pluginComputeHandler.setupCommand(program);
+
+  const pluginInstancesHandler: PluginContextGroupHandler =
+    await PluginContextGroupHandler.create("plugininstances");
+  pluginInstancesHandler.setupCommand(program);
+
+  const pluginParameters: PluginContextGroupHandler =
+    await PluginContextGroupHandler.create("pluginparameters");
+  pluginParameters.setupCommand(program);
 
   setupCommandCompletion();
 }
