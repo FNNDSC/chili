@@ -3,25 +3,31 @@ import {
   FilteredResourceData,
   ChRISPluginGroup,
   ChRISFeedGroup,
-  ChRISFilesGroup,
+  ChRISFileSystemGroup,
+  ChRISPluginSystemGroup,
   ListOptions,
   QueryHits,
   extractRecordToQueryHits,
-  // chrisContext,
-  // Context,
 } from "@fnndsc/cumin";
 import { CLIoptions, optionsToParams } from "../utils/cli.js";
 import * as util from "util";
 import * as readline from "readline";
-// import { FileGroupHandler } from "../filesystem/fileGroupHandler.js";
 
 export class BaseGroupHandler {
   assetName: string = "";
-  chrisObject: ChRISPluginGroup | ChRISFeedGroup | ChRISFilesGroup;
+  chrisObject:
+    | ChRISPluginGroup
+    | ChRISFeedGroup
+    | ChRISFileSystemGroup
+    | ChRISPluginSystemGroup;
 
   constructor(
     assetName: string,
-    chrisObject: ChRISPluginGroup | ChRISFeedGroup | ChRISFilesGroup
+    chrisObject:
+      | ChRISPluginGroup
+      | ChRISFeedGroup
+      | ChRISFileSystemGroup
+      | ChRISPluginSystemGroup
   ) {
     this.assetName = assetName;
     this.chrisObject = chrisObject;
@@ -178,6 +184,18 @@ export class BaseGroupHandler {
     return queryHits.hits;
   }
 
+  async deleteHandler(options: CLIoptions): Promise<void> {
+    let nIDs: number[] | null;
+    nIDs = await this.IDs_getFromSearch(options);
+    if (!nIDs) {
+      console.error(`No ${this.assetName} matched the search criteria.`);
+      return;
+    }
+    if (nIDs) {
+      await this.deleteResources(nIDs, options.force);
+    }
+  }
+
   setupCommand(program: Command): void {
     const command = program
       .command(this.assetName)
@@ -207,40 +225,24 @@ export class BaseGroupHandler {
       });
 
     command
-      .command("delete [IDs]")
+      .command("delete <searchable>")
       .description(
-        `delete target ${this.assetName} -- either by direct ID (comma separated list) or specified in a --search`
-      )
-      .option(
-        "-s, --search <searchTerms>",
-        `search for ${this.assetName} using a comma-separated key-value pairs`
+        `delete target ${this.assetName} resolved from '++' separated <searchable>, i.e. "id:77++id:33"`
       )
       .option(
         "-f, --force",
         `force the deletion without prompting for user confirmation`
       )
-      .action(
-        async (
-          ID: string | undefined,
-          options: CLIoptions & { search?: string }
-        ) => {
-          let nIDs: number[] | null;
-          if (ID === undefined) {
-            nIDs = await this.IDs_getFromSearch(options);
-            if (!nIDs) {
-              console.error(
-                `No ${this.assetName} matched the search criteria.`
-              );
-              return;
-            }
-          } else {
-            const sIDs: string[] = ID.split(",");
-            nIDs = sIDs.map(Number);
-          }
-          if (nIDs) {
-            await this.deleteResources(nIDs, options.force);
-          }
+      .action(async (searchable: string, options: CLIoptions) => {
+        const searchParts = searchable.split("++").map((part) => part.trim());
+        console.log(`searchParts = ${searchParts}`);
+        for (const searchPart of searchParts) {
+          const currentOptions: CLIoptions = {
+            ...options,
+            search: searchPart,
+          };
+          await this.deleteHandler(currentOptions);
         }
-      );
+      });
   }
 }
