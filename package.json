@@ -3,21 +3,38 @@
   "version": "1.0.0",
   "description": "The ChRIS Interactive Line Agent -- a nodejs CLI REPL for ChRIS",
   "type": "module",
-  "scripts": {
-    "build": "tsc && chmod +x ./dist/index.js",
-    "start": "node dist/index.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
   "main": "dist/index.js",
   "bin": {
     "chili": "./dist/index.js"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "scripts": {
+    "build": "tsc && chmod +x ./dist/index.js",
+    "start": "node dist/index.js",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "clean": "rm -rf dist types fnndsc-chili*tgz",
+    "build:cumin": "cd ../cumin && npm run build",
+    "build:chili": "npm run clean && npm install && npm run build",
+    "build:all": "npm run build:cumin && npm run build:chili && npm run pack",
+    "prepack": "npm link ../cumin",
+    "pack": "npm pack",
+    "install:local": "npm i --ignore-scripts $(npm pack | tail -1)",
+    "deploy": "npm run build:all && npm run install:local"
+  },
+  "files": [
+    "dist/**/*",
+    "doc/**/*"
+  ],
+  "keywords": [
+    "chris",
+    "cli",
+    "repl"
+  ],
+  "author": "FNNDSC <dev@babyMRI.org>",
+  "license": "MIT",
   "dependencies": {
+    "@fnndsc/chili": "file:fnndsc-chili-1.0.0.tgz",
     "@fnndsc/chrisapi": "^1.21.0",
-    "@fnndsc/cumin": "file:/home/rudolph/src/tui/cumin",
+    "@fnndsc/cumin": "file:../cumin",
     "axios": "^1.6.0",
     "chalk": "^4.1.2",
     "cli-progress": "^3.12.0",
@@ -27,6 +44,9 @@
     "marked": "^9.1.0",
     "marked-terminal": "^6.1.0",
     "node-fetch": "^3.3.2",
+    "@fortawesome/fontawesome-free": "^6.6.0",
+    "@fortawesome/fontawesome-svg-core": "^6.6.0",
+    "@fortawesome/free-solid-svg-icons": "^6.6.0",
     "omelette": "^0.4.17"
   },
   "devDependencies": {
@@ -36,14 +56,5 @@
     "@types/node-fetch": "^2.6.11",
     "@types/omelette": "^0.4.4",
     "typescript": "^5.5.2"
-  },
-  "compilerOptions": {
-    "typeRoots": [
-      "./node_modules/@types",
-      "./src/types"
-    ]
-  },
-  "include": [
-    "src/**/*"
-  ]
+  }
 }
