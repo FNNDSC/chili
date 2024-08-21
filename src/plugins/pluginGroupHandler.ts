@@ -1,15 +1,13 @@
 import { Command } from "commander";
 import { BaseGroupHandler } from "../handlers/baseGroupHandler.js";
 import {
-  ChRISPluginSystemGroup,
-  PluginInstances,
-  PluginMeta,
-  PluginComputeResources,
-  PluginParameters,
+  ChRISEmbeddedResourceGroup,
+  createObjContext,
   chrisContext,
   Context,
 } from "@fnndsc/cumin";
 import { CLIoptions } from "../utils/cli.js";
+import { Plugin } from "@fnndsc/chrisapi";
 
 class InitializationError extends Error {
   constructor(message: string) {
@@ -20,12 +18,12 @@ class InitializationError extends Error {
 
 export class PluginContextGroupHandler {
   private baseGroupHandler: BaseGroupHandler | null = null;
-  private chrisPluginSystemGroup: ChRISPluginSystemGroup | null = null;
+  private chrisPluginSystemGroup: ChRISEmbeddedResourceGroup | null = null;
   private _id: number | null;
   readonly assetName: string;
 
   private constructor(
-    chrisPluginSystemGroup: ChRISPluginSystemGroup,
+    chrisPluginSystemGroup: ChRISEmbeddedResourceGroup,
     id: number | null,
     assetName: string
   ) {
@@ -49,17 +47,31 @@ export class PluginContextGroupHandler {
       id = pluginContext ? pluginContext : 1;
     }
 
-    let chrisPluginSystemGroup: ChRISPluginSystemGroup;
+    let chrisPluginSystemGroup: ChRISEmbeddedResourceGroup;
 
     switch (assetName) {
-      case "plugincompute":
-        chrisPluginSystemGroup = await PluginComputeResources.create(id);
+      case "plugincomputes":
+        chrisPluginSystemGroup = (await createObjContext(
+          "PluginComputeResources",
+          `plugin:${id}`
+        )) as ChRISEmbeddedResourceGroup<Plugin>;
+        // chrisPluginSystemGroup = await PluginComputeResources.create(
+        //   `plugin:${id}`
+        // );
         break;
       case "plugininstances":
-        chrisPluginSystemGroup = await PluginInstances.create(id);
+        chrisPluginSystemGroup = (await createObjContext(
+          "PluginInstances",
+          `plugin:${id}`
+        )) as ChRISEmbeddedResourceGroup<Plugin>;
+        // chrisPluginSystemGroup = await PluginInstances.create(`plugin:${id}`);
         break;
       case "pluginparameters":
-        chrisPluginSystemGroup = await PluginParameters.create(id);
+        chrisPluginSystemGroup = (await createObjContext(
+          "PluginParameters",
+          `plugin:${id}`
+        )) as ChRISEmbeddedResourceGroup<Plugin>;
+        // chrisPluginSystemGroup = await PluginParameters.create(`plugin:${id}`);
         break;
       default:
         throw new InitializationError(`Unsupported asset type: ${assetName}`);
