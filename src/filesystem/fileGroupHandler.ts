@@ -1,14 +1,13 @@
 import { Command } from "commander";
 import { BaseGroupHandler } from "../handlers/baseGroupHandler.js";
 import {
-  ChRISFileSystemGroup,
-  ChRISFilesGroup,
-  ChRISLinksGroup,
-  ChRISDirsGroup,
+  ChRISEmbeddedResourceGroup,
+  createObjContext,
   chrisContext,
   Context,
 } from "@fnndsc/cumin";
 import { CLIoptions } from "../utils/cli.js";
+import { FileBrowserFolder } from "@fnndsc/chrisapi";
 
 class InitializationError extends Error {
   constructor(message: string) {
@@ -19,12 +18,12 @@ class InitializationError extends Error {
 
 export class FileGroupHandler {
   private baseGroupHandler: BaseGroupHandler | null = null;
-  private chrisFileSystemGroup: ChRISFileSystemGroup | null = null;
+  private chrisFileSystemGroup: ChRISEmbeddedResourceGroup | null = null;
   private _path: string;
   readonly assetName: string;
 
   private constructor(
-    chrisFileSystemGroup: ChRISFileSystemGroup,
+    chrisFileSystemGroup: ChRISEmbeddedResourceGroup,
     path: string,
     assetName: string
   ) {
@@ -48,17 +47,27 @@ export class FileGroupHandler {
       path = fileContext ? fileContext : "/";
     }
 
-    let chrisFileSystemGroup: ChRISFileSystemGroup;
+    let chrisFileSystemGroup: ChRISEmbeddedResourceGroup;
 
     switch (assetName) {
       case "files":
-        chrisFileSystemGroup = await ChRISFilesGroup.create(path);
+        chrisFileSystemGroup = (await createObjContext(
+          "ChRISFilesContext",
+          `folder:${path}`
+        )) as ChRISEmbeddedResourceGroup<FileBrowserFolder>;
+        // chrisFileSystemGroup = await ChRISFilesGroup.create(`folder:${path}`);
         break;
       case "links":
-        chrisFileSystemGroup = await ChRISLinksGroup.create(path);
+        chrisFileSystemGroup = (await createObjContext(
+          "ChRISLinksContext",
+          `folder:${path}`
+        )) as ChRISEmbeddedResourceGroup<FileBrowserFolder>;
         break;
       case "dirs":
-        chrisFileSystemGroup = await ChRISDirsGroup.create(path);
+        chrisFileSystemGroup = (await createObjContext(
+          "ChRISDirsContext",
+          `folder:${path}`
+        )) as ChRISEmbeddedResourceGroup<FileBrowserFolder>;
         break;
       default:
         throw new InitializationError(`Unsupported asset type: ${assetName}`);
@@ -115,13 +124,16 @@ export class FileGroupHandler {
 
 export class FileMemberHandler {
   private baseGroupHandler: BaseGroupHandler | null = null;
-  private chrisFilesGroup: ChRISFilesGroup | null = null;
+  private chrisFileSystemGroup: ChRISEmbeddedResourceGroup | null = null;
   private _path: string;
   assetName = "file";
 
-  private constructor(chrisFilesGroup: ChRISFilesGroup, path: string) {
+  private constructor(
+    chrisFilesGroup: ChRISEmbeddedResourceGroup,
+    path: string
+  ) {
     this._path = path;
-    this.chrisFilesGroup = chrisFilesGroup;
+    this.chrisFileSystemGroup = chrisFilesGroup;
     this.baseGroupHandler = new BaseGroupHandler(
       this.assetName,
       chrisFilesGroup
@@ -129,7 +141,7 @@ export class FileMemberHandler {
   }
 
   static async create(path: string): Promise<FileMemberHandler> {
-    const chrisFilesGroup = await ChRISFilesGroup.create(path);
+    const chrisFilesGroup = await ChRISEmbeddedResourceGroup.create(path);
     return new FileMemberHandler(chrisFilesGroup, path);
   }
 
