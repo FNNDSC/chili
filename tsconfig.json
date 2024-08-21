@@ -1,18 +1,21 @@
 {
   "compilerOptions": {
-    "declaration": true,
-    "declarationDir": "./dist/types",
     "target": "ES2020",
     "module": "ESNext",
+    "moduleResolution": "node",
     "outDir": "./dist",
     "rootDir": "./src",
     "strict": true,
     "esModuleInterop": true,
-    "moduleResolution": "node",
-    "typeRoots": ["./node_modules/@types", "./types"],
     "skipLibCheck": true,
-    "noImplicitAny": false
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "declaration": true,
+    "declarationDir": "./dist/types",
+    "typeRoots": ["./node_modules/@types", "./types"],
+    "noImplicitAny": false,
+    "allowSyntheticDefaultImports": true
   },
   "include": ["src/**/*", "types/**/*"],
-  "exclude": ["node_modules"]
+  "exclude": ["node_modules", "dist"]
 }
