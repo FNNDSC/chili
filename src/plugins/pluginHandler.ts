@@ -47,17 +47,22 @@ export class PluginGroupHandler {
 }
 
 function displayPluginRunResult(instance: any) {
-  const tableData = Object.entries(instance);
-  console.log(tableData);
-
-  // Define table options
-  const tableOptions = {
+  screen.table(instance, {
+    colWidths: [30, 50],
     head: ["Plugin Parameter", "Value"],
-    colWidths: [25, 55], // Adjust these widths as needed
-  };
+  });
+}
 
-  // Display the table
-  screen.table(tableData, tableOptions);
+function displayPluginRunResult2(instance: any) {
+  // console.log("Instance received:", JSON.stringify(instance, null, 2));
+
+  const tableData = Object.entries(instance);
+  // console.log("Table data prepared:", JSON.stringify(tableData, null, 2));
+
+  screen.table(tableData, {
+    colWidths: [30, 50],
+    head: ["Plugin Parameter", "Value"],
+  });
 }
 
 export class PluginMemberHandler {
