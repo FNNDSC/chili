@@ -6,7 +6,10 @@ import omelette from "omelette";
 
 import { setupConnectCommand } from "./connect/connectHandler.js";
 import { FeedGroupHandler, FeedMemberHandler } from "./feeds/feedHandler.js";
-import { PluginGroupHandler } from "./plugins/pluginHandler.js";
+import {
+  PluginGroupHandler,
+  PluginMemberHandler,
+} from "./plugins/pluginHandler.js";
 import { PluginMetaGroupHandler } from "./plugins/pluginMetaHandler.js";
 import { PluginContextGroupHandler } from "./plugins/pluginGroupHandler.js";
 import { setupInodeCommand } from "./filesystem/inodeCommand.js";
@@ -16,6 +19,7 @@ import { setupFileBrowserCommand } from "./filesystem/filesystemHandler.js";
 import { setupManCommand } from "./man/man.js";
 import { chrisConnection } from "@fnndsc/cumin";
 import { FileGroupHandler } from "./filesystem/fileGroupHandler.js";
+import { screen } from "./screen/screen.js";
 
 const program = new Command();
 
@@ -88,6 +92,9 @@ async function initializeHandlers() {
   const feedMemberHandler: FeedMemberHandler = new FeedMemberHandler();
   feedMemberHandler.setupCommand(program);
 
+  const pluginMemberHandler: PluginMemberHandler = new PluginMemberHandler();
+  pluginMemberHandler.setupCommand(program);
+
   const filesGroupHandler: FileGroupHandler = await FileGroupHandler.create(
     "files"
   );
@@ -111,9 +118,9 @@ async function initializeHandlers() {
     await PluginContextGroupHandler.create("plugininstances");
   pluginInstancesHandler.setupCommand(program);
 
-  const pluginParameters: PluginContextGroupHandler =
+  const pluginParametersHandler: PluginContextGroupHandler =
     await PluginContextGroupHandler.create("pluginparameters");
-  pluginParameters.setupCommand(program);
+  pluginParametersHandler.setupCommand(program);
 
   setupCommandCompletion();
 }
