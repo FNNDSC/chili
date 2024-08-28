@@ -8,6 +8,7 @@ import {
   ListOptions,
   QueryHits,
   extractRecordToQueryHits,
+  errorStack,
 } from "@fnndsc/cumin";
 import { CLIoptions, optionsToParams } from "../utils/cli.js";
 import * as util from "util";
@@ -52,10 +53,7 @@ export class BaseGroupHandler {
         console.table(results.tableData, results.selectedFields);
       }
     } catch (error) {
-      console.error(
-        `An error occurred while listing ${this.assetName}:`,
-        error
-      );
+      console.log(errorStack.searchStack(this.assetName)[0]);
     }
   }
 
@@ -76,10 +74,7 @@ export class BaseGroupHandler {
         console.table(results.fields);
       }
     } catch (error) {
-      console.error(
-        `An error occurred while listing ${this.assetName} resource fields:`,
-        error
-      );
+      console.log(errorStack.searchStack(this.assetName)[0]);
     }
   }
 
