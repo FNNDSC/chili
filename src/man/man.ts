@@ -2,7 +2,10 @@ import { Command } from "commander";
 import fs from "fs";
 import path from "path";
 import chalk from "chalk";
+import figlet from "figlet";
 import { marked } from "marked";
+import asciidoctor from "asciidoctor";
+import * as highlight from "cli-highlight";
 import { exec, execSync, ExecException } from "child_process";
 import url from "url";
 import os from "os";
@@ -15,6 +18,19 @@ interface ManPageOptions {
   topic: string;
   browser?: boolean;
 }
+
+interface HeadingStyle {
+  regex: RegExp;
+  font: figlet.Fonts;
+  color: chalk.Chalk;
+}
+
+const headingStyles: HeadingStyle[] = [
+  { regex: /<h1.*?>(.*?)<\/h1>/g, font: "Standard", color: chalk.magenta },
+  { regex: /<h2.*?>(.*?)<\/h2>/g, font: "Slant", color: chalk.yellow },
+  { regex: /<h3.*?>(.*?)<\/h3>/g, font: "Small", color: chalk.green },
+  { regex: /<h4.*?>(.*?)<\/h4>/g, font: "Mini", color: chalk.blue },
+];
 
 const docDir: string = path.join(projectDir_get(), "doc");
 
@@ -34,33 +50,100 @@ function projectDir_get(): string {
   return url.fileURLToPath(currentDirectory);
 }
 
-function renderAsciidoc(content: string): string {
-  const html: string = marked(content);
-  return html
-    .replace(/<h1>(.*?)<\/h1>/g, (_, p1: string) =>
-      chalk.bold.underline.green(p1)
-    )
-    .replace(/<h2>(.*?)<\/h2>/g, (_, p1: string) => chalk.bold.yellow(p1))
-    .replace(/<code>(.*?)<\/code>/g, (_, p1: string) => chalk.cyan(p1))
-    .replace(/<\/?[^>]+(>|$)/g, ""); // Remove remaining HTML tags
+function adocToHtml(content: string): string {
+  const ascii: ReturnType<typeof asciidoctor> = asciidoctor();
+  let result: string = ascii.convert(content, {
+    standalone: false,
+    attributes: {
+      showtitle: "",
+      sectlinks: "",
+      sectanchors: "",
+    },
+  }) as string;
+  return result;
+}
+
+async function renderAsciidoc(content: string): Promise<string> {
+  let result: string = adocToHtml(content);
+
+  const createFiglet = (text: string, font: figlet.Fonts): Promise<string> => {
+    return new Promise((resolve) => {
+      figlet.text(text, { font }, (err, data) => {
+        resolve(err ? text : data || text);
+      });
+    });
+  };
+
+  const processHeading = async (
+    text: string,
+    style: HeadingStyle
+  ): Promise<string> => {
+    const figletText = await createFiglet(text, style.font);
+    return style.color(figletText);
+  };
+
+  // Process headings
+  for (const style of headingStyles) {
+    const matches = result.match(style.regex) || [];
+    for (const match of matches) {
+      const text = match
+        .replace(/<\/?h[1-4].*?>/g, "")
+        .replace(/<a.*?>(.*?)<\/a>/g, "$1");
+      const processed = await processHeading(text, style);
+      result = result.replace(match, `\n${processed}\n`);
+    }
+  }
+
+  // Process other elements
+  result = result
+    .replace(/<code>(.*?)<\/code>/g, (_, p1) => chalk.cyan(p1))
+    .replace(/<em>(.*?)<\/em>/g, (_, p1) => chalk.italic(p1))
+    .replace(/<\/?div.*?>/g, "")
+    .replace(/<p>(.*?)<\/p>/g, "$1\n\n")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&amp;/g, "&")
+    .replace(/<a.*?>(.*?)<\/a>/g, "$1")
+    .replace(/<\/?[^>]+(>|$)/g, "")
+    .trim();
+
+  return result;
 }
 
 function openInBrowser(filePath: string): void {
+  const ascii: ReturnType<typeof asciidoctor> = asciidoctor();
   const tempHtmlPath: string = path.join(
     os.tmpdir(),
     path.basename(filePath).replace(".adoc", ".html")
   );
 
   try {
-    execSync(`asciidoctor -o ${tempHtmlPath} ${filePath}`);
+    // Read the AsciiDoc content
+    const content: string = fs.readFileSync(filePath, "utf-8");
 
+    // Convert AsciiDoc to HTML
+    const html: string = ascii.convert(content, {
+      safe: "safe",
+      standalone: true,
+      attributes: { showtitle: true },
+    }) as string;
+
+    // Write the HTML to a temporary file
+    fs.writeFileSync(tempHtmlPath, html);
+
+    // Open the HTML file in the default browser
     const command: string =
       process.platform === "win32"
         ? "start"
         : process.platform === "darwin"
         ? "open"
         : "xdg-open";
-    execSync(`${command} ${tempHtmlPath}`);
+
+    exec(`${command} ${tempHtmlPath}`, (error: ExecException | null) => {
+      if (error) {
+        console.error("Error opening browser:", error);
+      }
+    });
   } catch (error: unknown) {
     console.error(
       "Error opening documentation in browser:",
@@ -82,7 +165,7 @@ async function topics_list(): Promise<string[]> {
   return formattedOutput;
 }
 
-function manpage_handle(options: ManPageOptions): void {
+async function manpage_handle(options: ManPageOptions): Promise<void> {
   const docPath: string = path.join(docDir, `${options.topic}.adoc`);
 
   if (!fs.existsSync(docPath)) {
@@ -94,7 +177,7 @@ function manpage_handle(options: ManPageOptions): void {
     openInBrowser(docPath);
   } else {
     const content: string = fs.readFileSync(docPath, "utf-8");
-    console.log(renderAsciidoc(content));
+    console.log(await renderAsciidoc(content));
   }
 }
 
@@ -107,9 +190,9 @@ export function setupManCommand(program: Command): void {
     .command("doc <topic>")
     .description("Display the manual document for a ChILI topic")
     .option("-b, --browser", "Open documentation in browser")
-    .action((topic, options: ManPageOptions) => {
+    .action(async (topic, options: ManPageOptions) => {
       options.topic = topic;
-      manpage_handle(options);
+      await manpage_handle(options);
     });
 
   manCommand
