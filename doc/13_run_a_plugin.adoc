@@ -1,0 +1,108 @@
+= run a plugin
+
+== intro
+
+Assuming some data has been uploaded into ChRIS, perhaps one of the most common intents is to run some analysis on this data. The simplest case would be running a single specific analysis, or in the parlance of ChRIS, a single _plugin_. A ChRIS plugin can be thought of as a command line program with its associated _flags_ -- these _flags_ control how the plugin will run. Each plugin will have its own unique set of flags.
+
+Additionally, each ChRIS plugin has two _implicit_ parameters that point to where the input data is in ChRIS and where to save the output data. We don't need to worry about this since ChRIS takes care of that for us.
+
+Mostly the only thing we need to know is _where_ in ChRIS is the data we wish to analyze, what analysis program to run, and what _flags_ (if any) to use in the analysis.
+
+== prerequisites
+
+The following prerequisites are relevant:
+
+* you are in some Linux (or macOS) terminal with access to the `chili` program. Again, consult the appropriate manual page if this hasn't been setup yet.
+
+* you have already logged into a ChRIS instance. Please consult the appropriate manual page if you haven't logged in yet.
+
+== first gather your data
+
+Let's assume you have data on your computer that you want to process. Let's assume this data is a set of image files, e.g. DICOM images. Of course, it can be anything. The first step is to get this data into ChRIS. Let's say your login in your computer is user `jane` and you  have data in a directory here:
+
+```
+/home/jane/data/brainproject/scan-1
+```
+
+you can upload this to ChRIS with
+
+```
+chili host upload ~/data/brainproject/scan-1 /home/jane.doe/data/brainproject/scan-1
+```
+
+The first part `~/data/brainproject/scan-1` is the location of the data on your local computer, and the second part `/home/jane.doe/data/brainproject/scan-1` is the location in ChRIS to which you want to upload. Here, we assume your ChRIS login name is `jane.doe`. Note how the internal ChRIS file system mimics a typical Linux system with a `/home/<username>` layout.
+
+You should see something like this:
+
+```
+   ____ _     ___ _     ___ 
+  / ___| |__ |_ _| |   |_ _|
+ | |   | '_ \ | || |    | | 
+ | |___| | | || || |___ | | 
+  \____|_| |_|___|_____|___|
+                            
+The ChRIS Interactive Line Interface
+Scanning files to upload...
+Uploading [████████████████████████████████████████] 100% | ETA: 0s | 8/8 files | 4.01 KB/4.01 KB
+
+Upload Summary:
+┌──────────────────────────────┬────────────────────┐
+│ Metric                       │ Value              │
+├──────────────────────────────┼────────────────────┤
+│ Total files                  │ 8                  │
+├──────────────────────────────┼────────────────────┤
+│ Successfully uploaded        │ 8                  │
+├──────────────────────────────┼────────────────────┤
+│ Failed to upload             │ 0                  │
+├──────────────────────────────┼────────────────────┤
+│ Total data uploaded          │ 4.01 KB            │
+├──────────────────────────────┼────────────────────┤
+│ Average upload speed         │ 5.18 KB/s          │
+├──────────────────────────────┼────────────────────┤
+│ Duration                     │ 0.77 seconds       │
+└──────────────────────────────┴────────────────────┘
+
+```
+
+== now create a feed
+
+Having done this, the next step is to create a _feed_. A _feed_ is simply the name for an analysis that you want to run. The ChRIS UI can interpret this _feed_ as a graphical representation showing all the analysis performed on the data and how different analyses relate to each other.
+
+A _feed_ **always** starts with a single root node. We need to create a new feed with a root node linked to the data we just uploaded.
+
+```
+chili feed create --params "title: A demo analysis" --dirs "/home/jane.doe/brainproject/scan-1"
+```
+
+where the text "A demo analysis" is the title of the feed, and the `--dirs` flag denotes the "directories" inside ChRIS to add to the root. Here, we only add one, the directory containing the data we just uploaded, but you can specify multiple ChRIS directories separating them with a comma character. If successful, this should return something like:
+
+```
+   ____ _     ___ _     ___ 
+  / ___| |__ |_ _| |   |_ _|
+ | |   | '_ \ | || |    | | 
+ | |___| | | || || |___ | | 
+  \____|_| |_|___|_____|___|
+                            
+The ChRIS Interactive Line Interface
+
+Feed Creation Result:
+┌────────────────────┬──────────────────────────────────────────────────┐
+│ Property           │ Value                                            │
+├────────────────────┼──────────────────────────────────────────────────┤
+│ Status             │ Success                                          │
+├────────────────────┼──────────────────────────────────────────────────┤
+│ Plugin ID          │ 37                                               │
+├────────────────────┼──────────────────────────────────────────────────┤
+│ Feed ID            │ 37                                               │
+├────────────────────┼──────────────────────────────────────────────────┤
+│ Feed Name          │ A demo analysis                                  │
+├────────────────────┼──────────────────────────────────────────────────┤
+│ Owner              │ jane.doe                                         │
+└────────────────────┴──────────────────────────────────────────────────┘
+```
+
+Note the ID of the plugin. This is needed in the next step.
+
+== now let's run an analysis on this root node
+
+To use this documentation system, simply read it!

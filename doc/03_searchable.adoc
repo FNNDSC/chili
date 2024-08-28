@@ -1,0 +1,9 @@
+= intro
+
+== welcome
+
+Welome to the inline `chili` documentation system! This set of documents provides help text for each `chili` command. Additionally several important concepts like _searchable_ and _context_ are discussed.
+
+== how to use
+
+To use this documentation system, simply read it!
