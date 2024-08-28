@@ -5,6 +5,7 @@ import {
   createObjContext,
   chrisContext,
   Context,
+  errorStack,
 } from "@fnndsc/cumin";
 import { CLIoptions } from "../utils/cli.js";
 import { Plugin } from "@fnndsc/chrisapi";
@@ -55,23 +56,18 @@ export class PluginContextGroupHandler {
           "PluginComputeResources",
           `plugin:${id}`
         )) as ChRISEmbeddedResourceGroup<Plugin>;
-        // chrisPluginSystemGroup = await PluginComputeResources.create(
-        //   `plugin:${id}`
-        // );
         break;
       case "plugininstances":
         chrisPluginSystemGroup = (await createObjContext(
           "PluginInstances",
           `plugin:${id}`
         )) as ChRISEmbeddedResourceGroup<Plugin>;
-        // chrisPluginSystemGroup = await PluginInstances.create(`plugin:${id}`);
         break;
       case "pluginparameters":
         chrisPluginSystemGroup = (await createObjContext(
           "PluginParameters",
           `plugin:${id}`
         )) as ChRISEmbeddedResourceGroup<Plugin>;
-        // chrisPluginSystemGroup = await PluginParameters.create(`plugin:${id}`);
         break;
       default:
         throw new InitializationError(`Unsupported asset type: ${assetName}`);
