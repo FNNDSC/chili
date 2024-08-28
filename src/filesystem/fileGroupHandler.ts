@@ -51,23 +51,28 @@ export class FileGroupHandler {
 
     switch (assetName) {
       case "files":
-        chrisFileSystemGroup = (await createObjContext(
-          "ChRISFilesContext",
-          `folder:${path}`
-        )) as ChRISEmbeddedResourceGroup<FileBrowserFolder>;
-        // chrisFileSystemGroup = await ChRISFilesGroup.create(`folder:${path}`);
+        try {
+          chrisFileSystemGroup = (await createObjContext(
+            "ChRISFilesContext",
+            `folder:${path}`
+          )) as ChRISEmbeddedResourceGroup<FileBrowserFolder>;
+        } catch (error) {}
         break;
       case "links":
-        chrisFileSystemGroup = (await createObjContext(
-          "ChRISLinksContext",
-          `folder:${path}`
-        )) as ChRISEmbeddedResourceGroup<FileBrowserFolder>;
+        try {
+          chrisFileSystemGroup = (await createObjContext(
+            "ChRISLinksContext",
+            `folder:${path}`
+          )) as ChRISEmbeddedResourceGroup<FileBrowserFolder>;
+        } catch (error) {}
         break;
       case "dirs":
-        chrisFileSystemGroup = (await createObjContext(
-          "ChRISDirsContext",
-          `folder:${path}`
-        )) as ChRISEmbeddedResourceGroup<FileBrowserFolder>;
+        try {
+          chrisFileSystemGroup = (await createObjContext(
+            "ChRISDirsContext",
+            `folder:${path}`
+          )) as ChRISEmbeddedResourceGroup<FileBrowserFolder>;
+        } catch (error) {}
         break;
       default:
         throw new InitializationError(`Unsupported asset type: ${assetName}`);
