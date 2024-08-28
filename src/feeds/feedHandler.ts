@@ -3,6 +3,8 @@ import { BaseGroupHandler } from "../handlers/baseGroupHandler.js";
 import { ChRISFeedGroup, ChRISFeed } from "@fnndsc/cumin";
 import { CLIoptions } from "../utils/cli.js";
 import { optionsToParams, SimpleRecord } from "@fnndsc/cumin";
+import Table from "cli-table3";
+import chalk from "chalk";
 
 export class FeedGroupHandler {
   private baseGroupHandler: BaseGroupHandler;
@@ -61,19 +63,44 @@ export class FeedMemberHandler {
     this.assetName = "feed";
   }
 
+  private feedCreate_report(feedInfo: SimpleRecord | null): void {
+    const table = new Table({
+      head: [chalk.cyan("Property"), chalk.cyan("Value")],
+      colWidths: [20, 50],
+    });
+
+    if (!feedInfo) {
+      table.push(["Status", chalk.red("A feed creation error occurred.")]);
+    } else {
+      table.push(
+        ["Status", chalk.green("Success")],
+        ["Plugin ID", feedInfo.pluginInstance.data.id],
+        ["Feed ID", feedInfo.id],
+        ["Feed Name", feedInfo.name],
+        ["Owner", feedInfo.owner_username]
+      );
+    }
+
+    console.log("\nFeed Creation Result:");
+    console.log(table.toString());
+  }
+
   async createFeed(options: CLIoptions): Promise<SimpleRecord | null> {
     const chrisFeed: ChRISFeed = new ChRISFeed();
-    const feedInfo: SimpleRecord = await chrisFeed.createFromDirs(
-      options.dirs,
-      optionsToParams({ ...options, returnFilter: "params" })
-    );
-    if (!feedInfo) {
-      console.error("A feed creation error occurred.");
-      return null;
+    let feedInfo: SimpleRecord | null;
+
+    try {
+      feedInfo = await chrisFeed.createFromDirs(
+        options.dirs,
+        optionsToParams({ ...options, returnFilter: "params" })
+      );
+    } catch (error) {
+      console.error("An error occurred during feed creation:", error);
+      feedInfo = null;
     }
-    console.log(
-      `Feed ${feedInfo.id} with name "${feedInfo.name}" and owned by "${feedInfo.owner_username}" successfully created.`
-    );
+
+    this.feedCreate_report(feedInfo);
+
     return feedInfo;
   }
 
