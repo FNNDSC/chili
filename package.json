@@ -38,6 +38,7 @@
     "chalk": "^4.1.2",
     "cli-progress": "^3.12.0",
     "cli-table3": "^0.6.3",
+    "table": "^6.8.1",
     "asciidoctor": "^2.2.6",
     "cli-highlight": "^2.1.11",
     "commander": "^12.1.0",
@@ -56,6 +57,7 @@
     "@types/node": "^20.14.7",
     "@types/node-fetch": "^2.6.11",
     "@types/omelette": "^0.4.4",
+    "@types/table": "^6.3.2",
     "typescript": "^5.5.2"
   }
 }
