@@ -1,7 +1,14 @@
 import { Command } from "commander";
 import { BaseGroupHandler } from "../handlers/baseGroupHandler.js";
-import { ChRISPluginGroup } from "@fnndsc/cumin";
+import {
+  ChRISPluginGroup,
+  ChRISPlugin,
+  QueryHits,
+  errorStack,
+  Dictionary,
+} from "@fnndsc/cumin";
 import { CLIoptions } from "../utils/cli";
+import { screen } from "../screen/screen.js";
 
 export class PluginGroupHandler {
   private baseGroupHandler: BaseGroupHandler;
@@ -15,7 +22,52 @@ export class PluginGroupHandler {
     );
   }
 
-  async getPluginInfo(pluginId: string): Promise<void> {
+  async plugins_overview(): Promise<void> {
+    return;
+  }
+
+  setupCommand(program: Command): void {
+    this.baseGroupHandler.setupCommand(program);
+
+    const pluginsCommand = program.commands.find(
+      (cmd) => cmd.name() === this.assetName
+    );
+
+    if (pluginsCommand) {
+      pluginsCommand
+        .command("overview")
+        .description("Get an overview of various plugin-group operations")
+        .action(async (pluginId: string, options: CLIoptions) => {
+          await this.plugins_overview();
+        });
+    } else {
+      console.error(`Failed to find '${this.assetName}' command.`);
+    }
+  }
+}
+
+function displayPluginRunResult(instance: any) {
+  const tableData = Object.entries(instance);
+  console.log(tableData);
+
+  // Define table options
+  const tableOptions = {
+    head: ["Plugin Parameter", "Value"],
+    colWidths: [25, 55], // Adjust these widths as needed
+  };
+
+  // Display the table
+  screen.table(tableData, tableOptions);
+}
+
+export class PluginMemberHandler {
+  private assetName: string;
+
+  constructor() {
+    this.assetName = "plugin";
+  }
+
+  async plugin_infoGet(pluginId: string): Promise<void> {
     try {
       // This is a placeholder. Replace with actual implementation using cumin
       console.log(`Fetching info for plugin with ID: ${pluginId}`);
@@ -30,19 +82,65 @@ export class PluginGroupHandler {
     }
   }
 
-  setupCommand(program: Command): void {
-    this.baseGroupHandler.setupCommand(program);
-
-    const pluginCommand = program.commands.find(
-      (cmd) => cmd.name() === this.assetName
+  async plugin_run(searchable: string, params: string): Promise<Number | null> {
+    const chrisPlugin: ChRISPlugin = new ChRISPlugin();
+    const instance: Dictionary | null = await chrisPlugin.plugin_run(
+      searchable,
+      params
     );
+    if (!instance) {
+      console.log(errorStack.searchMessagesOfType("error", "plugin"));
+    }
+    console.log(instance);
+    displayPluginRunResult(instance);
+    return instance.id;
+  }
+
+  async plugin_searchableToIDs(searchable: string): Promise<string[] | null> {
+    const chrisPlugin: ChRISPlugin = new ChRISPlugin();
+    const queryHits: QueryHits | null = await chrisPlugin.pluginIDs_resolve(
+      searchable
+    );
+    if (!queryHits) {
+      return null;
+    }
+    console.log(queryHits.hits);
+    return queryHits.hits;
+  }
+
+  setupCommand(program: Command): void {
+    const pluginCommand = program
+      .command(this.assetName)
+      .description(`Interact with a single ChRIS ${this.assetName}`);
 
     if (pluginCommand) {
       pluginCommand
         .command("readme <pluginId>")
         .description("Get the readme of a specific plugin")
         .action(async (pluginId: string, options: CLIoptions) => {
-          await this.getPluginInfo(pluginId);
+          await this.plugin_infoGet(pluginId);
+        });
+
+      pluginCommand
+        .command("run <searchable...>")
+        .description("Run a plugin in a given context")
+        .allowUnknownOption(true)
+        .action(async (args: string[], command: Command) => {
+          const searchable: string = args[0];
+          let pluginParams: string = "";
+          if (args.length > 0) {
+            pluginParams = args.slice(1).join("' '");
+          }
+          pluginParams = `'${pluginParams}'`;
+          console.log(pluginParams);
+          await this.plugin_run(searchable, pluginParams);
+        });
+
+      pluginCommand
+        .command("search <searchable>")
+        .description("Resolve a plugin searchable into an ID")
+        .action((searchable) => {
+          this.plugin_searchableToIDs(searchable);
         });
     } else {
       console.error(
