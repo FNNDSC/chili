@@ -51,7 +51,7 @@ export class PluginContextGroupHandler {
     let chrisPluginSystemGroup: ChRISEmbeddedResourceGroup;
 
     switch (assetName) {
-      case "plugincomputes":
+      case "computesofplugin":
         chrisPluginSystemGroup = (await createObjContext(
           "PluginComputeResources",
           `plugin:${id}`
