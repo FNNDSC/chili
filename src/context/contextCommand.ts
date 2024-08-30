@@ -5,16 +5,18 @@ import {
   FullContext,
   URLContext,
   UserContext,
+  errorStack,
 } from "@fnndsc/cumin";
 import chalk from "chalk";
-import Table from "cli-table3";
+// import Table from "cli-table3";
+import { screen, ColumnOptions, displayTable } from "../screen/screen.js";
 
 interface ContextCLIoptions {
-  ChRISurl?: boolean;
-  ChRISuser?: boolean;
-  ChRISfolder?: boolean;
-  ChRISfeed?: boolean;
-  ChRISplugin?: boolean;
+  ChRISurl?: string;
+  ChRISuser?: string;
+  ChRISfolder?: string;
+  ChRISfeed?: string;
+  ChRISplugin?: string;
   full?: boolean;
   all?: boolean;
 }
@@ -28,74 +30,62 @@ function context_get(options: ContextCLIoptions): string {
   }
 }
 
-function context_getFull(options): string {
+function context_getFull(options: ContextCLIoptions): string {
   const fullContext: FullContext = chrisContext.getFullContext();
-  let output = "";
-
   const currentUser: string = fullContext.currentUser;
   const currentURL: string = fullContext.currentURL;
 
   Object.entries(fullContext.users).forEach(
     ([user, userContext]: [string, UserContext]) => {
-      const userTable = new Table({
-        head: [
-          chalk.yellow("URL"),
-          chalk.yellow("Folder"),
-          chalk.yellow("Feed"),
-          chalk.yellow("Plugin"),
-          chalk.yellow("Token"),
-        ],
-        colWidths: [60, 60, 20, 20, 20],
-      });
+      screen.withBorder(`User: ${user}`, { bottom: false });
 
-      Object.entries(userContext.urls).forEach(
-        ([url, urlContext]: [string, URLContext]) => {
-          const isCurrentURL = url === currentURL;
-          const isCurrentUser = user === currentUser;
-          let urlString = url;
-          let row = [
-            urlString,
-            urlContext.folder || "Not set",
-            urlContext.feed || "Not set",
-            urlContext.plugin || "Not set",
-            urlContext.token ? "Set" : "Not set",
-          ];
-
-          if (isCurrentURL && isCurrentUser) {
-            row = row.map((cell) => chalk.cyan(cell));
-            row[0] = chalk.cyan(`${url}`);
-          }
-
-          userTable.push(row);
-        }
+      const tableData: any[] = Object.entries(userContext.urls).map(
+        ([url, urlContext]: [string, URLContext]): any => ({
+          URL: url,
+          Folder: urlContext.folder || "Not set",
+          Feed: urlContext.feed || "Not set",
+          Plugin: urlContext.plugin || "Not set",
+          Token: urlContext.token ? "Set" : "Not set",
+        })
       );
 
-      output += `User: ${user}\n`;
-      output += `Current URL: ${userContext.currentURL || "Not set"}\n`;
-      output += userTable.toString() + "\n\n";
+      // Apply highlighting
+      tableData.forEach((row: any) => {
+        if (row.URL === currentURL && user === currentUser) {
+          Object.keys(row).forEach((key) => {
+            row[key] = chalk.cyan(row[key]);
+          });
+        }
+      });
+      displayTable(
+        tableData,
+        ["URL", "Folder", "Feed", "Plugin", "Token"],
+        "├"
+      );
     }
   );
-  return output;
+  return "";
 }
 
 function context_getSingle(options: ContextCLIoptions): string {
   chrisContext.currentContext_update();
 
   if (options.full) {
-    const table = new Table({
-      head: [chalk.cyan("Context"), chalk.cyan("Value")],
-      colWidths: [20, 50],
-    });
-
-    table.push(
+    const tableData = [
       ["ChRIS URL", chrisContext.singleContext.URL || "Not set"],
       ["ChRIS User", chrisContext.singleContext.user || "Not set"],
       ["ChRIS Folder", chrisContext.singleContext.folder || "Not set"],
       ["ChRIS Feed", chrisContext.singleContext.feed || "Not set"],
-      ["ChRIS Plugin", chrisContext.singleContext.plugin || "Not set"]
-    );
+      ["ChRIS Plugin", chrisContext.singleContext.plugin || "Not set"],
+    ];
 
-    return table.toString();
+    screen.table(tableData, {
+      head: ["Context", "Value"],
+      columns: [{ color: "yellow", justification: "right" }, { color: "cyan" }],
+      // colWidths: [20, 50],
+    });
+
+    return ""; // screen.table directly outputs to console, so we return an empty string
   } else {
     const results: string[] = [];
 
@@ -137,32 +127,37 @@ function context_getSingle(options: ContextCLIoptions): string {
   }
 }
 
+function assign_check(context: Context, value: string): string {
+  const status: boolean = chrisContext.setCurrent(context, value);
+  if (!status) {
+    screen.withBorder(
+      `${chalk.red(`ERROR: ${errorStack.getAllOfType("error")}`)}`
+    );
+    return "";
+  } else return `${context} set to ${value}`;
+}
+
 function context_set(options: ContextCLIoptions): string {
   const results: string[] = [];
 
   if (options.ChRISuser !== undefined) {
-    chrisContext.setCurrent(Context.ChRISuser, options.ChRISuser);
-    results.push(`ChRIS User set to: ${options.ChRISuser}`);
+    results.push(assign_check(Context.ChRISuser, options.ChRISuser));
   }
 
   if (options.ChRISurl !== undefined) {
-    chrisContext.setCurrent(Context.ChRISURL, options.ChRISurl);
-    results.push(`ChRIS URL set to: ${options.ChRISurl}`);
+    results.push(assign_check(Context.ChRISURL, options.ChRISurl));
   }
 
   if (options.ChRISfolder !== undefined) {
-    chrisContext.setCurrent(Context.ChRISfolder, options.ChRISfolder);
-    results.push(`ChRIS Folder set to: ${options.ChRISfolder}`);
+    results.push(assign_check(Context.ChRISfolder, options.ChRISfolder));
   }
 
   if (options.ChRISfeed !== undefined) {
-    chrisContext.setCurrent(Context.ChRISfeed, options.ChRISfeed);
-    results.push(`ChRIS Feed set to: ${options.ChRISfeed}`);
+    results.push(assign_check(Context.ChRISfeed, options.ChRISfeed));
   }
 
   if (options.ChRISplugin !== undefined) {
-    chrisContext.setCurrent(Context.ChRISplugin, options.ChRISplugin);
-    results.push(`ChRIS Plugin set to: ${options.ChRISplugin}`);
+    results.push(assign_check(Context.ChRISplugin, options.ChRISplugin));
   }
 
   if (results.length === 0) {
@@ -193,8 +188,8 @@ export async function setupContextCommand(program: Command): Promise<void> {
     .option("--full", "get full current context")
     .option("--all", "get all contexts for current session")
     .action((options) => {
-      const result = context_get(options);
-      console.log(result);
+      const result: string = context_get(options);
+      // console.log(result);
     });
 
   contextCommand
@@ -210,6 +205,6 @@ export async function setupContextCommand(program: Command): Promise<void> {
     )
     .action((options) => {
       const result = context_set(options);
-      console.log(result);
+      if (result.length) screen.withBorder(result);
     });
 }
