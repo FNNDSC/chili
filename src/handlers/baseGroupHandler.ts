@@ -11,6 +11,7 @@ import {
   errorStack,
 } from "@fnndsc/cumin";
 import { CLIoptions, optionsToParams } from "../utils/cli.js";
+import { displayTable, screen } from "../screen/screen.js";
 import * as util from "util";
 import * as readline from "readline";
 
@@ -50,7 +51,7 @@ export class BaseGroupHandler {
       if (results.tableData.length === 0) {
         console.log(`No ${this.assetName} found matching the criteria.`);
       } else {
-        console.table(results.tableData, results.selectedFields);
+        displayTable(results.tableData, results.selectedFields);
       }
     } catch (error) {
       console.log(errorStack.searchStack(this.assetName)[0]);
@@ -71,7 +72,7 @@ export class BaseGroupHandler {
       if (results.fields.length === 0) {
         console.log(`No resource fields found for ${this.assetName}.`);
       } else {
-        console.table(results.fields);
+        displayTable(results.fields, ["fields"]);
       }
     } catch (error) {
       console.log(errorStack.searchStack(this.assetName)[0]);
@@ -119,7 +120,7 @@ export class BaseGroupHandler {
     return confirmed;
   }
 
-  OKorNot_echo(obj: any | null, failureNotice?: string): void {
+  OKorNot_msg(obj: any | null, failureNotice?: string): string {
     let failMessage: string;
     if (!failureNotice) {
       failMessage = "[ Failed ]";
@@ -127,36 +128,40 @@ export class BaseGroupHandler {
       failMessage = failureNotice;
     }
     if (obj) {
-      console.log("[ OK ]");
+      return "[ OK ]";
     } else {
-      console.log(failMessage);
+      return failMessage;
     }
   }
 
   async deleteResources(IDs: number[], force: boolean): Promise<boolean> {
     let delop: boolean = true;
     let confirm: boolean = false;
+    let title: string = "";
+    let OKorNot: string = "";
     for (const id of IDs) {
       try {
-        process.stdout.write(
-          util.format("checking %s id %d... ", this.assetName, id)
-        );
         const searchResults: FilteredResourceData | null =
           await this.chrisObject.asset.resources_listAndFilterByOptions({
             id: id,
           });
-        this.OKorNot_echo(searchResults);
+        screen.withBorder(
+          `checking ${this.assetName} id ${id} ... ${this.OKorNot_msg(
+            searchResults
+          )}`,
+          { bottom: false }
+        );
         if (!force) {
           confirm = await this.userContinue(id, "delete");
           if (!confirm) {
             continue;
           }
         }
-        process.stdout.write(
-          util.format("deleting %s id %d... ", this.assetName, id)
-        );
         delop = await this.chrisObject.asset.resourceItem_delete(id);
-        this.OKorNot_echo(true);
+        screen.withBorder("errr... is this working?");
+        screen.withBorder(
+          `deleting ${this.assetName} id ${id} ... ${this.OKorNot_msg(true)}`
+        );
       } catch (error) {
         console.error(`${error}`);
         return false;
@@ -230,7 +235,7 @@ export class BaseGroupHandler {
       )
       .action(async (searchable: string, options: CLIoptions) => {
         const searchParts = searchable.split("++").map((part) => part.trim());
-        console.log(`searchParts = ${searchParts}`);
+        // console.log(`searchParts = ${searchParts}`);
         for (const searchPart of searchParts) {
           const currentOptions: CLIoptions = {
             ...options,
