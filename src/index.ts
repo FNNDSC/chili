@@ -19,7 +19,7 @@ import { setupFileBrowserCommand } from "./filesystem/filesystemHandler.js";
 import { setupManCommand } from "./man/man.js";
 import { chrisConnection } from "@fnndsc/cumin";
 import { FileGroupHandler } from "./filesystem/fileGroupHandler.js";
-import { screen } from "./screen/screen.js";
+import { screen, displayTable } from "./screen/screen.js";
 
 const program = new Command();
 
@@ -110,9 +110,9 @@ async function initializeHandlers() {
   );
   dirsGroupHandler.setupCommand(program);
 
-  const pluginComputeHandler: PluginContextGroupHandler =
-    await PluginContextGroupHandler.create("plugincomputes");
-  pluginComputeHandler.setupCommand(program);
+  const computesOfPluginHandler: PluginContextGroupHandler =
+    await PluginContextGroupHandler.create("computesofplugin");
+  computesOfPluginHandler.setupCommand(program);
 
   const pluginInstancesHandler: PluginContextGroupHandler =
     await PluginContextGroupHandler.create("plugininstances");
