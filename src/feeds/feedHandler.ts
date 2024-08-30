@@ -3,7 +3,7 @@ import { BaseGroupHandler } from "../handlers/baseGroupHandler.js";
 import { ChRISFeedGroup, ChRISFeed } from "@fnndsc/cumin";
 import { CLIoptions } from "../utils/cli.js";
 import { optionsToParams, SimpleRecord } from "@fnndsc/cumin";
-import Table from "cli-table3";
+import { displayTable } from "../screen/screen.js";
 import chalk from "chalk";
 
 export class FeedGroupHandler {
@@ -64,25 +64,21 @@ export class FeedMemberHandler {
   }
 
   private feedCreate_report(feedInfo: SimpleRecord | null): void {
-    const table = new Table({
-      head: [chalk.cyan("Property"), chalk.cyan("Value")],
-      colWidths: [20, 50],
-    });
+    const headers: string[] = ["Property", "Value"];
+    let tableData: any[][];
 
     if (!feedInfo) {
-      table.push(["Status", chalk.red("A feed creation error occurred.")]);
+      tableData = [["Status", chalk.red("A feed creation error occurred.")]];
     } else {
-      table.push(
-        ["Status", chalk.green("Success")],
+      tableData = [
+        ["Status", chalk.cyan("Success")],
         ["Plugin ID", feedInfo.pluginInstance.data.id],
         ["Feed ID", feedInfo.id],
         ["Feed Name", feedInfo.name],
-        ["Owner", feedInfo.owner_username]
-      );
+        ["Owner", feedInfo.owner_username],
+      ];
     }
-
-    console.log("\nFeed Creation Result:");
-    console.log(table.toString());
+    displayTable(tableData, headers);
   }
 
   async createFeed(options: CLIoptions): Promise<SimpleRecord | null> {
