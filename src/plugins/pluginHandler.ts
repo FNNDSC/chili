@@ -46,25 +46,6 @@ export class PluginGroupHandler {
   }
 }
 
-function displayPluginRunResult(instance: any) {
-  screen.table(instance, {
-    colWidths: [30, 50],
-    head: ["Plugin Parameter", "Value"],
-  });
-}
-
-function displayPluginRunResult2(instance: any) {
-  // console.log("Instance received:", JSON.stringify(instance, null, 2));
-
-  const tableData = Object.entries(instance);
-  // console.log("Table data prepared:", JSON.stringify(tableData, null, 2));
-
-  screen.table(tableData, {
-    colWidths: [30, 50],
-    head: ["Plugin Parameter", "Value"],
-  });
-}
-
 export class PluginMemberHandler {
   private assetName: string;
 
@@ -96,8 +77,9 @@ export class PluginMemberHandler {
     if (!instance) {
       console.log(errorStack.searchMessagesOfType("error", "plugin"));
     }
-    console.log(instance);
-    displayPluginRunResult(instance);
+    screen.table(instance, {
+      head: ["Plugin Parameter", "Value"],
+    });
     return instance.id;
   }
 
@@ -137,7 +119,6 @@ export class PluginMemberHandler {
             pluginParams = args.slice(1).join("' '");
           }
           pluginParams = `'${pluginParams}'`;
-          console.log(pluginParams);
           await this.plugin_run(searchable, pluginParams);
         });
 
