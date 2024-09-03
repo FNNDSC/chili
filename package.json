@@ -34,6 +34,7 @@
   "dependencies": {
     "@fnndsc/chrisapi": "^1.21.0",
     "@fnndsc/cumin": "file:../cumin",
+    "archy": "^1.0.0",
     "axios": "^1.6.0",
     "chalk": "^4.1.2",
     "cli-progress": "^3.12.0",
