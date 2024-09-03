@@ -9,7 +9,7 @@ export interface ColumnOptions {
   justification?: Justification;
 }
 
-interface TableOptions {
+export interface TableOptions {
   columns?: ColumnOptions[];
   head?: string[];
   typeColors?: {
@@ -18,7 +18,12 @@ interface TableOptions {
     boolean?: string;
     object?: string;
   };
-  topLeftCorner?: string;
+  title?: Title;
+}
+
+interface Title {
+  title: string;
+  justification?: Justification;
 }
 
 interface Borders {
@@ -33,7 +38,46 @@ interface TableContent {
   body: any[][];
 }
 
-function tableRowLists_generate(
+function processTableInput(
+  tableData: any[] | string[][] | string[],
+  headers: string[] | string
+): { processedTableData: any[]; processedHeaders: string[] } {
+  let processedTableData: any[];
+  let processedHeaders: string[];
+
+  processedHeaders = Array.isArray(headers)
+    ? headers
+    : headers.split(",").map((h) => h.trim());
+
+  if (
+    Array.isArray(tableData) &&
+    Array.isArray(tableData[0]) &&
+    typeof tableData[0][0] === "string"
+  ) {
+    // tableData is a string[][]
+    processedTableData = tableData.map((row) => {
+      return processedHeaders.reduce((rowObj, header, index) => {
+        rowObj[header] = row[index];
+        return rowObj;
+      }, {});
+    });
+  } else if (Array.isArray(tableData) && typeof tableData[0] === "string") {
+    // tableData is a string[]
+    processedTableData = tableData.map((rowStr) => {
+      const rowValues = rowStr.split(",");
+      return processedHeaders.reduce((rowObj, header, index) => {
+        rowObj[header] = rowValues[index];
+        return rowObj;
+      }, {});
+    });
+  } else {
+    // tableData is neither string[][] nor string[]
+    processedTableData = tableData as any[];
+  }
+  return { processedTableData, processedHeaders };
+}
+
+function tableContent_pack(
   tableData: any[],
   selectedFields: string[]
 ): TableContent | null {
@@ -41,21 +85,10 @@ function tableRowLists_generate(
   let body: any[][];
 
   if (Array.isArray(tableData) && tableData.length > 0) {
-    if (tableData.every((item) => typeof item === "string")) {
-      // Single-column case
-      headers = ["(index)", selectedFields[0] || "Value"];
-      body = tableData.map((item, index) => [index, item]);
-    } else if (tableData[0].length === 2 && selectedFields.length === 2) {
-      // Assume it's already in the correct format
-      headers = selectedFields;
-      body = tableData;
-    } else {
-      // Multi-column case
-      headers = selectedFields;
-      body = tableData.map((row) =>
-        headers.map((field) => (row[field] !== undefined ? row[field] : ""))
-      );
-    }
+    headers = selectedFields;
+    body = tableData.map((row) =>
+      headers.map((field) => (row[field] !== undefined ? row[field] : ""))
+    );
   } else {
     console.error("Invalid table data");
     return null;
@@ -64,46 +97,54 @@ function tableRowLists_generate(
   return { headers, body };
 }
 
-function processTableInput(
-  tableData: any[] | string[][] | string[],
-  headers: string[] | string
-): { processedTableData: any[]; processedHeaders: string[] } {
-  let processedTableData: any[];
-  let processedHeaders: string[];
+export function drawBorder(text: string, borders: Borders = {}): string {
+  const defaultBorders: Required<Borders> = {
+    left: true,
+    top: true,
+    right: true,
+    bottom: true,
+  };
+  const actualBorders: Required<Borders> = { ...defaultBorders, ...borders };
 
-  if (
-    Array.isArray(tableData) &&
-    (typeof tableData[0] === "string" || Array.isArray(tableData[0]))
-  ) {
-    const screen = new Screen();
-    processedTableData = screen.tableData_construct(
-      tableData as string[][] | string[],
-      headers
-    );
-    processedHeaders = Array.isArray(headers)
-      ? headers
-      : headers.split(",").map((h) => h.trim());
-  } else {
-    processedTableData = tableData as any[];
-    processedHeaders = Array.isArray(headers)
-      ? headers
-      : headers.split(",").map((h) => h.trim());
+  const lines = text.split("\n");
+  const data = lines.map((line) => [line]);
+  const config: TableUserConfig = {
+    border: getBorderCharacters("norc"),
+    columnDefault: {
+      paddingLeft: 1,
+      paddingRight: 1,
+    },
+    drawHorizontalLine: (index: number, size: number): boolean =>
+      (actualBorders.top && index === 0) ||
+      (actualBorders.bottom && index === size),
+    drawVerticalLine: (index: number, size: number): boolean =>
+      (actualBorders.left && index === 0) ||
+      (actualBorders.right && index === 1),
+  };
+  return table(data, config).trim();
+}
+
+function applyFirstColumnSettings(columns: ColumnOptions[]): ColumnOptions[] {
+  if (columns.length > 1) {
+    return [
+      { ...columns[0], justification: "right", color: "white" },
+      ...columns.slice(1),
+    ];
   }
-
-  return { processedTableData, processedHeaders };
+  return columns;
 }
 
 export function displayTable(
   tableData: any[] | string[][] | string[],
   headers: string[] | string,
-  topLeftCorner?: string
+  options: TableOptions = {}
 ): TableContent | null {
   const { processedTableData, processedHeaders } = processTableInput(
     tableData,
     headers
   );
 
-  const table: TableContent | null = tableRowLists_generate(
+  const table: TableContent | null = tableContent_pack(
     processedTableData,
     processedHeaders
   );
@@ -115,13 +156,12 @@ export function displayTable(
   const columns: ColumnOptions[] = table.headers.map(() => ({
     justification: "left" as const,
   }));
-  columns[0].justification = "right";
-  columns[0].color = "white";
+  const updatedColumns = applyFirstColumnSettings(columns);
 
-  const screen = new Screen();
   const tableOptions: TableOptions = {
+    ...options,
     head: processedHeaders,
-    columns: columns,
+    columns: updatedColumns,
     typeColors: {
       string: "green",
       number: "yellow",
@@ -130,17 +170,13 @@ export function displayTable(
     },
   };
 
-  // Only add topLeftCorner to options if it's provided
-  if (topLeftCorner !== undefined) {
-    tableOptions.topLeftCorner = topLeftCorner;
-  }
-
-  screen.table(processedTableData, tableOptions);
+  const result = screen.tableOut(processedTableData, tableOptions);
+  console.log(result);
 
   return table;
 }
 
-class Screen {
+export class Screen {
   log(...args: any[]): void {
     console.log(...args);
   }
@@ -157,65 +193,7 @@ class Screen {
     console.info(chalk.blue(...args));
   }
 
-  public withBorder(text: string, borders: Borders = {}): void {
-    const defaultBorders: Required<Borders> = {
-      left: true,
-      top: true,
-      right: true,
-      bottom: true,
-    };
-    const actualBorders: Required<Borders> = { ...defaultBorders, ...borders };
-
-    const lines = text.split("\n");
-    const data = lines.map((line) => [line]);
-    const config: TableUserConfig = {
-      border: getBorderCharacters("norc"),
-      columnDefault: {
-        paddingLeft: 1,
-        paddingRight: 1,
-      },
-      drawHorizontalLine: (index: number, size: number): boolean =>
-        (actualBorders.top === true && index === 0) ||
-        (actualBorders.bottom === true && index === size),
-      drawVerticalLine: (index: number, size: number): boolean =>
-        (actualBorders.left === true && index === 0) ||
-        (actualBorders.right === true && index === size),
-    };
-    const output = table(data, config).trim();
-    this.log(output);
-  }
-
-  public tableData_construct(
-    body: string[][] | string[],
-    headers: string[] | string
-  ): any[] {
-    // Normalize headers to string[]
-    const normalizedHeaders: string[] = Array.isArray(headers)
-      ? headers
-      : headers.split(",").map((h) => h.trim());
-
-    // Normalize body to string[][]
-    const normalizedBody: string[][] = Array.isArray(body[0])
-      ? (body as string[][])
-      : (body as string[]).map((row) =>
-          row.split(",").map((cell) => cell.trim())
-        );
-
-    // Construct tableData
-    const tableData: any[] = normalizedBody.map((row: string[]) =>
-      normalizedHeaders.reduce(
-        (rowObject: any, header: string, index: number) => {
-          rowObject[header] = row[index] || "";
-          return rowObject;
-        },
-        {}
-      )
-    );
-
-    return tableData;
-  }
-
-  public table(data: any[] | Object, options: TableOptions = {}): void {
+  public tableOut(data: any[] | Object, options: TableOptions = {}): string {
     try {
       const { tableData, headers } = this.prepareData(data, options);
       const safeColumns = this.prepareSafeColumns(tableData, headers, options);
@@ -231,11 +209,29 @@ class Screen {
         colWidths,
         options
       );
-      const config = this.prepareTableConfig(colWidths, options.topLeftCorner);
-      const output: string = table(styledData, config);
-      console.log(output);
+
+      // First pass: Generate table without title to get width
+      const config = this.prepareTableConfig(false);
+      const tempOutput: string = table(styledData, config);
+      const tableWidth = tempOutput.split("\n")[0].length;
+
+      // Prepare title if needed
+      let titleString = "";
+      if (options.title) {
+        titleString = this.prepareTitle(options.title, tableWidth);
+      }
+
+      // Second pass: Generate full table with correct title
+      const fullConfig = this.prepareTableConfig(!!options.title);
+      const output: string = table(styledData, fullConfig);
+
+      // Combine title (if any) and table
+      return titleString
+        ? drawBorder(titleString, { bottom: false }) + "\n" + output
+        : output;
     } catch (error) {
-      console.error("Error in table method:", error);
+      console.error("Error in tableOut method:", error);
+      return "Error generating table";
     }
   }
 
@@ -244,20 +240,19 @@ class Screen {
     options: TableOptions
   ): { tableData: any[][]; headers: string[] } {
     if (Array.isArray(data)) {
-      const tableContent = tableRowLists_generate(data, options.head || []);
-      if (tableContent) {
-        return { tableData: tableContent.body, headers: tableContent.headers };
-      }
+      const headers = options.head || Object.keys(data[0]);
+      const tableData = data.map((row) =>
+        headers.map((header) => (row[header] !== undefined ? row[header] : ""))
+      );
+      return { tableData, headers };
     }
 
-    // Handle object case
     if (typeof data === "object" && data !== null) {
       const headers = options.head || ["Key", "Value"];
       const tableData = Object.entries(data);
       return { tableData, headers };
     }
 
-    // Handle primitive value
     const headers = options.head || ["Value"];
     const tableData = [[data]];
     return { tableData, headers };
@@ -288,6 +283,17 @@ class Screen {
       (col: ColumnOptions, index: number): number =>
         col.width || this.calculateColumnWidth([headers, ...tableData], index)
     );
+  }
+
+  private calculateColumnWidth(data: any[][], columnIndex: number): number {
+    const columnData: any[] = data.map((row: any[]): any => row[columnIndex]);
+    const maxWidth: number = Math.max(
+      ...columnData.map((cell: any): number =>
+        this.getVisibleLength(this.safeToString(cell))
+      ),
+      0
+    );
+    return maxWidth; // Add some padding
   }
 
   private applyStyleToData(
@@ -322,17 +328,14 @@ class Screen {
     const justification: Justification = columnOptions.justification || "left";
     const width: number = colWidths[index];
 
-    // Prioritize column-specific color
     let color: string | undefined = columnOptions.color;
 
-    // If no column-specific color, then use typeColors
     if (!color && options.typeColors) {
       color = this.determineColor(cell, options.typeColors);
     }
 
     const cellString: string = this.safeToString(cell);
 
-    // Apply color if it's set and the cell doesn't already have chalk styling
     const coloredCell: string = cellString.includes("\x1B")
       ? cellString
       : color
@@ -341,16 +344,7 @@ class Screen {
 
     return this.justifyText(coloredCell, width, justification);
   }
-  private applyTypeColor(
-    cell: any,
-    typeColors: TableOptions["typeColors"]
-  ): string {
-    const cellType = typeof cell;
-    const color = typeColors?.[cellType as keyof typeof typeColors];
-    return color
-      ? chalk[color](this.safeToString(cell))
-      : this.safeToString(cell);
-  }
+
   private styleHeader(
     header: string,
     index: number,
@@ -383,35 +377,48 @@ class Screen {
     return undefined;
   }
 
-  private prepareTableConfig(
-    colWidths: number[],
-    topLeftCorner?: string
-  ): TableUserConfig {
+  private prepareTitle(title: Title, width: number): string {
+    let { title: titleText, justification = "left" } = title;
+    const contentWidth = width - 4; // Accounting for border characters
+
+    if (titleText.length > contentWidth) {
+      titleText = titleText.slice(0, contentWidth - 3) + "...";
+    }
+
+    switch (justification) {
+      case "right":
+        titleText = titleText.padStart(contentWidth);
+        break;
+      case "center":
+        const padding = Math.floor((contentWidth - titleText.length) / 2);
+        titleText =
+          " ".repeat(padding) +
+          titleText +
+          " ".repeat(contentWidth - titleText.length - padding);
+        break;
+      case "left":
+      default:
+        titleText = titleText.padEnd(contentWidth);
+    }
+
+    return titleText;
+  }
+
+  private prepareTableConfig(hasTitle: boolean): TableUserConfig {
     const borderCharacters = getBorderCharacters("norc");
-    const customBorderCharacters = topLeftCorner
+    const customBorderCharacters = hasTitle
       ? {
           ...borderCharacters,
-          topLeft: topLeftCorner,
+          topLeft: "├",
+          topRight: "┤",
         }
       : borderCharacters;
 
     return {
       border: customBorderCharacters,
-      columns: colWidths.map((width: number) => ({ width })),
       drawHorizontalLine: (index: number, size: number): boolean =>
         index === 0 || index === 1 || index === size,
     };
-  }
-
-  private calculateColumnWidth(data: any[][], columnIndex: number): number {
-    const columnData: any[] = data.map((row: any[]): any => row[columnIndex]);
-    const maxWidth: number = Math.max(
-      ...columnData.map((cell: any): number =>
-        this.getVisibleLength(this.safeToString(cell))
-      ),
-      0
-    );
-    return maxWidth + 2; // Add some padding
   }
 
   private getVisibleLength(str: string): number {
