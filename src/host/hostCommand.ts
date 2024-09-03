@@ -1,14 +1,16 @@
 import { Command } from "commander";
-import { chrisIO, ChrisIO } from "@fnndsc/cumin";
+import { chrisIO, ChrisIO, chrisContext, errorStack } from "@fnndsc/cumin";
 import chalk from "chalk";
 import Table from "cli-table3";
 import fs from "fs";
 import path from "path";
 import cliProgress from "cli-progress";
+import { displayTable, TableOptions, drawBorder } from "../screen/screen.js";
+import { error } from "console";
 
 interface UploadCLI {
   hostpath: string;
-  chrisdir: string;
+  // chrisdir: string;
 }
 
 interface DownloadCLI {
@@ -21,7 +23,14 @@ interface FileInfo {
   chrisPath: string;
 }
 
+interface ScanRecord {
+  fileInfo: FileInfo[];
+  totalSize: number;
+}
+
 interface UploadSummary {
+  startTime: number;
+  endTime: number;
   totalFiles: number;
   uploadedCount: number;
   failedCount: number;
@@ -30,22 +39,28 @@ interface UploadSummary {
   duration: number;
 }
 
-function createSummaryTable(summary: UploadSummary): string {
-  const summaryTable = new Table({
-    head: [chalk.cyan("Metric"), chalk.cyan("Value")],
-    colWidths: [30, 20],
-  });
+interface Tranmission {
+  speed: number;
+  duration: number;
+}
 
-  summaryTable.push(
+function createSummaryTable(summary: UploadSummary): string[][] {
+  const summaryTable: string[][] = [
     ["Total files", summary.totalFiles.toString()],
     ["Successfully uploaded", chalk.green(summary.uploadedCount.toString())],
     ["Failed to upload", chalk.red(summary.failedCount.toString())],
-    ["Total data uploaded", chalk.blue(formatBytes(summary.uploadedSize))],
-    ["Average upload speed", chalk.blue(`${formatBytes(summary.speed)}/s`)],
-    ["Duration", `${summary.duration.toFixed(2)} seconds`]
-  );
+    [
+      "Total data uploaded",
+      chalk.blueBright(formatBytes(summary.uploadedSize)),
+    ],
+    [
+      "Average upload speed",
+      chalk.blueBright(`${formatBytes(summary.speed)}/s`),
+    ],
+    ["Duration", `${summary.duration.toFixed(2)} seconds`],
+  ];
 
-  return summaryTable.toString();
+  return summaryTable;
 }
 
 async function getFilesToUpload(
@@ -78,18 +93,24 @@ async function getFilesToUpload(
   return files;
 }
 
-async function upload(options: UploadCLI): Promise<boolean> {
-  chrisIO.chrisFolder = options.chrisdir;
+async function localFS_scan(options: UploadCLI): Promise<ScanRecord | null> {
+  chrisContext.currentContext_update();
+  chrisIO.chrisFolder = chrisContext.singleContext.folder;
   const initOK: boolean | null = await chrisIO.initialize();
   if (!initOK) {
-    console.log(chalk.red("Failed to initialize ChRIS folder."));
-    return false;
+    console.log(
+      drawBorder(
+        chalk.red(errorStack.searchMessagesOfType("error", "FileBrowserFolder"))
+      )
+    );
+    console.log(drawBorder(chalk.red("Failed to initialize ChRIS folder.")));
+    return null;
   }
 
-  console.log(chalk.blue("Scanning files to upload..."));
+  console.log(drawBorder(chalk.cyan("Scanning files to upload...")));
   const filesToUpload: FileInfo[] = await getFilesToUpload(
     options.hostpath,
-    options.chrisdir
+    chrisContext.singleContext.folder
   );
 
   let totalSize: number = 0;
@@ -97,7 +118,15 @@ async function upload(options: UploadCLI): Promise<boolean> {
     const stats: fs.Stats = await fs.promises.stat(file.hostPath);
     totalSize += stats.size;
   }
+  return {
+    fileInfo: filesToUpload,
+    totalSize: totalSize,
+  };
+}
 
+function progressBar_setupAndStart(
+  scanRecord: ScanRecord
+): cliProgress.SingleBar {
   const progressBar: cliProgress.SingleBar = new cliProgress.SingleBar(
     {
       format:
@@ -105,17 +134,46 @@ async function upload(options: UploadCLI): Promise<boolean> {
     },
     cliProgress.Presets.shades_classic
   );
-  progressBar.start(filesToUpload.length, 0, {
+  progressBar.start(scanRecord.fileInfo.length, 0, {
     bytes: "0 B",
-    totalBytes: formatBytes(totalSize),
+    totalBytes: formatBytes(scanRecord.totalSize),
   });
+  return progressBar;
+}
 
-  let uploadedCount: number = 0;
-  let failedCount: number = 0;
-  let uploadedSize: number = 0;
-  const startTime: number = Date.now();
+function uploadSummary_init(): UploadSummary {
+  const uploadSummary: UploadSummary = {
+    startTime: 0,
+    endTime: 0,
+    totalFiles: 0,
+    uploadedCount: 0,
+    failedCount: 0,
+    uploadedSize: 0,
+    speed: 0,
+    duration: 0,
+  };
+  return uploadSummary;
+}
 
-  for (const [index, file] of filesToUpload.entries()) {
+function transmissionSummary_do(upload: UploadSummary): Tranmission {
+  let transmission: Tranmission = {
+    duration: 0,
+    speed: 0,
+  };
+  upload.endTime = Date.now();
+  transmission.duration = (upload.endTime - upload.startTime) / 1000; // in seconds
+  transmission.speed = upload.uploadedSize / transmission.duration; // bytes per second
+  return transmission;
+}
+
+async function chris_push(
+  scanRecord: ScanRecord,
+  progressBar: cliProgress.SingleBar
+): Promise<UploadSummary> {
+  let summary: UploadSummary = uploadSummary_init();
+  summary.startTime = Date.now();
+
+  for (const [index, file] of scanRecord.fileInfo.entries()) {
     try {
       const fileContent: Buffer = await fs.promises.readFile(file.hostPath);
       const fileBlob: Blob = new Blob([fileContent]);
@@ -125,14 +183,14 @@ async function upload(options: UploadCLI): Promise<boolean> {
       );
 
       if (uploadResult) {
-        uploadedCount++;
-        uploadedSize += fileContent.length;
+        summary.uploadedCount++;
+        summary.uploadedSize += fileContent.length;
       } else {
-        failedCount++;
+        summary.failedCount++;
         console.log(chalk.yellow(`Failed to upload: ${file.hostPath}`));
       }
     } catch (error: unknown) {
-      failedCount++;
+      summary.failedCount++;
       console.log(
         chalk.red(
           `Error uploading ${file.hostPath}: ${
@@ -143,29 +201,32 @@ async function upload(options: UploadCLI): Promise<boolean> {
     }
 
     progressBar.update(index + 1, {
-      bytes: formatBytes(uploadedSize),
+      bytes: formatBytes(summary.uploadedSize),
     });
   }
-
+  const transmission: Tranmission = transmissionSummary_do(summary);
   progressBar.stop();
 
-  const endTime: number = Date.now();
-  const duration: number = (endTime - startTime) / 1000; // in seconds
-  const speed: number = uploadedSize / duration; // bytes per second
+  summary.totalFiles = scanRecord.fileInfo.length;
+  summary.duration = transmission.duration;
+  summary.speed = transmission.speed;
 
-  const summary: UploadSummary = {
-    totalFiles: filesToUpload.length,
-    uploadedCount,
-    failedCount,
-    uploadedSize,
-    speed,
-    duration,
-  };
+  return summary;
+}
 
-  console.log(chalk.green("\nUpload Summary:"));
-  console.log(createSummaryTable(summary));
+async function upload(options: UploadCLI): Promise<boolean> {
+  const scanRecord: ScanRecord | null = await localFS_scan(options);
+  if (!scanRecord) {
+    return false;
+  }
+  const progressBar: cliProgress.SingleBar =
+    progressBar_setupAndStart(scanRecord);
+  const summary = await chris_push(scanRecord, progressBar);
+  displayTable(createSummaryTable(summary), ["Metric", "Value"], {
+    title: { title: "Upload summary", justification: "center" },
+  });
 
-  return failedCount === 0;
+  return summary.failedCount === 0;
 }
 
 function formatBytes(bytes: number): string {
@@ -186,10 +247,10 @@ export async function setupHostCommand(program: Command): Promise<void> {
     .description("Upload/download data to/from ChRIS");
 
   hostCommand
-    .command("upload <hostpath> <chrisdir>")
-    .description("upload the <hostpath> into <chrisdir>")
+    .command("upload <chrisdir>")
+    .description("upload the <hostpath> into the current folder context")
     .action(async (hostpath: string, chrisdir: string) => {
-      const result: boolean = await upload({ hostpath, chrisdir });
+      const result: boolean = await upload({ hostpath });
     });
 
   hostCommand
