@@ -77,9 +77,11 @@ export class PluginMemberHandler {
     if (!instance) {
       console.log(errorStack.searchMessagesOfType("error", "plugin"));
     }
-    screen.table(instance, {
-      head: ["Plugin Parameter", "Value"],
-    });
+    console.log(
+      screen.tableOut(instance, {
+        head: ["Plugin Parameter", "Value"],
+      })
+    );
     return instance.id;
   }
 
