@@ -11,12 +11,15 @@ import {
   errorStack,
 } from "@fnndsc/cumin";
 import { CLIoptions, optionsToParams } from "../utils/cli.js";
-import { displayTable, screen } from "../screen/screen.js";
+import { displayTable, drawBorder, TableOptions } from "../screen/screen.js";
 import * as util from "util";
 import * as readline from "readline";
+import { title } from "process";
+import { Table } from "cli-table3";
 
 export class BaseGroupHandler {
   assetName: string = "";
+  displayOptions: TableOptions;
   chrisObject:
     | ChRISPluginGroup
     | ChRISFeedGroup
@@ -33,6 +36,32 @@ export class BaseGroupHandler {
   ) {
     this.assetName = assetName;
     this.chrisObject = chrisObject;
+    this.displayOptions = {
+      title: { title: this.assetName, justification: "center" },
+    };
+  }
+
+  private removeDuplicateColumns(
+    results: FilteredResourceData
+  ): FilteredResourceData {
+    const uniqueHeaders = Array.from(
+      new Set(results.selectedFields)
+    ) as string[];
+
+    const uniqueTableData = results.tableData.map((row) =>
+      uniqueHeaders.reduce<Record<string, any>>((acc, header) => {
+        if (typeof header === "string" && header in row) {
+          acc[header] = (row as Record<string, any>)[header];
+        }
+        return acc;
+      }, {})
+    );
+
+    return {
+      ...results,
+      selectedFields: uniqueHeaders,
+      tableData: uniqueTableData,
+    };
   }
 
   async listResources(options: CLIoptions): Promise<void> {
@@ -51,7 +80,12 @@ export class BaseGroupHandler {
       if (results.tableData.length === 0) {
         console.log(`No ${this.assetName} found matching the criteria.`);
       } else {
-        displayTable(results.tableData, results.selectedFields);
+        const uniqueResults = this.removeDuplicateColumns(results);
+        displayTable(
+          uniqueResults.tableData,
+          uniqueResults.selectedFields,
+          this.displayOptions
+        );
       }
     } catch (error) {
       console.log(errorStack.searchStack(this.assetName)[0]);
@@ -145,7 +179,7 @@ export class BaseGroupHandler {
           await this.chrisObject.asset.resources_listAndFilterByOptions({
             id: id,
           });
-        screen.withBorder(
+        drawBorder(
           `checking ${this.assetName} id ${id} ... ${this.OKorNot_msg(
             searchResults
           )}`,
@@ -158,8 +192,8 @@ export class BaseGroupHandler {
           }
         }
         delop = await this.chrisObject.asset.resourceItem_delete(id);
-        screen.withBorder("errr... is this working?");
-        screen.withBorder(
+        drawBorder("errr... is this working?");
+        drawBorder(
           `deleting ${this.assetName} id ${id} ... ${this.OKorNot_msg(true)}`
         );
       } catch (error) {
