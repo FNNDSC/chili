@@ -125,19 +125,31 @@ async function initializeHandlers() {
   setupCommandCompletion();
 }
 
+function parseContext(args: string[]): [string | undefined, string[]] {
+  if (args.length > 2 && args[2].includes("=")) {
+    const context: string = args[2];
+    return [context, [args[0], args[1], ...args.slice(3)]];
+  }
+  return [undefined, args];
+}
+
 async function main() {
+  const [context, newArgs] = parseContext(process.argv);
+  if (context) {
+    chrisConnection.setContext(context);
+    process.argv = newArgs;
+  }
+
   program
+    .name("chili")
+    .description("The ChRIS Interactive Line Interface")
     .option("-v, --verbose", "enable verbose output")
     .option("-c, --config <path>", "path to config file")
-    .option("-s, --nosplash", "disable splash screen")
-    .option(
-      "--context <context>",
-      "specify the ChRIS context: username, url, folderpath, feed, etc"
-    );
+    .option("-s, --nosplash", "disable splash screen");
 
   setupConnectCommand(program);
 
-  // Parse arguments to handle global options and context
+  // Parse arguments to handle global options
   program.parseOptions(process.argv);
   const options = program.opts();
 
@@ -145,6 +157,19 @@ async function main() {
     console.log(figlet.textSync("ChILI"));
     console.log("The ChRIS Interactive Line Interface");
   }
+
+  // displayTable(
+  //   ["val1,val2,val3,val4,val5", "val6,val7,val8,val9,val10"],
+  //   "col1,col2,col3,col4,col5"
+  // );
+
+  // displayTable(
+  //   [
+  //     ["val1", "val2", "val3", "val4", "val5"],
+  //     ["val6", "val7", "val8", "val9", "val10"],
+  //   ],
+  //   "col1,col2,col3,col4,col5"
+  // );
 
   if (options.verbose) {
     console.log("Verbose mode enabled");
@@ -154,17 +179,12 @@ async function main() {
     console.log(`Using config file: ${options.config}`);
   }
 
-  // Set context if provided
-  if (options.context) {
-    chrisConnection.setContext(options.context);
-  }
-
   // If it's not a connect command, initialize other handlers
   if (!process.argv.includes("connect")) {
     await initializeHandlers();
   }
 
-  // Re-parse arguments to handle the selected command
+  // Parse the command
   program.parse(process.argv);
 }
 
