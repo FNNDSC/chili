@@ -9,7 +9,7 @@ import {
 } from "@fnndsc/cumin";
 import chalk from "chalk";
 // import Table from "cli-table3";
-import { screen, ColumnOptions, displayTable } from "../screen/screen.js";
+import { screen, drawBorder, displayTable } from "../screen/screen.js";
 
 interface ContextCLIoptions {
   ChRISurl?: string;
@@ -37,8 +37,6 @@ function context_getFull(options: ContextCLIoptions): string {
 
   Object.entries(fullContext.users).forEach(
     ([user, userContext]: [string, UserContext]) => {
-      screen.withBorder(`User: ${user}`, { bottom: false });
-
       const tableData: any[] = Object.entries(userContext.urls).map(
         ([url, urlContext]: [string, URLContext]): any => ({
           URL: url,
@@ -57,11 +55,13 @@ function context_getFull(options: ContextCLIoptions): string {
           });
         }
       });
-      displayTable(
-        tableData,
-        ["URL", "Folder", "Feed", "Plugin", "Token"],
-        "├"
-      );
+
+      displayTable(tableData, ["URL", "Folder", "Feed", "Plugin", "Token"], {
+        title: {
+          title: `User: ${user}`,
+          justification: "center",
+        },
+      });
     }
   );
   return "";
@@ -72,18 +72,41 @@ function context_getSingle(options: ContextCLIoptions): string {
 
   if (options.full) {
     const tableData = [
-      ["ChRIS URL", chrisContext.singleContext.URL || "Not set"],
-      ["ChRIS User", chrisContext.singleContext.user || "Not set"],
-      ["ChRIS Folder", chrisContext.singleContext.folder || "Not set"],
-      ["ChRIS Feed", chrisContext.singleContext.feed || "Not set"],
-      ["ChRIS Plugin", chrisContext.singleContext.plugin || "Not set"],
+      {
+        Context: "ChRIS URL",
+        Value: chrisContext.singleContext.URL || "Not set",
+      },
+      {
+        Context: "ChRIS User",
+        Value: chrisContext.singleContext.user || "Not set",
+      },
+      {
+        Context: "ChRIS Folder",
+        Value: chrisContext.singleContext.folder || "Not set",
+      },
+      {
+        Context: "ChRIS Feed",
+        Value: chrisContext.singleContext.feed || "Not set",
+      },
+      {
+        Context: "ChRIS Plugin",
+        Value: chrisContext.singleContext.plugin || "Not set",
+      },
     ];
 
-    screen.table(tableData, {
-      head: ["Context", "Value"],
-      columns: [{ color: "yellow", justification: "right" }, { color: "cyan" }],
-      // colWidths: [20, 50],
-    });
+    console.log(
+      screen.tableOut(tableData, {
+        head: ["Context", "Value"],
+        columns: [
+          { color: "yellow", justification: "right" },
+          { color: "cyan", justification: "left" },
+        ],
+        title: {
+          title: "ChRIS Context",
+          justification: "center",
+        },
+      })
+    );
 
     return ""; // screen.table directly outputs to console, so we return an empty string
   } else {
@@ -130,9 +153,7 @@ function context_getSingle(options: ContextCLIoptions): string {
 function assign_check(context: Context, value: string): string {
   const status: boolean = chrisContext.setCurrent(context, value);
   if (!status) {
-    screen.withBorder(
-      `${chalk.red(`ERROR: ${errorStack.getAllOfType("error")}`)}`
-    );
+    drawBorder(`${chalk.red(`ERROR: ${errorStack.getAllOfType("error")}`)}`);
     return "";
   } else return `${context} set to ${value}`;
 }
@@ -205,6 +226,6 @@ export async function setupContextCommand(program: Command): Promise<void> {
     )
     .action((options) => {
       const result = context_set(options);
-      if (result.length) screen.withBorder(result);
+      if (result.length) drawBorder(result);
     });
 }
