@@ -1,12 +1,23 @@
 import { Command } from "commander";
-import { chrisIO, ChrisIO, chrisContext, errorStack } from "@fnndsc/cumin";
+import {
+  chrisIO,
+  ChrisIO,
+  chrisContext,
+  errorStack,
+  ChRISEmbeddedResourceGroup,
+  ListOptions,
+  FileBrowserFolder,
+  FilteredResourceData,
+  createObjContext,
+} from "@fnndsc/cumin";
 import chalk from "chalk";
-import Table from "cli-table3";
 import fs from "fs";
 import path from "path";
 import cliProgress from "cli-progress";
 import { displayTable, TableOptions, drawBorder } from "../screen/screen.js";
-import { error } from "console";
+import { FileGroupHandler } from "../filesystem/fileGroupHandler.js";
+import { optionsToParams } from "../utils/cli.js";
+import archy from "archy";
 
 interface UploadCLI {
   hostpath: string;
@@ -21,6 +32,9 @@ interface DownloadCLI {
 interface FileInfo {
   hostPath: string;
   chrisPath: string;
+  size: number;
+  isLink: boolean;
+  linkTarget: string;
 }
 
 interface ScanRecord {
@@ -44,6 +58,17 @@ interface Tranmission {
   duration: number;
 }
 
+interface ResourceGroups {
+  filesGroup: ChRISEmbeddedResourceGroup<FileBrowserFolder>;
+  dirsGroup: ChRISEmbeddedResourceGroup<FileBrowserFolder>;
+  linksGroup: ChRISEmbeddedResourceGroup<FileBrowserFolder>;
+}
+
+interface CLItree {
+  draw?: boolean;
+  follow?: boolean;
+}
+
 function createSummaryTable(summary: UploadSummary): string[][] {
   const summaryTable: string[][] = [
     ["Total files", summary.totalFiles.toString()],
@@ -61,6 +86,275 @@ function createSummaryTable(summary: UploadSummary): string[][] {
   ];
 
   return summaryTable;
+}
+
+async function createResourceGroups(
+  currentPath: string
+): Promise<ResourceGroups | null> {
+  try {
+    const filesGroup = (await createObjContext(
+      "ChRISFilesContext",
+      `folder:${currentPath}`
+    )) as ChRISEmbeddedResourceGroup<FileBrowserFolder>;
+    const dirsGroup = (await createObjContext(
+      "ChRISDirsContext",
+      `folder:${currentPath}`
+    )) as ChRISEmbeddedResourceGroup<FileBrowserFolder>;
+    const linksGroup = (await createObjContext(
+      "ChRISLinksContext",
+      `folder:${currentPath}`
+    )) as ChRISEmbeddedResourceGroup<FileBrowserFolder>;
+
+    return { filesGroup, dirsGroup, linksGroup };
+  } catch (error) {
+    errorStack.push(
+      "error",
+      `Failed to create ChRISEmbeddedResourceGroup objects for path ${currentPath}: ${error}`
+    );
+    return null;
+  }
+}
+
+async function resolveSymlink(
+  link: FileInfo,
+  followLinks: boolean
+): Promise<FileInfo[]> {
+  if (!followLinks || !link.linkTarget) {
+    return [link];
+  }
+
+  const resolvedFiles: FileInfo[] = [];
+
+  async function walkTarget(
+    currentPath: string,
+    basePath: string
+  ): Promise<void> {
+    const resourceGroups = await createResourceGroups(currentPath);
+    if (!resourceGroups) {
+      console.warn(`Failed to create resource groups for path: ${currentPath}`);
+      return;
+    }
+
+    const { filesGroup, dirsGroup, linksGroup } = resourceGroups;
+
+    // Process files
+    const fileResults = await filesGroup.asset.resources_listAndFilterByOptions(
+      optionsToParams({ fields: "fname,fsize" })
+    );
+    if (fileResults && fileResults.tableData) {
+      for (const file of fileResults.tableData) {
+        file.fname = "/" + file.fname;
+        const size = parseInt(file.fsize, 10);
+        const relativePath = path.relative(currentPath, file.fname);
+        resolvedFiles.push({
+          hostPath: path.join(currentPath, file.fname),
+          chrisPath: path.join(basePath, relativePath),
+          size: isNaN(size) ? 0 : size,
+          isLink: false,
+          linkTarget: "",
+        });
+      }
+    }
+
+    // Process links (recursive call to resolveSymlink)
+    const linkResults = await linksGroup.asset.resources_listAndFilterByOptions(
+      optionsToParams({ fields: "path,fname" })
+    );
+    if (linkResults && linkResults.tableData) {
+      for (const subLink of linkResults.tableData) {
+        subLink.fname = "/" + subLink.fname;
+        subLink.path = "/" + subLink.path;
+        const relativePath = path.relative(currentPath, subLink.fname);
+        const subLinkInfo: FileInfo = {
+          hostPath: subLink.path,
+          chrisPath: path.join(basePath, relativePath),
+          isLink: true,
+          linkTarget: subLink.path,
+          size: 0,
+        };
+        const resolvedSubLinks = await resolveSymlink(subLinkInfo, true);
+        resolvedFiles.push(...resolvedSubLinks);
+      }
+    }
+
+    // Process directories
+    const dirResults = await dirsGroup.asset.resources_listAndFilterByOptions(
+      optionsToParams({ fields: "path" })
+    );
+    if (dirResults && dirResults.tableData) {
+      for (const dir of dirResults.tableData) {
+        dir.path = "/" + dir.path;
+        const relativePath = path.relative(currentPath, dir.path);
+        await walkTarget(dir.path, path.join(basePath, relativePath));
+      }
+    }
+  }
+
+  try {
+    await walkTarget(link.linkTarget, link.chrisPath || "");
+  } catch (error) {
+    console.error(`Error while resolving symlink: ${error}`);
+    return [link]; // Return original link if resolution fails
+  }
+
+  return resolvedFiles.length > 0 ? resolvedFiles : [link];
+}
+
+function createArchyTree(files: FileInfo[]): string {
+  interface ArchyNode {
+    label: string;
+    nodes: { [key: string]: ArchyNode };
+  }
+
+  const root: ArchyNode = { label: "home", nodes: {} };
+
+  files.forEach((file: FileInfo) => {
+    if (file.chrisPath) {
+      const parts: string[] = file.chrisPath.split("/");
+      let current: ArchyNode = root;
+      parts.forEach((part: string, index: number) => {
+        if (index === 0) return; // Skip 'home'
+        if (!current.nodes[part]) {
+          current.nodes[part] = { label: part, nodes: {} };
+        }
+        current = current.nodes[part];
+      });
+      if (file.isLink && file.linkTarget) {
+        current.label += ` -> ${file.linkTarget}`;
+      }
+    }
+  });
+
+  function convertToArchyFormat(node: ArchyNode): archy.Data {
+    return {
+      label: node.label,
+      nodes: Object.values(node.nodes).map(convertToArchyFormat),
+    };
+  }
+
+  return archy(convertToArchyFormat(root));
+}
+
+async function chrisFS_scan(
+  chrisPath: string,
+  followLinks: boolean = false
+): Promise<ScanRecord | null> {
+  const files: FileInfo[] = [];
+  let totalSize = 0;
+
+  async function walkChrisDir(
+    currentPath: string,
+    originalPath: string
+  ): Promise<void> {
+    const resourceGroups = await createResourceGroups(currentPath);
+    if (!resourceGroups) return;
+
+    const { filesGroup, dirsGroup, linksGroup } = resourceGroups;
+
+    // Process files
+    const fileResults = await filesGroup.asset.resources_listAndFilterByOptions(
+      optionsToParams({ fields: "fname,fsize" })
+    );
+    if (fileResults && fileResults.tableData) {
+      for (const file of fileResults.tableData) {
+        const size = parseInt(file.fsize, 10);
+        file.fname = "/" + file.fname;
+        const relativePath = path.relative(currentPath, file.fname);
+        const fileInfo: FileInfo = {
+          hostPath: "",
+          chrisPath: path.join(originalPath, relativePath),
+          size: isNaN(size) ? 0 : size,
+          isLink: false,
+          linkTarget: "",
+        };
+        files.push(fileInfo);
+        totalSize += fileInfo.size;
+      }
+    }
+
+    // Process links
+    const linkResults = await linksGroup.asset.resources_listAndFilterByOptions(
+      optionsToParams({ fields: "path,fname" })
+    );
+    if (linkResults && linkResults.tableData) {
+      for (const link of linkResults.tableData) {
+        link.path = "/" + link.path;
+        link.fname = "/" + link.fname;
+        const linkInfo: FileInfo = {
+          hostPath: "",
+          chrisPath: path.join(originalPath, path.basename(link.fname)),
+          isLink: true,
+          linkTarget: link.path,
+          size: 0,
+        };
+        if (followLinks) {
+          const resolvedFiles = await resolveSymlink(linkInfo, followLinks);
+          for (const resolvedFile of resolvedFiles) {
+            resolvedFile.chrisPath = path.join(
+              originalPath,
+              path.relative(link.path, resolvedFile.chrisPath)
+            );
+            files.push(resolvedFile);
+            if (resolvedFile.size) totalSize += resolvedFile.size;
+          }
+        } else {
+          files.push(linkInfo);
+        }
+      }
+    }
+
+    // Process directories
+    const dirResults = await dirsGroup.asset.resources_listAndFilterByOptions(
+      optionsToParams({ fields: "path" })
+    );
+    if (dirResults && dirResults.tableData) {
+      for (const dir of dirResults.tableData) {
+        dir.path = "/" + dir.path;
+        const relativePath = path.relative(currentPath, dir.path);
+        await walkChrisDir(dir.path, path.join(originalPath, relativePath));
+      }
+    }
+  }
+
+  try {
+    await walkChrisDir(chrisPath, chrisPath);
+    return { fileInfo: files, totalSize };
+  } catch (error) {
+    errorStack.push("error", `Failed to scan ChRIS filesystem: ${error}`);
+    return null;
+  }
+}
+
+async function tree(options: CLItree): Promise<void> {
+  const chrisFolder = chrisContext.getCurrent("folder");
+  if (!chrisFolder) {
+    console.error(
+      chalk.red("No ChRIS folder context set. Use 'folder=' to set a context.")
+    );
+    return;
+  }
+
+  console.log(chalk.cyan(`Listing files recursively from ${chrisFolder}`));
+
+  const scanResult = await chrisFS_scan(chrisFolder, options.follow);
+
+  if (!scanResult) {
+    console.error(chalk.red("Failed to scan ChRIS filesystem."));
+    return;
+  }
+
+  if (options.draw) {
+    console.log(createArchyTree(scanResult.fileInfo));
+  } else {
+    scanResult.fileInfo.forEach((file) => {
+      if (file.isLink && !options.follow) {
+        console.log(`${file.chrisPath} -> ${file.linkTarget}`);
+      } else {
+        console.log(file.chrisPath);
+      }
+    });
+  }
+  console.log(chalk.green(`Total size: ${formatBytes(scanResult.totalSize)}`));
 }
 
 async function getFilesToUpload(
@@ -84,7 +378,13 @@ async function getFilesToUpload(
       if (entry.isDirectory()) {
         await walkDir(hostFilePath, chrisFilePath);
       } else {
-        files.push({ hostPath: hostFilePath, chrisPath: chrisFilePath });
+        files.push({
+          hostPath: hostFilePath,
+          chrisPath: chrisFilePath,
+          isLink: false, // Assuming local files are not symlinks
+          size: (await fs.promises.stat(hostFilePath)).size,
+          linkTarget: "",
+        });
       }
     }
   }
@@ -115,8 +415,10 @@ async function localFS_scan(options: UploadCLI): Promise<ScanRecord | null> {
 
   let totalSize: number = 0;
   for (const file of filesToUpload) {
-    const stats: fs.Stats = await fs.promises.stat(file.hostPath);
-    totalSize += stats.size;
+    if (file.hostPath) {
+      const stats: fs.Stats = await fs.promises.stat(file.hostPath);
+      totalSize += stats.size;
+    }
   }
   return {
     fileInfo: filesToUpload,
@@ -143,14 +445,14 @@ function progressBar_setupAndStart(
 
 function uploadSummary_init(): UploadSummary {
   const uploadSummary: UploadSummary = {
-    startTime: 0,
-    endTime: 0,
-    totalFiles: 0,
-    uploadedCount: 0,
-    failedCount: 0,
-    uploadedSize: 0,
-    speed: 0,
-    duration: 0,
+    startTime: 0 as number,
+    endTime: 0 as number,
+    totalFiles: 0 as number,
+    uploadedCount: 0 as number,
+    failedCount: 0 as number,
+    uploadedSize: 0 as number,
+    speed: 0 as number,
+    duration: 0 as number,
   };
   return uploadSummary;
 }
@@ -175,6 +477,9 @@ async function chris_push(
 
   for (const [index, file] of scanRecord.fileInfo.entries()) {
     try {
+      if (!file.hostPath) {
+        continue;
+      }
       const fileContent: Buffer = await fs.promises.readFile(file.hostPath);
       const fileBlob: Blob = new Blob([fileContent]);
       const uploadResult: boolean = await chrisIO.file_upload(
@@ -247,7 +552,7 @@ export async function setupHostCommand(program: Command): Promise<void> {
     .description("Upload/download data to/from ChRIS");
 
   hostCommand
-    .command("upload <chrisdir>")
+    .command("upload <hostpath>")
     .description("upload the <hostpath> into the current folder context")
     .action(async (hostpath: string, chrisdir: string) => {
       const result: boolean = await upload({ hostpath });
@@ -259,5 +564,16 @@ export async function setupHostCommand(program: Command): Promise<void> {
     .action(async (chrisdir: string, hostdir: string) => {
       const result: boolean = await download({ hostdir, chrisdir });
       console.log(result);
+    });
+
+  hostCommand
+    .command("tree")
+    .description(
+      "list all files recursively from the current ChRIS folder context"
+    )
+    .option("--draw", "present in a style reminiscent of the UNIX tree command")
+    .option("--follow", "follow chrislinks")
+    .action(async (options: CLItree) => {
+      await tree(options);
     });
 }
