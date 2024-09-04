@@ -14,7 +14,7 @@ import { PluginMetaGroupHandler } from "./plugins/pluginMetaHandler.js";
 import { PluginContextGroupHandler } from "./plugins/pluginGroupHandler.js";
 import { setupInodeCommand } from "./filesystem/inodeCommand.js";
 import { setupContextCommand } from "./context/contextCommand.js";
-import { setupHostCommand } from "./host/hostCommand.js";
+import { setupPathCommand } from "./path/pathCommand.js";
 import { setupFileBrowserCommand } from "./filesystem/filesystemHandler.js";
 import { setupManCommand } from "./man/man.js";
 import { chrisConnection } from "@fnndsc/cumin";
@@ -75,7 +75,7 @@ async function initializeHandlers() {
 
   setupFileBrowserCommand(program);
   setupContextCommand(program);
-  setupHostCommand(program);
+  setupPathCommand(program);
   setupManCommand(program);
   await setupInodeCommand(program);
 
