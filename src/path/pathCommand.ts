@@ -350,7 +350,7 @@ async function tree(options: CLItree): Promise<void> {
       if (file.isLink && !options.follow) {
         console.log(`${file.chrisPath} -> ${file.linkTarget}`);
       } else {
-        console.log(file.chrisPath);
+        console.log(file);
       }
     });
   }
