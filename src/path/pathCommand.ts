@@ -18,6 +18,9 @@ import { displayTable, TableOptions, drawBorder } from "../screen/screen.js";
 import { FileGroupHandler } from "../filesystem/fileGroupHandler.js";
 import { optionsToParams } from "../utils/cli.js";
 import archy from "archy";
+import open from "open";
+import { exec } from "child_process";
+import os from "os";
 
 interface TransferCLI {
   hostpath: string;
@@ -35,6 +38,7 @@ interface FileInfo {
   size: number;
   isLink: boolean;
   linkTarget: string;
+  isDirectory: boolean;
 }
 
 interface ScanRecord {
@@ -69,6 +73,11 @@ interface CLIscan {
   follow?: boolean;
   silent?: boolean;
   hostpath?: string;
+  dirsOnly?: boolean;
+  filter?: string;
+  endsWith?: string;
+  mermaid?: boolean;
+  save?: string;
 }
 
 function createSummaryTable(summary: TransferDetail): string[][] {
@@ -120,6 +129,114 @@ async function createResourceGroups(
   }
 }
 
+function generateMermaidDefinition(scanResult: ScanRecord): string {
+  let definition = "graph TD\n";
+  definition += "    %% Styles\n";
+  definition +=
+    "    classDef default fill:#f9f,stroke:#333,stroke-width:2px;\n";
+  definition += "    classDef root fill:#ff9,stroke:#333,stroke-width:4px;\n";
+  definition += "    classDef leaf fill:#9f9,stroke:#333,stroke-width:2px;\n\n";
+
+  const nodes = new Map<string, number>();
+  const edges = new Set<string>();
+  let nodeCounter = 0;
+
+  function getOrCreateNodeId(path: string): number {
+    if (!nodes.has(path)) {
+      nodes.set(path, nodeCounter++);
+    }
+    return nodes.get(path)!;
+  }
+
+  const leafNodes = new Set<number>();
+
+  scanResult.fileInfo.forEach((file) => {
+    const parts = file.chrisPath.split("/").filter(Boolean);
+    for (let i = 1; i < parts.length; i++) {
+      const parentPath = "/" + parts.slice(0, i).join("/");
+      const currentPath = "/" + parts.slice(0, i + 1).join("/");
+
+      const parentNode = getOrCreateNodeId(parentPath);
+      const currentNode = getOrCreateNodeId(currentPath);
+
+      const edge = `${parentNode} --> ${currentNode}`;
+      if (!edges.has(edge)) {
+        edges.add(edge);
+        definition += `    ${parentNode}[${parts[i - 1]}] --> ${currentNode}[${
+          parts[i]
+        }]\n`;
+      }
+
+      if (i === parts.length - 1) {
+        leafNodes.add(currentNode);
+      }
+    }
+  });
+
+  // Apply styles
+  definition += "\n    %% Applying styles\n";
+  definition += `    class ${getOrCreateNodeId("/")} root;\n`;
+  leafNodes.forEach((nodeId) => {
+    definition += `    class ${nodeId} leaf;\n`;
+  });
+
+  return definition;
+}
+
+function generateMermaidHtml(mermaidDefinition: string): string {
+  return `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plugin DAG</title>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+</head>
+<body>
+    <div class="mermaid">
+    ${mermaidDefinition}
+    </div>
+    <script>
+        mermaid.initialize({ startOnLoad: true });
+    </script>
+</body>
+</html>
+  `;
+}
+
+async function renderMermaidInBrowser(mermaidDefinition: string) {
+  const html = generateMermaidHtml(mermaidDefinition);
+  const tempDir = os.tmpdir();
+  const filePath = path.join(tempDir, "mermaid-diagram.html");
+  fs.writeFileSync(filePath, html);
+  await open(filePath);
+}
+
+async function renderMermaidServerSide(
+  mermaidDefinition: string,
+  outputFile: string
+): Promise<string> {
+  const tempDir = os.tmpdir();
+  const inputFile = path.join(tempDir, "input.mmd");
+
+  fs.writeFileSync(inputFile, mermaidDefinition);
+
+  return new Promise((resolve, reject) => {
+    exec(
+      `npx mmdc -i ${inputFile} -o ${outputFile}`,
+      (error, stdout, stderr) => {
+        if (error) {
+          console.error(`exec error: ${error}`);
+          reject(error);
+          return;
+        }
+        resolve(outputFile);
+      }
+    );
+  });
+}
+
 function createArchyTree(files: FileInfo[]): string {
   interface ArchyNode {
     label: string;
@@ -154,10 +271,118 @@ function createArchyTree(files: FileInfo[]): string {
   return archy(convertToArchyFormat(root));
 }
 
+async function dirs_scan(
+  dirsGroup: ChRISEmbeddedResourceGroup<FileBrowserFolder>,
+  chrisPath: string,
+  hostBasePath: string,
+  linkedPath: string = ""
+): Promise<FileInfo[]> {
+  const dirs: FileInfo[] = [];
+  const dirResults: FilteredResourceData | void =
+    await dirsGroup.asset.resources_listAndFilterByOptions(
+      optionsToParams({ fields: "path" })
+    );
+  if (dirResults && dirResults.tableData) {
+    for (const dir of dirResults.tableData) {
+      dir.path = "/" + dir.path;
+      const relativeChrisPath: string = linkedPath
+        ? path.join(linkedPath, path.basename(dir.path))
+        : dir.path;
+      const dirInfo: FileInfo = {
+        id: 0,
+        hostPath: path.join(
+          hostBasePath,
+          path.relative(chrisPath, relativeChrisPath)
+        ),
+        chrisPath: relativeChrisPath,
+        size: 0,
+        isLink: false,
+        linkTarget: "",
+        isDirectory: true,
+      };
+      dirs.push(dirInfo);
+    }
+  }
+  return dirs;
+}
+
+async function files_scan(
+  filesGroup: ChRISEmbeddedResourceGroup<FileBrowserFolder>,
+  chrisPath: string,
+  hostBasePath: string,
+  linkedPath: string = ""
+): Promise<FileInfo[]> {
+  const files: FileInfo[] = [];
+  const fileResults: FilteredResourceData | void =
+    await filesGroup.asset.resources_listAndFilterByOptions(
+      optionsToParams({ fields: "id,fname,fsize" })
+    );
+  if (fileResults && fileResults.tableData) {
+    for (const file of fileResults.tableData) {
+      const size: number = parseInt(file.fsize, 10);
+      file.fname = "/" + file.fname;
+      const relativeChrisPath: string = linkedPath
+        ? path.join(linkedPath, path.basename(file.fname))
+        : file.fname;
+      const fileInfo: FileInfo = {
+        id: parseInt(file.id, 10),
+        hostPath: path.join(
+          hostBasePath,
+          path.relative(chrisPath, relativeChrisPath)
+        ),
+        chrisPath: relativeChrisPath,
+        size: isNaN(size) ? 0 : size,
+        isLink: !!linkedPath,
+        linkTarget: linkedPath ? file.fname : "",
+        isDirectory: false,
+      };
+      files.push(fileInfo);
+    }
+  }
+  return files;
+}
+
+async function links_scan(
+  linksGroup: ChRISEmbeddedResourceGroup<FileBrowserFolder>,
+  chrisPath: string,
+  hostBasePath: string,
+  linkedPath: string = ""
+): Promise<FileInfo[]> {
+  const links: FileInfo[] = [];
+  const linkResults: FilteredResourceData | void =
+    await linksGroup.asset.resources_listAndFilterByOptions(
+      optionsToParams({ fields: "id,path,fname" })
+    );
+  if (linkResults && linkResults.tableData) {
+    for (const link of linkResults.tableData) {
+      link.path = "/" + link.path;
+      link.fname = "/" + link.fname;
+      const relativeChrisPath: string = linkedPath
+        ? path.join(linkedPath, path.basename(link.fname))
+        : link.fname;
+      const linkInfo: FileInfo = {
+        id: parseInt(link.id, 10),
+        hostPath: path.join(
+          hostBasePath,
+          path.relative(chrisPath, relativeChrisPath)
+        ),
+        chrisPath: relativeChrisPath,
+        isLink: true,
+        linkTarget: link.path,
+        size: 0,
+        isDirectory: false,
+      };
+      links.push(linkInfo);
+    }
+  }
+  return links;
+}
+
 async function chrisFS_scan(
   chrisPath: string,
   hostBasePath: string,
-  followLinks: boolean = false
+  followLinks: boolean = false,
+  dirsOnly: boolean = false
 ): Promise<ScanRecord | null> {
   const files: FileInfo[] = [];
   let totalSize: number = 0;
@@ -170,78 +395,46 @@ async function chrisFS_scan(
       currentPath
     );
     if (!resourceGroups) return;
-
     const { filesGroup, dirsGroup, linksGroup } = resourceGroups;
 
-    // Process files
-    const fileResults: FilteredResourceData | void =
-      await filesGroup.asset.resources_listAndFilterByOptions(
-        optionsToParams({ fields: "id,fname,fsize" })
-      );
-    if (fileResults && fileResults.tableData) {
-      for (const file of fileResults.tableData) {
-        const size: number = parseInt(file.fsize, 10);
-        file.fname = "/" + file.fname;
-        const relativeChrisPath: string = linkedPath
-          ? path.join(linkedPath, path.basename(file.fname))
-          : file.fname;
-        const fileInfo: FileInfo = {
-          id: parseInt(file.id, 10),
-          hostPath: path.join(
-            hostBasePath,
-            path.relative(chrisPath, relativeChrisPath)
-          ),
-          chrisPath: relativeChrisPath,
-          size: isNaN(size) ? 0 : size,
-          isLink: !!linkedPath,
-          linkTarget: linkedPath ? file.fname : "",
-        };
-        files.push(fileInfo);
-        totalSize += fileInfo.size;
-      }
-    }
+    const dirInfos = await dirs_scan(
+      dirsGroup,
+      chrisPath,
+      hostBasePath,
+      linkedPath
+    );
+    files.push(...dirInfos);
 
-    // Process links
-    const linkResults: FilteredResourceData | void =
-      await linksGroup.asset.resources_listAndFilterByOptions(
-        optionsToParams({ fields: "path,fname" })
+    if (!dirsOnly) {
+      const fileInfos = await files_scan(
+        filesGroup,
+        chrisPath,
+        hostBasePath,
+        linkedPath
       );
-    if (linkResults && linkResults.tableData) {
-      for (const link of linkResults.tableData) {
-        link.path = "/" + link.path;
-        link.fname = "/" + link.fname;
-        if (followLinks) {
-          await walkChrisDir(link.path, link.fname);
-        } else {
-          const linkInfo: FileInfo = {
-            id: parseInt(link.id, 10),
-            hostPath: path.join(
-              hostBasePath,
-              path.relative(chrisPath, link.fname)
-            ),
-            chrisPath: link.fname,
-            isLink: true,
-            linkTarget: link.path,
-            size: 0,
-          };
-          files.push(linkInfo);
+      files.push(...fileInfos);
+      totalSize += fileInfos.reduce((sum, file) => sum + file.size, 0);
+
+      const linkInfos = await links_scan(
+        linksGroup,
+        chrisPath,
+        hostBasePath,
+        linkedPath
+      );
+      files.push(...linkInfos);
+
+      if (followLinks) {
+        for (const link of linkInfos) {
+          await walkChrisDir(link.linkTarget, link.chrisPath);
         }
       }
     }
 
-    // Process directories
-    const dirResults: FilteredResourceData | void =
-      await dirsGroup.asset.resources_listAndFilterByOptions(
-        optionsToParams({ fields: "path" })
+    for (const dir of dirInfos) {
+      await walkChrisDir(
+        dir.chrisPath,
+        linkedPath ? path.join(linkedPath, path.basename(dir.chrisPath)) : ""
       );
-    if (dirResults && dirResults.tableData) {
-      for (const dir of dirResults.tableData) {
-        dir.path = "/" + dir.path;
-        await walkChrisDir(
-          dir.path,
-          linkedPath ? path.join(linkedPath, path.basename(dir.path)) : ""
-        );
-      }
     }
   }
 
@@ -262,43 +455,100 @@ async function scan(options: CLIscan): Promise<ScanRecord | null> {
     );
     return null;
   }
-
   if (!options.silent) {
     console.log(
-      chalk.cyan(`Scanning for all files recursively from ${chrisFolder}`)
+      chalk.cyan(
+        `Scanning for ${
+          options.dirsOnly ? "directories" : "all files"
+        } recursively from ${chrisFolder}`
+      )
     );
   }
-
-  // Set hostBasePath to the current working directory
   const hostBasePath: string = options.hostpath || process.cwd();
-  const scanResult: ScanRecord | null = await chrisFS_scan(
+  let scanResult: ScanRecord | null = await chrisFS_scan(
     chrisFolder,
     hostBasePath,
-    options.follow
+    options.follow,
+    options.dirsOnly
   );
-
   if (!scanResult) {
     console.error(chalk.red("Failed to scan ChRIS filesystem."));
     return null;
   }
 
-  if (options.tree) {
-    console.log(createArchyTree(scanResult.fileInfo));
-  } else {
-    if (!options.silent) {
-      scanResult.fileInfo.forEach((file: FileInfo) => {
-        if (file.isLink && !options.follow) {
-          console.log(`${file.chrisPath} -> ${file.linkTarget}`);
-        } else {
-          console.log(`${file.chrisPath}`);
+  // Apply filters if specified
+  if (options.filter || options.endsWith) {
+    const keepPaths = new Set<string>();
+    scanResult.fileInfo.forEach((file) => {
+      const basename = path.basename(file.chrisPath);
+      if (
+        (!options.filter || file.chrisPath.includes(options.filter)) &&
+        (!options.endsWith || basename.includes(options.endsWith))
+      ) {
+        // Keep this file and all its parent directories
+        let currentPath = file.chrisPath;
+        while (currentPath !== "/") {
+          keepPaths.add(currentPath);
+          currentPath = path.dirname(currentPath);
         }
-      });
+        keepPaths.add("/"); // Ensure root is always included
+      }
+    });
+
+    const filteredFileInfo = scanResult.fileInfo.filter((file) =>
+      keepPaths.has(file.chrisPath)
+    );
+    const filteredTotalSize = filteredFileInfo.reduce(
+      (sum, file) => sum + file.size,
+      0
+    );
+    scanResult = {
+      fileInfo: filteredFileInfo,
+      totalSize: filteredTotalSize,
+    };
+  }
+
+  if (options.mermaid) {
+    const mermaidDefinition = generateMermaidDefinition(scanResult);
+    if (options.save) {
+      try {
+        const outputFile = path.resolve(options.save);
+        const savedFilePath = await renderMermaidServerSide(
+          mermaidDefinition,
+          outputFile
+        );
+        console.log(`Mermaid diagram saved to: ${savedFilePath}`);
+      } catch (error) {
+        console.error(`Failed to save Mermaid diagram: ${error}`);
+      }
+    } else {
+      await renderMermaidInBrowser(mermaidDefinition);
+    }
+  } else {
+    if (options.tree) {
+      console.log(createArchyTree(scanResult.fileInfo));
+    } else {
+      if (!options.silent) {
+        scanResult.fileInfo.forEach((file: FileInfo) => {
+          if (file.isLink && !options.follow) {
+            console.log(`${file.chrisPath} -> ${file.linkTarget}`);
+          } else {
+            console.log(`${file.chrisPath}`);
+          }
+        });
+      }
     }
   }
+
   if (!options.silent) {
     console.log(
       chalk.green(`Total size: ${formatBytes(scanResult.totalSize)}`)
     );
+    if (options.filter || options.endsWith) {
+      console.log(
+        chalk.cyan(`Filtered results: ${scanResult.fileInfo.length} items`)
+      );
+    }
   }
   return scanResult;
 }
@@ -332,6 +582,7 @@ async function getFilesToUpload(
           isLink: false, // Assuming local files are not symlinks
           size: (await fs.promises.stat(hostFilePath)).size,
           linkTarget: "",
+          isDirectory: false,
         });
       }
     }
@@ -611,6 +862,22 @@ export async function setupPathCommand(program: Command): Promise<void> {
     )
     .option("--tree", "present in a style reminiscent of the UNIX tree command")
     .option("--follow", "follow chrislinks")
+    .option("--dirsOnly", "scan only directories")
+    .option("--silent", "suppress output")
+    .option("--hostpath <path>", "specify host path for file mapping")
+    .option(
+      "--filter <text>",
+      "filter results to include only paths containing the specified text"
+    )
+    .option(
+      "--endsWith <text>",
+      "filter results to include only paths ending with the specified text"
+    )
+    .option("--mermaid", "render the result as a Mermaid.js diagram")
+    .option(
+      "--save <filename>",
+      "save the Mermaid diagram to the specified file"
+    )
     .action(async (options: CLIscan) => {
       await scan(options);
     });
