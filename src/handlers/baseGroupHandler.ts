@@ -135,7 +135,7 @@ export class BaseGroupHandler {
       if (this.chrisObject instanceof ChRISFeedGroup) {
         fields = "id,name,creation_date,owner_username";
       } else {
-        fields = "id";
+        fields = "";
       }
     }
     await this.listResources({
@@ -179,11 +179,12 @@ export class BaseGroupHandler {
           await this.chrisObject.asset.resources_listAndFilterByOptions({
             id: id,
           });
-        drawBorder(
-          `checking ${this.assetName} id ${id} ... ${this.OKorNot_msg(
-            searchResults
-          )}`,
-          { bottom: false }
+        console.log(
+          drawBorder(
+            `checking ${this.assetName} id ${id} ... ${this.OKorNot_msg(
+              searchResults
+            )}`
+          )
         );
         if (!force) {
           confirm = await this.userContinue(id, "delete");
@@ -192,7 +193,6 @@ export class BaseGroupHandler {
           }
         }
         delop = await this.chrisObject.asset.resourceItem_delete(id);
-        drawBorder("errr... is this working?");
         drawBorder(
           `deleting ${this.assetName} id ${id} ... ${this.OKorNot_msg(true)}`
         );
