@@ -53,19 +53,19 @@ export class PluginContextGroupHandler {
     switch (assetName) {
       case "computesofplugin":
         chrisPluginSystemGroup = (await createObjContext(
-          "PluginComputeResources",
+          "ComputesOfPlugin",
           `plugin:${id}`
         )) as ChRISEmbeddedResourceGroup<Plugin>;
         break;
-      case "plugininstances":
+      case "instancesofplugin":
         chrisPluginSystemGroup = (await createObjContext(
-          "PluginInstances",
+          "InstancesOfPlugin",
           `plugin:${id}`
         )) as ChRISEmbeddedResourceGroup<Plugin>;
         break;
-      case "pluginparameters":
+      case "parametersofplugin":
         chrisPluginSystemGroup = (await createObjContext(
-          "PluginParameters",
+          "ParametersOfPlugin",
           `plugin:${id}`
         )) as ChRISEmbeddedResourceGroup<Plugin>;
         break;
