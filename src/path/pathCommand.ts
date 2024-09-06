@@ -21,7 +21,6 @@ import archy from "archy";
 
 interface TransferCLI {
   hostpath: string;
-  // chrisdir: string;
 }
 
 interface DownloadCLI {
@@ -75,14 +74,17 @@ interface CLIscan {
 function createSummaryTable(summary: TransferDetail): string[][] {
   const summaryTable: string[][] = [
     ["Total files", summary.totalFiles.toString()],
-    ["Successfully uploaded", chalk.green(summary.transferredCount.toString())],
-    ["Failed to upload", chalk.red(summary.failedCount.toString())],
     [
-      "Total data uploaded",
+      "Successfully transferred",
+      chalk.green(summary.transferredCount.toString()),
+    ],
+    ["Failed to transfer", chalk.red(summary.failedCount.toString())],
+    [
+      "Total data transferred",
       chalk.blueBright(formatBytes(summary.transferSize)),
     ],
     [
-      "Average upload speed",
+      "Average transfer speed",
       chalk.blueBright(`${formatBytes(summary.speed)}/s`),
     ],
     ["Duration", `${summary.duration.toFixed(2)} seconds`],
@@ -378,7 +380,7 @@ function progressBar_setupAndStart(
   const progressBar: cliProgress.SingleBar = new cliProgress.SingleBar(
     {
       format:
-        "Uploading [{bar}] {percentage}% | ETA: {eta}s | {value}/{total} files | {bytes}/{totalBytes}",
+        "Transferring [{bar}] {percentage}% | ETA: {eta}s | {value}/{total} files | {bytes}/{totalBytes}",
     },
     cliProgress.Presets.shades_classic
   );
@@ -414,23 +416,45 @@ function transmissionSummary_do(transfer: TransferDetail): Tranmission {
   return transmission;
 }
 
+function pulledParentDir_resolve(): string {
+  const chrisFolder: string | undefined = chrisContext.getCurrent("folder");
+  if (!chrisFolder) {
+    return "";
+  }
+  if (chrisFolder.endsWith("/")) {
+    return "";
+  }
+  return path.basename(chrisFolder);
+}
+
 async function chris_pull(
   scanRecord: ScanRecord,
   progressBar: cliProgress.SingleBar
 ): Promise<TransferDetail> {
   let summary: TransferDetail = transferDetail_init();
   summary.startTime = Date.now();
-
+  const parentDir: string = pulledParentDir_resolve();
+  const baseDir: string = process.cwd();
   for (const [index, file] of scanRecord.fileInfo.entries()) {
     try {
       if (!file.hostPath) {
         continue;
       }
-      const downloadResult: boolean = await chrisIO.file_download(file.id);
+      const fileBuffer: Buffer | null = await chrisIO.file_download(file.id);
 
-      if (downloadResult) {
+      if (fileBuffer) {
+        const relativePath: string = path.relative(baseDir, file.hostPath);
+        const hostPath: string = path.join(baseDir, parentDir, relativePath);
+        const dirPath: string = path.dirname(hostPath);
+
+        // Create parent directory if it doesn't exist
+        fs.mkdirSync(dirPath, { recursive: true });
+
+        // Write the file
+        fs.writeFileSync(hostPath, fileBuffer);
+
         summary.transferredCount++;
-        summary.transferSize += file.size;
+        summary.transferSize += fileBuffer.length;
       } else {
         summary.failedCount++;
         console.log(chalk.yellow(`Failed to download: ${file.hostPath}`));
@@ -450,6 +474,7 @@ async function chris_pull(
       bytes: formatBytes(summary.transferSize),
     });
   }
+
   const transmission: Tranmission = transmissionSummary_do(summary);
   progressBar.stop();
 
@@ -515,6 +540,7 @@ async function download(options: TransferCLI): Promise<boolean> {
   const scanRecord: ScanRecord | null = await scan({
     silent: true,
     follow: true,
+    hostpath: options.hostpath,
   });
   if (!scanRecord) {
     return false;
@@ -572,7 +598,9 @@ export async function setupPathCommand(program: Command): Promise<void> {
       "download the current ChRIS folder context to current dir or [hostdir]"
     )
     .action(async (hostpath: string) => {
-      const result: boolean = await download({ hostpath });
+      const result: boolean = await download({
+        hostpath: hostpath || process.cwd(),
+      });
       console.log(result);
     });
 
