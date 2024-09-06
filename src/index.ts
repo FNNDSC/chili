@@ -115,11 +115,11 @@ async function initializeHandlers() {
   computesOfPluginHandler.setupCommand(program);
 
   const pluginInstancesHandler: PluginContextGroupHandler =
-    await PluginContextGroupHandler.create("plugininstances");
+    await PluginContextGroupHandler.create("instancesofplugin");
   pluginInstancesHandler.setupCommand(program);
 
   const pluginParametersHandler: PluginContextGroupHandler =
-    await PluginContextGroupHandler.create("pluginparameters");
+    await PluginContextGroupHandler.create("parametersofplugin");
   pluginParametersHandler.setupCommand(program);
 
   setupCommandCompletion();
