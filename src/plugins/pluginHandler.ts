@@ -8,7 +8,7 @@ import {
   Dictionary,
 } from "@fnndsc/cumin";
 import { CLIoptions } from "../utils/cli";
-import { screen } from "../screen/screen.js";
+import { screen, displayTable } from "../screen/screen.js";
 
 export class PluginGroupHandler {
   private baseGroupHandler: BaseGroupHandler;
@@ -77,11 +77,8 @@ export class PluginMemberHandler {
     if (!instance) {
       console.log(errorStack.searchMessagesOfType("error", "plugin"));
     }
-    console.log(
-      screen.tableOut(instance, {
-        head: ["Plugin Parameter", "Value"],
-      })
-    );
+
+    displayTable(Object.entries(instance), ["Plugin Parameter", "Value"]);
     return instance.id;
   }
 
