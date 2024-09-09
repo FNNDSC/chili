@@ -29,6 +29,9 @@ function setupCommandCompletion() {
   const completion = omelette(`chili|chili`);
   completion.tree({
     connect: ["--user", "--password"],
+    man: {
+      doc: [], // We'll populate this later with actual topics
+    },
     lfs: ["ls", "mkdir", "touch"],
     plugins: {
       list: ["--page", "--fields", "--search"],
@@ -57,6 +60,12 @@ function setupCommandCompletion() {
     },
   });
 
+  completion.on("man.doc", ({ reply }) => {
+    console.log("Autocomplete triggered for man doc command");
+    // We'll implement actual topic retrieval here later
+    reply([]);
+  });
+
   completion.init();
 
   if (~process.argv.indexOf("--completion")) {
@@ -68,7 +77,7 @@ async function initializeHandlers() {
   const client = chrisConnection.getClient();
   if (!client) {
     console.error(
-      "Not connected to ChRIS. Please use the 'connect' command first."
+      "Not connected to ChRIS. Please use the 'connect' command first.",
     );
     process.exit(1);
   }
@@ -95,19 +104,16 @@ async function initializeHandlers() {
   const pluginMemberHandler: PluginMemberHandler = new PluginMemberHandler();
   pluginMemberHandler.setupCommand(program);
 
-  const filesGroupHandler: FileGroupHandler = await FileGroupHandler.create(
-    "files"
-  );
+  const filesGroupHandler: FileGroupHandler =
+    await FileGroupHandler.create("files");
   filesGroupHandler.setupCommand(program);
 
-  const linksGroupHandler: FileGroupHandler = await FileGroupHandler.create(
-    "links"
-  );
+  const linksGroupHandler: FileGroupHandler =
+    await FileGroupHandler.create("links");
   linksGroupHandler.setupCommand(program);
 
-  const dirsGroupHandler: FileGroupHandler = await FileGroupHandler.create(
-    "dirs"
-  );
+  const dirsGroupHandler: FileGroupHandler =
+    await FileGroupHandler.create("dirs");
   dirsGroupHandler.setupCommand(program);
 
   const computesOfPluginHandler: PluginContextGroupHandler =
