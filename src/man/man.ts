@@ -14,9 +14,18 @@ import { library, icon, dom } from "@fortawesome/fontawesome-svg-core";
 import { faCamera } from "@fortawesome/free-solid-svg-icons";
 
 library.add(faCamera);
+
 interface ManPageOptions {
   topic: string;
   browser?: boolean;
+  style: "figlet" | "ascii";
+  width?: number;
+}
+
+interface ASCIIHeadingStyle {
+  regex: RegExp;
+  textTransform: (text: string) => string;
+  color: chalk.Chalk;
 }
 
 interface HeadingStyle {
@@ -30,6 +39,29 @@ const headingStyles: HeadingStyle[] = [
   { regex: /<h2.*?>(.*?)<\/h2>/g, font: "Slant", color: chalk.yellow },
   { regex: /<h3.*?>(.*?)<\/h3>/g, font: "Small", color: chalk.green },
   { regex: /<h4.*?>(.*?)<\/h4>/g, font: "Mini", color: chalk.blue },
+];
+
+const asciiHeadingStyles: ASCIIHeadingStyle[] = [
+  {
+    regex: /<h1.*?>(.*?)<\/h1>/g,
+    textTransform: (text) => text.toUpperCase(),
+    color: chalk.yellow,
+  },
+  {
+    regex: /<h2.*?>(.*?)<\/h2>/g,
+    textTransform: (text) => text.toUpperCase(),
+    color: chalk.yellow.italic,
+  },
+  {
+    regex: /<h3.*?>(.*?)<\/h3>/g,
+    textTransform: (text) => text,
+    color: chalk.cyan,
+  },
+  {
+    regex: /<h4.*?>(.*?)<\/h4>/g,
+    textTransform: (text) => text,
+    color: chalk.cyan.italic,
+  },
 ];
 
 const docDir: string = path.join(projectDir_get(), "doc");
@@ -63,7 +95,11 @@ function adocToHtml(content: string): string {
   return result;
 }
 
-async function renderAsciidoc(content: string): Promise<string> {
+async function renderAsciidoc(
+  content: string,
+  style: "figlet" | "ascii",
+  width?: number,
+): Promise<string> {
   let result: string = adocToHtml(content);
 
   const createFiglet = (text: string, font: figlet.Fonts): Promise<string> => {
@@ -74,22 +110,40 @@ async function renderAsciidoc(content: string): Promise<string> {
     });
   };
 
+  function createASCII(text: string, style: ASCIIHeadingStyle): string {
+    const transformedText = style.textTransform(text);
+    return style.color(transformedText);
+  }
+
   const processHeading = async (
     text: string,
-    style: HeadingStyle
+    style: "figlet" | "ascii",
+    figletStyle: HeadingStyle,
+    asciiStyle: ASCIIHeadingStyle,
   ): Promise<string> => {
-    const figletText = await createFiglet(text, style.font);
-    return style.color(figletText);
+    if (style === "figlet") {
+      const figletText = await createFiglet(text, figletStyle.font);
+      return figletStyle.color(figletText);
+    } else {
+      return createASCII(text, asciiStyle);
+    }
   };
 
   // Process headings
-  for (const style of headingStyles) {
-    const matches = result.match(style.regex) || [];
+  for (let i = 0; i < headingStyles.length; i++) {
+    const figletStyle = headingStyles[i];
+    const asciiStyle = asciiHeadingStyles[i];
+    const matches = result.match(figletStyle.regex) || [];
     for (const match of matches) {
       const text = match
         .replace(/<\/?h[1-4].*?>/g, "")
         .replace(/<a.*?>(.*?)<\/a>/g, "$1");
-      const processed = await processHeading(text, style);
+      const processed = await processHeading(
+        text,
+        style,
+        figletStyle,
+        asciiStyle,
+      );
       result = result.replace(match, `\n${processed}\n`);
     }
   }
@@ -99,13 +153,22 @@ async function renderAsciidoc(content: string): Promise<string> {
     .replace(/<code>(.*?)<\/code>/g, (_, p1) => chalk.cyan(p1))
     .replace(/<em>(.*?)<\/em>/g, (_, p1) => chalk.italic(p1))
     .replace(/<\/?div.*?>/g, "")
-    .replace(/<p>(.*?)<\/p>/g, "$1\n\n")
+    .replace(/<p>(.*?)<\/p>/g, "$1\n")
     .replace(/&lt;/g, "<")
     .replace(/&gt;/g, ">")
     .replace(/&amp;/g, "&")
     .replace(/<a.*?>(.*?)<\/a>/g, "$1")
     .replace(/<\/?[^>]+(>|$)/g, "")
+    .replace(/\n{3,}/g, "\n\n") // Replace 3 or more newlines with 2
     .trim();
+
+  // Wrap the result if width is specified
+  if (width) {
+    result = result
+      .split("\n")
+      .map((line) => wrapText(line, width))
+      .join("\n");
+  }
 
   return result;
 }
@@ -114,7 +177,7 @@ function openInBrowser(filePath: string): void {
   const ascii: ReturnType<typeof asciidoctor> = asciidoctor();
   const tempHtmlPath: string = path.join(
     os.tmpdir(),
-    path.basename(filePath).replace(".adoc", ".html")
+    path.basename(filePath).replace(".adoc", ".html"),
   );
 
   try {
@@ -136,8 +199,8 @@ function openInBrowser(filePath: string): void {
       process.platform === "win32"
         ? "start"
         : process.platform === "darwin"
-        ? "open"
-        : "xdg-open";
+          ? "open"
+          : "xdg-open";
 
     exec(`${command} ${tempHtmlPath}`, (error: ExecException | null) => {
       if (error) {
@@ -147,20 +210,39 @@ function openInBrowser(filePath: string): void {
   } catch (error: unknown) {
     console.error(
       "Error opening documentation in browser:",
-      error instanceof Error ? error.message : String(error)
+      error instanceof Error ? error.message : String(error),
     );
   }
 }
 
-async function topics_list(): Promise<string[]> {
+function wrapText(text: string, width: number): string {
+  if (!width || width <= 0) return text;
+
+  const words = text.split(" ");
+  let wrappedText = "";
+  let line = "";
+
+  for (const word of words) {
+    if ((line + word).length > width) {
+      wrappedText += (wrappedText ? "\n" : "") + line.trim();
+      line = "";
+    }
+    line += word + " ";
+  }
+
+  wrappedText += (wrappedText ? "\n" : "") + line.trim();
+  return wrappedText;
+}
+
+export async function topics_list(): Promise<string[]> {
   library.add(faBook);
   const bookIcon = "";
   const files: string[] = fs.readdirSync(docDir);
   const adocFiles: string[] = files.filter(
-    (file: string) => path.extname(file) === ".adoc"
+    (file: string) => path.extname(file) === ".adoc",
   );
   const formattedOutput: string[] = adocFiles.map(
-    (file: string) => `${bookIcon} ${path.basename(file, ".adoc")}`
+    (file: string) => `${bookIcon} ${path.basename(file, ".adoc")}`,
   );
   return formattedOutput;
 }
@@ -177,7 +259,7 @@ async function manpage_handle(options: ManPageOptions): Promise<void> {
     openInBrowser(docPath);
   } else {
     const content: string = fs.readFileSync(docPath, "utf-8");
-    console.log(await renderAsciidoc(content));
+    console.log(await renderAsciidoc(content, options.style, options.width));
   }
 }
 
@@ -190,6 +272,8 @@ export function setupManCommand(program: Command): void {
     .command("doc <topic>")
     .description("Display the manual document for a ChILI topic")
     .option("-b, --browser", "Open documentation in browser")
+    .option("--style <style>", "Styling for headings", "figlet")
+    .option("--width <N>", "Number of columns in the text response", parseInt)
     .action(async (topic, options: ManPageOptions) => {
       options.topic = topic;
       await manpage_handle(options);
