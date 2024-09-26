@@ -77,7 +77,7 @@ async function initializeHandlers() {
   const client = chrisConnection.getClient();
   if (!client) {
     console.error(
-      "Not connected to ChRIS. Please use the 'connect' command first.",
+      "Not connected to ChRIS. Please use the 'connect' command first."
     );
     process.exit(1);
   }
@@ -104,16 +104,19 @@ async function initializeHandlers() {
   const pluginMemberHandler: PluginMemberHandler = new PluginMemberHandler();
   pluginMemberHandler.setupCommand(program);
 
-  const filesGroupHandler: FileGroupHandler =
-    await FileGroupHandler.create("files");
+  const filesGroupHandler: FileGroupHandler = await FileGroupHandler.create(
+    "files"
+  );
   filesGroupHandler.setupCommand(program);
 
-  const linksGroupHandler: FileGroupHandler =
-    await FileGroupHandler.create("links");
+  const linksGroupHandler: FileGroupHandler = await FileGroupHandler.create(
+    "links"
+  );
   linksGroupHandler.setupCommand(program);
 
-  const dirsGroupHandler: FileGroupHandler =
-    await FileGroupHandler.create("dirs");
+  const dirsGroupHandler: FileGroupHandler = await FileGroupHandler.create(
+    "dirs"
+  );
   dirsGroupHandler.setupCommand(program);
 
   const computesOfPluginHandler: PluginContextGroupHandler =
@@ -142,7 +145,7 @@ function parseContext(args: string[]): [string | undefined, string[]] {
 async function main() {
   const [context, newArgs] = parseContext(process.argv);
   if (context) {
-    chrisConnection.setContext(context);
+    await chrisConnection.setContext(context);
     process.argv = newArgs;
   }
 
