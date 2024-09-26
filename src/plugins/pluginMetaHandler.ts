@@ -4,6 +4,8 @@ import {
   ChRISPluginMetaPluginGroup,
   QueryHits,
   ChRISPlugin,
+  Context,
+  chrisContext,
 } from "@fnndsc/cumin";
 import { CLIoptions } from "../utils/cli";
 import axios from "axios";
@@ -136,7 +138,11 @@ export class PluginMetaGroupHandler {
           ) => {
             let targetId: string | null;
             if (pluginId === undefined) {
-              targetId = await this.pluginID_getFromSearch(options);
+              if (options.search === undefined) {
+                targetId = chrisContext.getCurrent(Context.ChRISplugin);
+              } else {
+                targetId = await this.pluginID_getFromSearch(options);
+              }
             } else {
               targetId = pluginId;
             }
