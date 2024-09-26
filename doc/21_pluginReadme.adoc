@@ -2,7 +2,7 @@
 
 == intro
 
-Each plugin should have a corresponding `README` file that the developer created documenting important information. This `README` can in various formats, but is typically in github markdown syntax and unsurprisingly is assumed to be accessible on github.
+Each plugin should have a corresponding `README` file that the developer created documenting important information. This `README` can exist in various formats, but is typically in github markdown syntax and unsurprisingly is assumed to be accessible on github.
 
 The `pluginMetas` subcommand can be used to return the `readme` of a given plugin. It operates by examining the `url` of the plugin json representation and searching in that location for a `README` file in various formats.
 
