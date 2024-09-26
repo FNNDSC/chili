@@ -1,5 +1,12 @@
 = intro
 
+An important idea in `chili` is the concept of _context_. The _context_ of a command can be thought of as the scope of its activity -- or alternatively the possible set of implicit data which the command can access as it performs its actions.
+
+== context is what?
+
+Think of context like this: when you log into a ChRIS or CUBE instance, all subsequent commands are obviously being applied to, or executed on, this ChRIS.
+
+
 == welcome
 
 Welome to the inline `chili` documentation system! This set of documents provides help text for each `chili` command. Additionally several important concepts like _searchable_ and _context_ are discussed.
