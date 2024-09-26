@@ -1,9 +1,16 @@
-= intro
+= plugins
 
-== welcome
+== intro
 
-Welome to the inline `chili` documentation system! This set of documents provides help text for each `chili` command. Additionally several important concepts like _searchable_ and _context_ are discussed.
+`plugins` are a central concept within ChRIS and can be accessed via several subcommands in `chili`
+
+* `plugin`
+* `plugins`
+* `pluginMetas`
+* `computesofplugin`
+* `instancesofplugin`
+* `parametersofplugin`
 
 == how to use
 
-To use this documentation system, simply read it!
+See various document chapters for information and examples on each.

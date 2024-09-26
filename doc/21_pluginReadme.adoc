@@ -1,10 +1,123 @@
-= pluginMetas readme
+= plugin readme 
 
-== purpose
+== intro
 
-The `pluginMetas` subcommand can be used to return the `readme` of a given plugin.
+Each plugin should have a corresponding `README` file that the developer created documenting important information. This `README` can in various formats, but is typically in github markdown syntax and unsurprisingly is assumed to be accessible on github.
+
+The `pluginMetas` subcommand can be used to return the `readme` of a given plugin. It operates by examining the `url` of the plugin json representation and searching in that location for a `README` file in various formats.
 
 == how to use
 
+Various use cases exist in which to collect and print this `readme` information
+
+=== getting a list of available plugins
+
+A tabulated list of plugins is useful, and can be achieved with:
+
+```
+chili plugins list --fields id,name,version,title --page 500
+```
+
+the `--page 500` is a "hack" to collect all the plugins in one list. Adjust as necessary.
+
+Typically, such a call will return
+
+```
+   ____ _     ___ _     ___ 
+  / ___| |__ |_ _| |   |_ _|
+ | |   | '_ \ | || |    | | 
+ | |___| | | || || |___ | | 
+  \____|_| |_|___|_____|___|
+                            
+The ChRIS Interactive Line Interface
+┌──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│                                                         plugins                                                          │
+├────┬────────────────────┬─────────┬──────────────────────────────────────────────────────────────────────────────────────┤
+│ id │ name               │ version │ title                                                                                │
+├────┼────────────────────┼─────────┼──────────────────────────────────────────────────────────────────────────────────────┤
+│ 16 │ pl-pfdorun         │ 2.2.14  │ A ChRIS plugin app                                                                   │
+│ 14 │ pl-shexec          │ 1.2.16  │ Execute shell-type commands across input spaces                                      │
+│ 12 │ pl-dcm2mha_cnvtr   │ 1.2.24  │ A ChRIS plugin app to convert dcm files to mha and vice-versa                        │
+│ 11 │ pl-simpledsapp     │ 2.1.3   │ Simple chris ds app                                                                  │
+│ 10 │ pl-bulk-rename     │ 0.1.2   │ Bulk Rename                                                                          │
+│  9 │ pl-markimg         │ 1.5.8   │ An app to mark landmark points and lines on an input image                           │
+│ 15 │ pl-lld_inference   │ 2.2.10  │ A ChRIS plugin that runs an inference model to predict landmark points on leg images │
+│  8 │ pl-lld_inference   │ 2.2.11  │ A ChRIS plugin that runs an inference model to predict landmark points on leg images │
+│  7 │ pl-neurofiles-push │ 0.2.0   │ Push files into /neuro                                                               │
+│  5 │ pl-csv2json        │ 1.2.4   │ An app to convert CSV generated from pl-lld_inference to a JSON representation       │
+│ 17 │ pl-dylld           │ 4.4.40  │ Leg-Length Discrepency - Dynamic Compute Flow                                        │
+│  4 │ pl-dylld           │ 4.4.42  │ Leg-Length Discrepency - Dynamic Compute Flow                                        │
+│  3 │ pl-dicommake       │ 2.3.6   │ DICOM image make                                                                     │
+│  2 │ pl-lld_chxr        │ 1.1.2   │ A ChRIS plugin to analyze the result produced by an LLD analysis                     │
+│  1 │ pl-dicom_dirsend   │ 1.1.6   │ A ChRIS plugin to send DICOMs to a remote PACS store                                 │
+│ 13 │ pl-dircopy         │ 2.1.2   │ A ChRIS fs app to copy obj storage directories                                       │
+│  6 │ pl-topologicalcopy │ 1.0.2   │ A ChRIS ts app to copy filtered output dirs from a list of plugin instances          │
+└────┴────────────────────┴─────────┴──────────────────────────────────────────────────────────────────────────────────────┘
+
+
+```
+
+
+=== simplest case
+
+Every element within CUBE has a corresponding unique ID, and plugins are of course no exception. The simplest mechanism to print the readme is to use the `pluginMetas` subcommand with a given plugin id in the pattern
+
+```
+pluginMetas readme <id>
+```
+
+So, given the table above, to get the readme of the `pl-shexec` we note its id is `14`, and thus:
+
+```
+chili pluginMetas readme 14
+```
+
+=== using a searchable
+
+A more intuitive manner is to use a `--search <searchable>` (see elsewhere for full description of `<searchables>`). This is typically useful if the name of the plugin is known and it is simply more convenient to use this explicitly:
+
+```
+chili pluginMetas readme --search "name: pl-shexec"
+```
+
+In fact, the intial command using the plugin <id> is equivalent to:
+
+```
+chili pluginMetas readme --search "id: 14"
+```
+
+Note the quotes in the above are for readability and to protect the embedded space. One could just as easily have
+
+
+```
+chili pluginMetas readme --search name:pl-shexec
+chili pluginMetas readme --search id:14
+```
+
+=== using a context specification
+
+A final mechanism for specifying the plugin to process, is to use a _context_ construction. Here, we specify the plugin as a _context_ and call the `readme` subcommand without any arguments:
+
+```
+chili plugin=14 pluginMetas readme
+```
+
+Since the plugin context is also a _searchable_ we can equally do
+
+```
+chili plugin=name:pl-shexec pluginMetas readme
+```
+
+and even
+
+```
+chili plugin=name:pl-dylld,version=4.4.40 pluginMetas readme
+```
+
+Take note that using a _context_ specification *will update the plugin context that persists across subsequent operations*.
+
+== final notes
+
+A successful readme call is dependent on a correct/complete set of meta data for a plugin. Careless developers might not specifiy the "url" in their plugin code meta parameters, in which case no readme lookup can occur. Should this be the case, a friendly PR nudge to the plugin developer might be needed.
 
 _-30-_
