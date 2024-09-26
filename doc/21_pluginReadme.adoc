@@ -1,0 +1,10 @@
+= pluginMetas readme
+
+== purpose
+
+The `pluginMetas` subcommand can be used to return the `readme` of a given plugin.
+
+== how to use
+
+
+_-30-_
