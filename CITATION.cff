@@ -1,0 +1,25 @@
+cff-version: 1.2.0
+message: If you use this software, please cite it as below.
+title: CHris Interactive Line Interface
+version: 1.0.0
+date-released: 2024-11-03
+repository-code: https://github.com/FNNDSC/chili
+license: MIT
+type: software
+authors:
+- family-names: Pienaar
+  given-names: Rudolph
+  orcid: https://orcid.org/0000-0002-8684-3185
+keywords:
+- ChRIS
+- medical imaging
+- CLI
+abstract: |
+ "chili" is a the CHris Interactive Line Interface and provides a powerful
+ CLI to the ChRIS backend. Data can be uploaded and downloaded, and new analyses
+ scheduled all from chili. In addition, chili provides a simple REPL to allow
+ for a more immersive shell-like interface.
+references:
+- type: software
+  title: "ChRIS Backend"
+  url: "https://github.com/FNNDSC/ChRIS_ultron_backEnd"
