@@ -8,7 +8,7 @@ _ChRIS Interactive Line Interface_
 
 ## WARNING
 
-Not ready for prime time -- and this doc is very old.
+Not ready for prime time -- and this doc is very old. Consult the `doc` subdir in this repo for more up to date documentation. At time of writing, this is probably `doc/13_run_a_plugin.adoc`.
 
 ## Installation
 
