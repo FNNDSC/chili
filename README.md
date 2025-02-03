@@ -4,7 +4,11 @@ _ChRIS Interactive Line Interface_
 
 ## Abstract
 
-`chili` is a first attempt at a nodejs CLI and REPL for ChRIS. It's also _hot_!
+`chili` is a nodejs CLI and REPL for ChRIS. It also aspires to be _hot_!
+
+## WARNING
+
+Not ready for prime time -- and this doc is very old.
 
 ## Installation
 
