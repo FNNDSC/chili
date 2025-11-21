@@ -17,13 +17,13 @@ import { setupContextCommand } from "./context/contextCommand.js";
 import { setupPathCommand } from "./path/pathCommand.js";
 import { setupFileBrowserCommand } from "./filesystem/filesystemHandler.js";
 import { setupManCommand } from "./man/man.js";
-import { chrisConnection } from "@fnndsc/cumin";
+import { chrisConnection, initializeChrisConnection, NodeStorageProvider } from "@fnndsc/cumin";
 import { FileGroupHandler } from "./filesystem/fileGroupHandler.js";
 import { screen, displayTable } from "./screen/screen.js";
 
 const program = new Command();
 
-program.version("1.0.0").description("A CLI for ChRIS");
+program.version("1.0.1").description("A CLI for ChRIS");
 
 function setupCommandCompletion() {
   const completion = omelette(`chili|chili`);
@@ -74,7 +74,7 @@ function setupCommandCompletion() {
 }
 
 async function initializeHandlers() {
-  const client = chrisConnection.getClient();
+  const client = await chrisConnection.client_get(); // Await client_get()
   if (!client) {
     console.error(
       "Not connected to ChRIS. Please use the 'connect' command first."
@@ -143,9 +143,13 @@ function parseContext(args: string[]): [string | undefined, string[]] {
 }
 
 async function main() {
+  // Initialize storage provider and ChrisConnection
+  const nodeStorageProvider = new NodeStorageProvider();
+  await initializeChrisConnection(nodeStorageProvider);
+
   const [context, newArgs] = parseContext(process.argv);
   if (context) {
-    await chrisConnection.setContext(context);
+    await chrisConnection.context_set(context);
     process.argv = newArgs;
   }
 
