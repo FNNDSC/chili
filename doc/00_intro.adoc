@@ -7,3 +7,19 @@ Welome to the inline `chili` documentation system! This set of documents provide
 == how to use
 
 To use this documentation system, simply read it!
+
+== Architectural Goals
+
+The `chili` and `cumin` projects are designed with a clear separation of concerns, with the goal of creating a reusable library of business logic for interacting with ChRIS.
+
+=== The `chili` and `cumin` relationship
+
+*`cumin`* is a "backend" or "runtime" library that is specific to a nodejs environment. It is responsible for all direct interaction with the ChRIS API, as well as managing state, credentials, and access to the local filesystem. It provides a high-level, object-oriented interface over the ChRIS API.
+
+*`chili`* is the "frontend" or business logic library. It is designed to be environment-agnostic. It contains the core logic and workflow for interacting with ChRIS resources, but it does not perform any direct API or filesystem access. Instead, it is designed to be paired with a backend like `cumin`.
+
+This separation allows the `chili` library to be potentially used in other environments, for instance as the logic layer for a future ChRIS web UI, by simply swapping `cumin` with a browser-compatible backend.
+
+=== The Naming Convention
+
+The codebase follows a strict `<object>_<method>` naming convention (e.g., `userNames_get`). This Reverse Polish Notation (RPN) style is designed for high discoverability and grouping of related functions. It is also machine-parsable, which aids in automated tooling and analysis. Further details can be found in the `TYPESCRIPT-STYLE-GUIDE.md` document.

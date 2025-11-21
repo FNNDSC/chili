@@ -30,7 +30,7 @@ interface ASCIIHeadingStyle {
 
 interface HeadingStyle {
   regex: RegExp;
-  font: figlet.Fonts;
+  font: string;
   color: chalk.Chalk;
 }
 
@@ -102,7 +102,7 @@ async function renderAsciidoc(
 ): Promise<string> {
   let result: string = adocToHtml(content);
 
-  const createFiglet = (text: string, font: figlet.Fonts): Promise<string> => {
+  const createFiglet = (text: string, font: string): Promise<string> => {
     return new Promise((resolve) => {
       figlet.text(text, { font }, (err, data) => {
         resolve(err ? text : data || text);

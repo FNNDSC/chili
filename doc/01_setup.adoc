@@ -1,9 +1,53 @@
-= intro
+= Setup Guide
 
-== welcome
+This guide outlines the steps required to build and install `chili` from source.
 
-Welome to the inline `chili` documentation system! This set of documents provides help text for each `chili` command. Additionally several important concepts like _searchable_ and _context_ are discussed.
+== Developer Setup
 
-== how to use
+`chili` relies on a backend library called `cumin`, which must be built first.
 
-To use this documentation system, simply read it!
+=== 1. Clone the Repository
+
+Assuming you have cloned the main repository containing both projects:
+
+[source,bash]
+----
+git clone <repo_url>
+cd <repo_name>
+----
+
+=== 2. Build `cumin`
+
+First, navigate to the `cumin` directory, install dependencies, and build the project.
+
+[source,bash]
+----
+cd cumin
+npm install
+npm run build
+----
+
+=== 3. Build and Link `chili`
+
+Next, navigate to the `chili` directory. Note the use of `--ignore-scripts` to bypass optional dependency issues.
+
+[source,bash]
+----
+cd ../chili
+npm install --ignore-scripts
+npm run build
+npm link
+----
+
+The `npm link` command is crucial as it makes the `chili` executable available globally in your terminal. You may need to run this with `sudo` depending on your system configuration.
+
+== Verification
+
+To verify the installation, try running the help command:
+
+[source,bash]
+----
+chili --help
+----
+
+You should see the ChILI logo and a list of available commands.

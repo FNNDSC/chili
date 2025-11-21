@@ -749,7 +749,7 @@ async function chris_push(
         continue;
       }
       const fileContent: Buffer = await fs.promises.readFile(file.hostPath);
-      const fileBlob: Blob = new Blob([fileContent]);
+      const fileBlob: Blob = new Blob([fileContent as any]);
       const uploadResult: boolean = await chrisIO.file_upload(
         fileBlob,
         file.chrisPath
