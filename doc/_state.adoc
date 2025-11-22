@@ -1,0 +1,68 @@
+= ChILI Context & State Management
+:toc: left
+:toclevels: 2
+
+The ChRIS Interactive Line Interface (ChILI) implements a robust "Context" system to provide a stateful, shell-like experience over the stateless ChRIS REST API. This design allows the CLI to remember "who you are," "where you are," and "what you are doing" across multiple sessions, users, and CUBE instances.
+
+== The Concept: "Where am I and Who am I?"
+
+The "Context" is a state management mechanism that persists critical session information. It allows a user to navigate the ChRIS filesystem, switch between different user identities, or connect to different ChRIS backends (CUBEs) without needing to re-authenticate or re-specify parameters for every command.
+
+It answers three fundamental questions:
+1.  **Who is acting?** (Current User)
+2.  **Where are they acting?** (Current ChRIS URL/CUBE instance)
+3.  **What are they working on?** (Current Folder, Feed, or Plugin)
+
+== Data Structure Hierarchy
+
+The context is organized hierarchically to support multi-tenancy and multi-backend operations.
+
+*   **`FullContext`**: The root state object. It maintains a registry of all known users.
+    **   **`UserContext`**: For each specific user (e.g., "alice", "bob"), it stores a map of all CUBE URLs they have interacted with.
+        ***   **`URLContext`**: The leaf node of the state tree. For a specific *User* at a specific *CUBE URL*, it persists the following session details:
+            ****   `folder`: The current working directory path (e.g., `/home/alice/data`).
+            ****   `feed`: The ID of the active feed.
+            ****   `plugin`: The ID of the active plugin instance.
+            ****   `token`: The active authentication token for this session.
+
+== Persistence
+
+This state is not ephemeral. It is persisted to the local filesystem (typically in `~/.chris/` or a similar configuration directory managed by `cumin`).
+
+*   **Session Continuity**: You can set a working directory (`chili context set --ChRISfolder /tmp`), close your terminal, open a new one days later, and `chili chefs ls` will still list the contents of `/tmp`.
+*   **Multi-Tasking**: You can seamlessly switch contexts. For example, you can work as user "dev" on a local testing CUBE, then switch context to user "prod_admin" on a remote production CUBE, and ChILI will instantly recall the correct tokens and working directories for each environment.
+
+== CLI Usage
+
+The context is managed via the `chili context` command group.
+
+=== Viewing State
+
+[source,bash]
+----
+# View the current active context (User, URL, Folder, etc.)
+chili context get
+
+# View details for a specific context aspect
+chili context get --ChRISuser
+chili context get --ChRISurl
+
+# View the entire stored state tree (all users, all URLs)
+chili context get --full
+----
+
+=== Modifying State
+
+[source,bash]
+----
+# Switch active user (if previously authenticated)
+chili context set --ChRISuser alice
+
+# Switch active CUBE instance
+chili context set --ChRISurl https://chris.example.org/api/v1/
+
+# Change current working directory (cd equivalent)
+chili context set --ChRISfolder /home/alice/analysis/
+----
+
+This architecture effectively turns the stateless ChRIS API into a stateful, interactive environment, significantly reducing the friction of repetitive tasks and complex workflows.

@@ -1,9 +1,77 @@
-= intro
+= searchable
 
-== welcome
+== intro
 
-Welome to the inline `chili` documentation system! This set of documents provides help text for each `chili` command. Additionally several important concepts like _searchable_ and _context_ are discussed.
+In `chili`, you often need to tell a command _what_ to operate on. "Run _this_ plugin." "Delete _that_ feed." "List files in _this_ directory."
 
-== how to use
+Usually, computer programs want cryptic ID numbers for this. "Run plugin #42." But humans are bad at remembering numbers. We prefer names. `chili` understands this and provides a powerful feature we call _searchables_.
 
-To use this documentation system, simply read it!
+A _searchable_ is just a text string you give to a command. `chili` looks at that string and figures out what you mean.
+
+== simple search
+
+Most of the time, you just want to find something by its name. Let's say you want to run the `pl-dircopy` plugin. You don't need to look up its ID number. You just tell `chili`:
+
+```bash
+chili plugin run pl-dircopy
+```
+
+`chili` sees "pl-dircopy", realizes it's a name, finds the plugin for you, and runs it. Simple.
+
+== explicit search
+
+Sometimes, "just the name" isn't enough. Maybe there are five different versions of `pl-dircopy` and you need a specific one. Or maybe you are looking for a feed created by a specific person.
+
+In these cases, you can use a special key-value syntax. It looks like `key: value`.
+
+For example, to find a plugin with a specific version:
+
+```bash
+chili plugin run "name: pl-dircopy, version: 2.1.1"
+```
+
+Notice how we separated the two facts we know (the name and the version) with a comma. `chili` will find the single plugin that matches _both_ of these rules.
+
+You can use any filter that the ChRIS API supports. If you want to find a feed created by user `bob`:
+
+```bash
+chili feed delete "owner_username: bob"
+```
+
+== using searchables in context
+
+This gets really powerful when combined with context. Imagine you want to start a session working on a specific plugin, but you don't know its ID. You can set your context using a searchable!
+
+```bash
+chili context set --ChRISplugin "name: pl-dircopy"
+```
+
+Now `chili` finds the plugin, gets its ID, and locks your session to it. Any subsequent commands that ask "which plugin?" will automatically use `pl-dircopy`.
+
+This flexibility means you almost never have to memorize an ID number again. Just describe what you want, and let `chili` find it.
+
+== examples cheat sheet
+
+Here are some common ways to use searchables:
+
+|===
+| Goal | Searchable String
+
+| **Find by Name**
+| `"pl-dircopy"`
+
+| **Find by ID**
+| `"id: 14"`
+
+| **Exact Name Match**
+| `"name_exact: pl-dircopy"`
+
+| **Specific Version**
+| `"name: pl-dircopy, version: 2.0"`
+
+| **Recent Feeds**
+| `"limit: 5"` (implicitly sorts by default)
+
+| **Feed by Creator**
+| `"owner_username: bob"`
+|===

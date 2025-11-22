@@ -9,7 +9,7 @@ import {
 } from "@fnndsc/cumin";
 import chalk from "chalk";
 // import Table from "cli-table3";
-import { screen, drawBorder, displayTable } from "../screen/screen.js";
+import { screen, border_draw, table_display } from "../screen/screen.js";
 
 interface ContextCLIoptions {
   ChRISurl?: string;
@@ -21,6 +21,12 @@ interface ContextCLIoptions {
   all?: boolean;
 }
 
+/**
+ * Retrieves and formats ChRIS context information based on CLI options.
+ *
+ * @param options - CLI options for context retrieval.
+ * @returns A formatted string of context information.
+ */
 function context_get(options: ContextCLIoptions): string {
   const results: string[] = [];
   if (options.all) {
@@ -30,10 +36,16 @@ function context_get(options: ContextCLIoptions): string {
   }
 }
 
+/**
+ * Retrieves and displays the full ChRIS context, including all users and their URLs.
+ *
+ * @param options - CLI options (currently only `all` is used to trigger this function).
+ * @returns An empty string, as output is directly to console via `displayTable`.
+ */
 function context_getFull(options: ContextCLIoptions): string {
-  const fullContext: FullContext = chrisContext.getFullContext();
-  const currentUser: string = fullContext.currentUser;
-  const currentURL: string = fullContext.currentURL;
+  const fullContext: FullContext = chrisContext.fullContext_get();
+  const currentUser: string | null = fullContext.currentUser;
+  const currentURL: string | null = fullContext.currentURL;
 
   Object.entries(fullContext.users).forEach(
     ([user, userContext]: [string, UserContext]) => {
@@ -56,7 +68,7 @@ function context_getFull(options: ContextCLIoptions): string {
         }
       });
 
-      displayTable(tableData, ["URL", "Folder", "Feed", "Plugin", "Token"], {
+      table_display(tableData, ["URL", "Folder", "Feed", "Plugin", "Token"], {
         title: {
           title: `User: ${user}`,
           justification: "center",
@@ -67,6 +79,12 @@ function context_getFull(options: ContextCLIoptions): string {
   return "";
 }
 
+/**
+ * Retrieves and displays a single ChRIS context (current context).
+ *
+ * @param options - CLI options for context retrieval (e.g., --full, --ChRISurl).
+ * @returns A formatted string of context information, or an empty string if output handled by `screen.table_output`.
+ */
 function context_getSingle(options: ContextCLIoptions): string {
   chrisContext.currentContext_update();
 
@@ -95,7 +113,7 @@ function context_getSingle(options: ContextCLIoptions): string {
     ];
 
     console.log(
-      screen.tableOut(tableData, {
+      screen.table_output(tableData, {
         head: ["Context", "Value"],
         columns: [
           { color: "yellow", justification: "right" },
@@ -150,35 +168,48 @@ function context_getSingle(options: ContextCLIoptions): string {
   }
 }
 
-function assign_check(context: Context, value: string): string {
-  const status: boolean = chrisContext.setCurrent(context, value);
-  if (!status) {
-    drawBorder(`${chalk.red(`ERROR: ${errorStack.getAllOfType("error")}`)}`);
-    return "";
-  } else return `${context} set to ${value}`;
+/**
+ * Asynchronously checks and assigns a context value.
+ *
+ * @param context - The type of context to assign.
+ * @param value - The value to assign to the context.
+ * @returns A formatted string indicating success or failure.
+ */
+async function assign_check_async(context: Context, value: string): Promise<string> {
+    const status: boolean = await chrisContext.current_set(context, value);
+    if (!status) {
+      border_draw(`${chalk.red(`ERROR: ${errorStack.allOfType_get("error")}`)}`);
+      return "";
+    } else return `${context} set to ${value}`;
 }
 
-function context_set(options: ContextCLIoptions): string {
+/**
+ * Sets various ChRIS context parameters based on CLI options.
+ *
+ * @param options - CLI options for setting context.
+ * @returns A formatted string summarizing the context changes.
+ */
+async function context_set(options: ContextCLIoptions): Promise<string> {
   const results: string[] = [];
 
   if (options.ChRISuser !== undefined) {
-    results.push(assign_check(Context.ChRISuser, options.ChRISuser));
+    results.push(await assign_check_async(Context.ChRISuser, options.ChRISuser as string));
   }
 
   if (options.ChRISurl !== undefined) {
-    results.push(assign_check(Context.ChRISURL, options.ChRISurl));
+    results.push(await assign_check_async(Context.ChRISURL, options.ChRISurl as string));
   }
 
   if (options.ChRISfolder !== undefined) {
-    results.push(assign_check(Context.ChRISfolder, options.ChRISfolder));
+    results.push(await assign_check_async(Context.ChRISfolder, options.ChRISfolder as string));
   }
 
   if (options.ChRISfeed !== undefined) {
-    results.push(assign_check(Context.ChRISfeed, options.ChRISfeed));
+    results.push(await assign_check_async(Context.ChRISfeed, options.ChRISfeed as string));
   }
 
   if (options.ChRISplugin !== undefined) {
-    results.push(assign_check(Context.ChRISplugin, options.ChRISplugin));
+    results.push(await assign_check_async(Context.ChRISplugin, options.ChRISplugin as string));
   }
 
   if (results.length === 0) {
@@ -190,7 +221,13 @@ function context_set(options: ContextCLIoptions): string {
   return results.join("\n");
 }
 
-export async function setupContextCommand(program: Command): Promise<void> {
+/**
+ * Sets up the 'context' command for the CLI program, allowing users to
+ * get and set various ChRIS context parameters.
+ *
+ * @param program - The Commander.js program instance.
+ */
+export async function contextCommand_setup(program: Command): Promise<void> {
   const contextCommand = program
     .command("context")
     .description("Manipulate the ChRIS context");
@@ -210,7 +247,7 @@ export async function setupContextCommand(program: Command): Promise<void> {
     .option("--all", "get all contexts for current session")
     .action((options) => {
       const result: string = context_get(options);
-      // console.log(result);
+      console.log(result);
     });
 
   contextCommand
@@ -224,8 +261,8 @@ export async function setupContextCommand(program: Command): Promise<void> {
       "--ChRISplugin <pluginID>",
       "set the current ChRIS Plugin (or instance) context"
     )
-    .action((options) => {
-      const result = context_set(options);
-      if (result.length) drawBorder(result);
+    .action(async (options) => {
+      const result = await context_set(options);
+      if (result.length) border_draw(result);
     });
 }

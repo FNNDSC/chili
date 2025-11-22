@@ -4,7 +4,7 @@ import { Command } from "commander";
 import figlet from "figlet";
 import omelette from "omelette";
 
-import { setupConnectCommand } from "./connect/connectHandler.js";
+import { connectCommand_setup } from "./connect/connectHandler.js";
 import { FeedGroupHandler, FeedMemberHandler } from "./feeds/feedHandler.js";
 import {
   PluginGroupHandler,
@@ -12,19 +12,24 @@ import {
 } from "./plugins/pluginHandler.js";
 import { PluginMetaGroupHandler } from "./plugins/pluginMetaHandler.js";
 import { PluginContextGroupHandler } from "./plugins/pluginGroupHandler.js";
-import { setupInodeCommand } from "./filesystem/inodeCommand.js";
-import { setupContextCommand } from "./context/contextCommand.js";
-import { setupPathCommand } from "./path/pathCommand.js";
-import { setupFileBrowserCommand } from "./filesystem/filesystemHandler.js";
-import { setupManCommand } from "./man/man.js";
-import { chrisConnection, initializeChrisConnection, NodeStorageProvider } from "@fnndsc/cumin";
+import { inodeCommand_setup } from "./filesystem/inodeCommand.js";
+import { contextCommand_setup } from "./context/contextCommand.js";
+import { pathCommand_setup } from "./path/pathCommand.js";
+import { fileBrowserCommand_setup } from "./filesystem/filesystemHandler.js";
+import { manCommand_setup } from "./man/man.js";
+import { setupChefsCommand } from "./chefs/chefs.js";
+import * as Cumin from "@fnndsc/cumin";
 import { FileGroupHandler } from "./filesystem/fileGroupHandler.js";
-import { screen, displayTable } from "./screen/screen.js";
+import { screen, table_display } from "./screen/screen.js";
 
 const program = new Command();
 
 program.version("1.0.1").description("A CLI for ChRIS");
 
+/**
+ * Sets up command completion for the ChILI CLI using omelette.
+ * This provides auto-completion suggestions in the shell.
+ */
 function setupCommandCompletion() {
   const completion = omelette(`chili|chili`);
   completion.tree({
@@ -32,7 +37,7 @@ function setupCommandCompletion() {
     man: {
       doc: [], // We'll populate this later with actual topics
     },
-    lfs: ["ls", "mkdir", "touch"],
+    chefs: ["ls", "mkdir", "touch"],
     plugins: {
       list: ["--page", "--fields", "--search"],
       info: ["<pluginId>"],
@@ -73,67 +78,83 @@ function setupCommandCompletion() {
   }
 }
 
+/**
+ * Initializes and sets up all command handlers for the ChILI CLI.
+ *
+ * @param program - The Commander.js program instance.
+ */
 async function initializeHandlers() {
-  const client = await chrisConnection.client_get(); // Await client_get()
-  if (!client) {
-    console.error(
-      "Not connected to ChRIS. Please use the 'connect' command first."
-    );
-    process.exit(1);
-  }
+  // const client = await Cumin.chrisConnection.client_get(); 
+  // We don't enforce connection here to allow --help to work. 
+  // Commands will fail individually if not connected.
 
-  setupFileBrowserCommand(program);
-  setupContextCommand(program);
-  setupPathCommand(program);
-  setupManCommand(program);
-  await setupInodeCommand(program);
+  fileBrowserCommand_setup(program);
+  contextCommand_setup(program);
+  pathCommand_setup(program);
+  manCommand_setup(program);
+  setupChefsCommand(program);
+  await inodeCommand_setup(program);
 
   const pluginGroupHandler: PluginGroupHandler = new PluginGroupHandler();
-  pluginGroupHandler.setupCommand(program);
+  pluginGroupHandler.pluginGroupCommand_setup(program);
 
   const pluginMetaGroupHandler: PluginMetaGroupHandler =
     new PluginMetaGroupHandler();
-  pluginMetaGroupHandler.setupCommand(program);
+  pluginMetaGroupHandler.pluginMetaGroupCommand_setup(program);
 
   const feedGroupHandler: FeedGroupHandler = new FeedGroupHandler();
-  feedGroupHandler.setupCommand(program);
+  feedGroupHandler.feedGroupCommand_setup(program);
 
   const feedMemberHandler: FeedMemberHandler = new FeedMemberHandler();
-  feedMemberHandler.setupCommand(program);
+  feedMemberHandler.feedCommand_setup(program);
 
   const pluginMemberHandler: PluginMemberHandler = new PluginMemberHandler();
-  pluginMemberHandler.setupCommand(program);
+  pluginMemberHandler.pluginCommand_setup(program);
 
-  const filesGroupHandler: FileGroupHandler = await FileGroupHandler.create(
-    "files"
-  );
-  filesGroupHandler.setupCommand(program);
+  try {
+    const filesGroupHandler: FileGroupHandler = await FileGroupHandler.handler_create(
+      "files"
+    );
+    filesGroupHandler.fileGroupCommand_setup(program);
 
-  const linksGroupHandler: FileGroupHandler = await FileGroupHandler.create(
-    "links"
-  );
-  linksGroupHandler.setupCommand(program);
+    const linksGroupHandler: FileGroupHandler = await FileGroupHandler.handler_create(
+      "links"
+    );
+    linksGroupHandler.fileGroupCommand_setup(program);
 
-  const dirsGroupHandler: FileGroupHandler = await FileGroupHandler.create(
-    "dirs"
-  );
-  dirsGroupHandler.setupCommand(program);
+    const dirsGroupHandler: FileGroupHandler = await FileGroupHandler.handler_create(
+      "dirs"
+    );
+    dirsGroupHandler.fileGroupCommand_setup(program);
+  } catch (e) {
+    // console.log("Could not initialize file group handlers (likely not connected)");
+  }
 
-  const computesOfPluginHandler: PluginContextGroupHandler =
-    await PluginContextGroupHandler.create("computesofplugin");
-  computesOfPluginHandler.setupCommand(program);
+  try {
+    const computesOfPluginHandler: PluginContextGroupHandler =
+      await PluginContextGroupHandler.handler_create("computesofplugin");
+    computesOfPluginHandler.pluginContextGroupCommand_setup(program);
 
-  const pluginInstancesHandler: PluginContextGroupHandler =
-    await PluginContextGroupHandler.create("instancesofplugin");
-  pluginInstancesHandler.setupCommand(program);
+    const pluginInstancesHandler: PluginContextGroupHandler =
+      await PluginContextGroupHandler.handler_create("instancesofplugin");
+    pluginInstancesHandler.pluginContextGroupCommand_setup(program);
 
-  const pluginParametersHandler: PluginContextGroupHandler =
-    await PluginContextGroupHandler.create("parametersofplugin");
-  pluginParametersHandler.setupCommand(program);
+    const pluginParametersHandler: PluginContextGroupHandler =
+      await PluginContextGroupHandler.handler_create("parametersofplugin");
+    pluginParametersHandler.pluginContextGroupCommand_setup(program);
+  } catch (e) {
+    // console.log("Could not initialize plugin context handlers (likely not connected)");
+  }
 
   setupCommandCompletion();
 }
 
+/**
+ * Parses the command line arguments to extract context information.
+ *
+ * @param args - The command line arguments array (process.argv).
+ * @returns A tuple containing the context string (if found) and the remaining arguments.
+ */
 function parseContext(args: string[]): [string | undefined, string[]] {
   if (args.length > 2 && args[2].includes("=")) {
     const context: string = args[2];
@@ -142,14 +163,18 @@ function parseContext(args: string[]): [string | undefined, string[]] {
   return [undefined, args];
 }
 
+/**
+ * Main function to run the ChILI CLI.
+ * Handles initialization, context parsing, and command execution.
+ */
 async function main() {
   // Initialize storage provider and ChrisConnection
-  const nodeStorageProvider = new NodeStorageProvider();
-  await initializeChrisConnection(nodeStorageProvider);
+  const nodeStorageProvider = new Cumin.NodeStorageProvider();
+  await Cumin.chrisConnection_init(nodeStorageProvider);
 
   const [context, newArgs] = parseContext(process.argv);
   if (context) {
-    await chrisConnection.context_set(context);
+    await Cumin.chrisConnection.context_set(context);
     process.argv = newArgs;
   }
 
@@ -160,7 +185,7 @@ async function main() {
     .option("-c, --config <path>", "path to config file")
     .option("-s, --nosplash", "disable splash screen");
 
-  setupConnectCommand(program);
+  connectCommand_setup(program);
 
   // Parse arguments to handle global options
   program.parseOptions(process.argv);
@@ -171,12 +196,12 @@ async function main() {
     console.log("The ChRIS Interactive Line Interface");
   }
 
-  // displayTable(
+  // table_display(
   //   ["val1,val2,val3,val4,val5", "val6,val7,val8,val9,val10"],
   //   "col1,col2,col3,col4,col5"
   // );
 
-  // displayTable(
+  // table_display(
   //   [
   //     ["val1", "val2", "val3", "val4", "val5"],
   //     ["val6", "val7", "val8", "val9", "val10"],

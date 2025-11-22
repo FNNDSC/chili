@@ -66,6 +66,11 @@ const asciiHeadingStyles: ASCIIHeadingStyle[] = [
 
 const docDir: string = path.join(projectDir_get(), "doc");
 
+/**
+ * Determines the root project directory by looking for `package.json`.
+ *
+ * @returns The absolute path to the project directory.
+ */
 function projectDir_get(): string {
   const currentFilePath: string = import.meta.url;
   const currentDirectory: string = path.dirname(currentFilePath);
@@ -82,7 +87,13 @@ function projectDir_get(): string {
   return url.fileURLToPath(currentDirectory);
 }
 
-function adocToHtml(content: string): string {
+/**
+ * Converts AsciiDoc content to HTML.
+ *
+ * @param content - The AsciiDoc content string.
+ * @returns The converted HTML string.
+ */
+function adoc_toHtml(content: string): string {
   const ascii: ReturnType<typeof asciidoctor> = asciidoctor();
   let result: string = ascii.convert(content, {
     standalone: false,
@@ -95,12 +106,20 @@ function adocToHtml(content: string): string {
   return result;
 }
 
-async function renderAsciidoc(
+/**
+ * Renders AsciiDoc content to a formatted string for console display.
+ *
+ * @param content - The AsciiDoc content string.
+ * @param style - The rendering style ('figlet' or 'ascii').
+ * @param width - Optional width for text wrapping.
+ * @returns A Promise resolving to the formatted string.
+ */
+async function asciidoc_render(
   content: string,
   style: "figlet" | "ascii",
   width?: number,
 ): Promise<string> {
-  let result: string = adocToHtml(content);
+  let result: string = adoc_toHtml(content);
 
   const createFiglet = (text: string, font: string): Promise<string> => {
     return new Promise((resolve) => {
@@ -166,14 +185,19 @@ async function renderAsciidoc(
   if (width) {
     result = result
       .split("\n")
-      .map((line) => wrapText(line, width))
+      .map((line) => text_wrap(line, width))
       .join("\n");
   }
 
   return result;
 }
 
-function openInBrowser(filePath: string): void {
+/**
+ * Opens a local file in the default web browser.
+ *
+ * @param filePath - The path to the file to open.
+ */
+function browser_open(filePath: string): void {
   const ascii: ReturnType<typeof asciidoctor> = asciidoctor();
   const tempHtmlPath: string = path.join(
     os.tmpdir(),
@@ -215,7 +239,14 @@ function openInBrowser(filePath: string): void {
   }
 }
 
-function wrapText(text: string, width: number): string {
+/**
+ * Wraps text to a specified width.
+ *
+ * @param text - The text to wrap.
+ * @param width - The maximum line width.
+ * @returns The wrapped text.
+ */
+function text_wrap(text: string, width: number): string {
   if (!width || width <= 0) return text;
 
   const words = text.split(" ");
@@ -234,6 +265,11 @@ function wrapText(text: string, width: number): string {
   return wrappedText;
 }
 
+/**
+ * Lists available manual page topics from the documentation directory.
+ *
+ * @returns A Promise resolving to an array of formatted topic names.
+ */
 export async function topics_list(): Promise<string[]> {
   library.add(faBook);
   const bookIcon = "";
@@ -247,6 +283,11 @@ export async function topics_list(): Promise<string[]> {
   return formattedOutput;
 }
 
+/**
+ * Handles the display of a manpage, either in the console or a browser.
+ *
+ * @param options - ManPageOptions containing topic, browser flag, style, and width.
+ */
 async function manpage_handle(options: ManPageOptions): Promise<void> {
   const docPath: string = path.join(docDir, `${options.topic}.adoc`);
 
@@ -256,14 +297,19 @@ async function manpage_handle(options: ManPageOptions): Promise<void> {
   }
 
   if (options.browser) {
-    openInBrowser(docPath);
+    browser_open(docPath);
   } else {
     const content: string = fs.readFileSync(docPath, "utf-8");
-    console.log(await renderAsciidoc(content, options.style, options.width));
+    console.log(await asciidoc_render(content, options.style, options.width));
   }
 }
 
-export function setupManCommand(program: Command): void {
+/**
+ * Sets up the 'man' command for displaying ChILI manual and help pages.
+ *
+ * @param program - The Commander.js program instance.
+ */
+export function manCommand_setup(program: Command): void {
   const manCommand: Command = program
     .command("man")
     .description("ChILI built in manual and help pages");
@@ -285,7 +331,7 @@ export function setupManCommand(program: Command): void {
     .action(async () => {
       const files: string[] = await topics_list();
       console.log("\n\nThe following topics are available:");
-      console.log("(read more with 'chili man doc <topic>'\n");
+      console.log("(read more with 'chili man doc <topic>')\n");
       console.log(files.join("\n"));
     });
 }

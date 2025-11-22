@@ -4,61 +4,58 @@
 
 ## Abstract
 
-This tool is designed for developers and power-users who want to script and control a ChRIS instance from the comfort of their terminal. It maintains a local context, remembering your connection details and current location within the ChRIS filesystem, allowing for a fluid and efficient workflow.
+This tool is designed for developers and power-users who want to script and control a ChRIS instance from the comfort of their terminal. It maintains a persistent local context, remembering your connection details and current location within the ChRIS filesystem, allowing for a fluid and efficient workflow.
 
-## Architecture
+## Architecture: The Sandwich Model 🥪
 
-`chili` is the user-facing frontend of a two-part system. It is responsible for parsing user commands and displaying output. For all core operations, it delegates to the [`cumin`](../cumin/README.md) library, which acts as its Node.js-based backend.
+`chili` is the top layer of a robust "Sandwich" architecture designed for modularity and reusability:
 
-The CLI is built on a `noun verb` pattern using the `commander.js` library.
+1.  **`chili` (Presentation)**: The user-facing CLI. It parses commands, formats output (tables, grids), and manages user interaction. It contains the **`chefs`** module, which provides a familiar Unix-like shell experience (`ls`, `cd`, `pwd`).
+2.  **[`salsa`](../salsa/README.md) (Logic)**: The shared application logic layer. It defines high-level "intents" (e.g., `feed_create`, `files_touch`) that are independent of the specific frontend.
+3.  **[`cumin`](../cumin/README.md) (Infrastructure)**: The state and operations layer. It manages authentication, persistent context, and low-level API interactions.
 
--   **Nouns** represent ChRIS resources. A distinction is made between plural nouns for collections (e.g., `feeds`) and singular nouns for specific members (e.g., `feed`).
--   **Verbs** are implemented as subcommands that perform an action on the noun (e.g., `list`, `create`, `delete`).
+This design ensures that the core logic in `salsa` can be reused in future web or mobile interfaces.
 
-A `BaseGroupHandler` class provides common verbs (`list`, `delete`, `fieldslist`) to all collection nouns, keeping the command structure consistent and the code DRY.
+## Core Features
 
-### Coding Style
-
-This project adheres to a specific set of TypeScript coding standards outlined in the main style guide. Before contributing, please review the [TypeScript Style Guide](TYPESCRIPT-STYLE-GUIDE.md).
+-   **Context-Aware**: Remembers your active server, user, and working directory. You can "cd" into a ChRIS folder and stay there.
+-   **Searchable**: Powerful query syntax (`name:demo, version:2.0`) for finding resources without memorizing IDs.
+-   **Chefs Shell**: Familiar Unix-like commands (`chili chefs ls`, `cd`, `pwd`, `touch`) for browsing the ChRIS filesystem intuitively.
+-   **Scriptable**: Clean, predictable command structure for automation.
 
 ## Quick Start
 
-After building and linking the project, you can run `chili` directly from your terminal. This guide demonstrates a common workflow.
+After building and linking the project (`make meal`), you can run `chili` directly from your terminal.
 
 1.  **Connect to ChRIS:**
     First, connect to your ChRIS instance. This command stores your session details for future commands.
     ```bash
     chili connect <URL> --user <USERNAME> --password <PASSWORD>
     ```
-    *Example:*
+
+2.  **Explore with Chefs:**
+    Use the shell-like interface to look around.
     ```bash
-    chili connect https://cube.chrisproject.org/api/v1/ --user chris --password chris1234
+    # List root directory
+    chili chefs ls /
+
+    # Change working directory
+    chili chefs cd /home/user/uploads
+
+    # Confirm location
+    chili chefs pwd
     ```
 
-2.  **Upload Data:**
-    Next, upload some local data to the ChRIS filesystem. The `path upload` command takes a local path and a destination path within ChRIS.
+3.  **Upload Data:**
+    Upload local data to your current ChRIS location.
     ```bash
-    chili path upload <local/path/to/data> <chris/path/to/data>
-    ```
-    *Example:*
-    ```bash
-    chili path upload ~/data/project-x/scans /home/chris/project-x/scans
+    chili path upload ~/data/project-x/scans
     ```
 
-3.  **Create a Feed:**
-    Now, create a new feed (an analysis) using the data you just uploaded as the root node.
+4.  **Create a Feed:**
+    Create a new analysis feed using the data you just uploaded.
     ```bash
-    chili feed create --dirs <chris/path/to/data> --params "title:My First Analysis"
-    ```
-    *Example:*
-    ```bash
-    chili feed create --dirs "/home/chris/project-x/scans" --params "title:My First Analysis"
-    ```
-
-4.  **List Your Feeds:**
-    You can see the feed you just created by using the `list` verb on the `feeds` noun.
-    ```bash
-    chili feeds list
+    chili feed create --dirs "/home/user/project-x/scans" --params "title:My Analysis"
     ```
 
 ---

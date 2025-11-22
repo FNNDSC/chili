@@ -1,33 +1,37 @@
 import { Command } from "commander";
 import { BaseGroupHandler } from "../handlers/baseGroupHandler.js";
-import {
-  ChRISPluginGroup,
-  ChRISPlugin,
-  QueryHits,
-  errorStack,
-  Dictionary,
-} from "@fnndsc/cumin";
 import { CLIoptions } from "../utils/cli";
-import { screen, displayTable } from "../screen/screen.js";
+import { screen, table_display } from "../screen/screen.js";
+import { PluginController } from "../controllers/pluginController.js";
+import { Dictionary, errorStack } from "@fnndsc/cumin";
 
+/**
+ * Handles commands related to groups of ChRIS plugins.
+ */
 export class PluginGroupHandler {
   private baseGroupHandler: BaseGroupHandler;
+  private controller: PluginController;
   assetName = "plugins";
 
   constructor() {
-    const chrisPluginGroup = new ChRISPluginGroup();
+    this.controller = PluginController.controller_create();
     this.baseGroupHandler = new BaseGroupHandler(
       this.assetName,
-      chrisPluginGroup
+      this.controller.chrisObject
     );
   }
 
   async plugins_overview(): Promise<void> {
-    return;
+    await this.controller.plugins_overview();
   }
 
-  setupCommand(program: Command): void {
-    this.baseGroupHandler.setupCommand(program);
+  /**
+   * Sets up the Commander.js commands for plugin group operations.
+   *
+   * @param program - The Commander.js program instance.
+   */
+  pluginGroupCommand_setup(program: Command): void {
+    this.baseGroupHandler.command_setup(program);
 
     const pluginsCommand = program.commands.find(
       (cmd) => cmd.name() === this.assetName
@@ -46,19 +50,22 @@ export class PluginGroupHandler {
   }
 }
 
+/**
+ * Handles commands related to individual ChRIS plugins.
+ */
 export class PluginMemberHandler {
   private assetName: string;
+  private controller: PluginController;
 
   constructor() {
     this.assetName = "plugin";
+    this.controller = PluginController.controller_create();
   }
 
   async plugin_infoGet(pluginId: string): Promise<void> {
     try {
-      // This is a placeholder. Replace with actual implementation using cumin
       console.log(`Fetching info for plugin with ID: ${pluginId}`);
-      // const pluginInfo = await this.asset.getPluginInfo(pluginId);
-      // console.log(JSON.stringify(pluginInfo, null, 2));
+      await this.controller.plugin_infoGet(pluginId);
     } catch (error: unknown) {
       if (error instanceof Error) {
         console.error(`Error fetching plugin info: ${error.message}`);
@@ -69,32 +76,34 @@ export class PluginMemberHandler {
   }
 
   async plugin_run(searchable: string, params: string): Promise<Number | null> {
-    const chrisPlugin: ChRISPlugin = new ChRISPlugin();
-    const instance: Dictionary | null = await chrisPlugin.plugin_run(
+    const instance: Dictionary | null = await this.controller.plugin_run(
       searchable,
       params
     );
     if (!instance) {
-      console.log(errorStack.searchMessagesOfType("error", "plugin"));
+      console.log(errorStack.messagesOfType_search("error", "plugin"));
+      return null;
     }
 
-    displayTable(Object.entries(instance), ["Plugin Parameter", "Value"]);
-    return instance.id;
+    table_display(Object.entries(instance), ["Plugin Parameter", "Value"]);
+    return instance.id as number;
   }
 
   async plugin_searchableToIDs(searchable: string): Promise<string[] | null> {
-    const chrisPlugin: ChRISPlugin = new ChRISPlugin();
-    const queryHits: QueryHits | null = await chrisPlugin.pluginIDs_resolve(
-      searchable
-    );
-    if (!queryHits) {
+    const hits = await this.controller.plugin_searchableToIDs(searchable);
+    if (!hits) {
       return null;
     }
-    console.log(queryHits.hits);
-    return queryHits.hits;
+    console.log(hits);
+    return hits;
   }
 
-  setupCommand(program: Command): void {
+  /**
+   * Sets up the Commander.js commands for individual plugin operations.
+   *
+   * @param program - The Commander.js program instance.
+   */
+  pluginCommand_setup(program: Command): void {
     const pluginCommand = program
       .command(this.assetName)
       .description(`Interact with a single ChRIS ${this.assetName}`);

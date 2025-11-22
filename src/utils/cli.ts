@@ -1,5 +1,5 @@
 import { ListOptions } from "@fnndsc/cumin";
-import { applyKeyPairParams } from "@fnndsc/cumin";
+import { keyPairParams_apply } from "@fnndsc/cumin";
 
 export interface CLIoptions {
   page?: string;
@@ -9,7 +9,7 @@ export interface CLIoptions {
   [key: string]: any;
 }
 
-export function optionsToParams(
+export function options_toParams(
   options: CLIoptions,
   keyPairField: keyof CLIoptions = "search"
 ): ListOptions {
@@ -22,7 +22,7 @@ export function optionsToParams(
   const keyPairValue = options[keyPairField];
 
   if (typeof keyPairValue === "string") {
-    return applyKeyPairParams(baseParams, keyPairValue);
+    return keyPairParams_apply(baseParams, keyPairValue);
   }
 
   return baseParams;

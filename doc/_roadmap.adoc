@@ -1,0 +1,42 @@
+= ChILI Project Roadmap & Architecture Vision
+:toc: left
+:toclevels: 2
+:doctype: book
+
+== The Sandwich Model: Architecture Overview
+
+The ChRIS Interactive Line Interface (ChILI) project is evolving towards a robust, layered architecture, often referred to as the "Sandwich Model" or Clean Architecture. This design ensures modularity, testability, and reusability across various platforms (CLI, Web, Mobile).
+
+=== Layers of the Sandwich
+
+*   *Top Layer (Interface/Presentation)*:
+    **`chili`**: The Command Line Interface (CLI) application itself. Its primary responsibility is to parse user input (commands, flags), format output for the console, and dispatch actions to the underlying logic layer. It is the CLI analogue of a React or Angular frontend.
+    **`chell` (Future)**: An interactive REPL (Read-Eval-Print Loop) providing a shell-like experience to ChRIS users. It will offer Unix-like commands (`ls`, `cd`, `pwd`) and interactive sessions. This is a future evolution of `chili`.
+
+*   *Middle Layer (Application Logic/Services)*:
+    **`salsa`**: Shared Application Logic and Service Assets. This layer encapsulates the high-level business logic and "intents" (e.g., `feed_create`, `plugin_run`, `files_getGroup`). It acts as a platform-agnostic facade, abstracting away the intricacies of interacting with the ChRIS backend. `salsa` is designed to be reusable by `chili` (and `chell`), web frontends, or any other application consuming ChRIS functionality.
+
+*   *Bottom Layer (Infrastructure/Primitives)*:
+    **`cumin`**: A utility library providing lower-level primitives, state management (token handling, context), and a high-level, object-oriented API for interacting with the ChRIS system. `cumin` abstracts away the direct API calls.
+    **`@fnndsc/chrisapi`**: The foundational, low-level client library that makes direct REST API calls to the ChRIS server. `cumin` wraps and manages this client.
+
+This layered approach enables independent development and evolution of each part, making the system more maintainable and adaptable.
+
+== Future Vision: Chell - The ChRIS Holistic Layer of Logic
+
+Our ultimate goal is to evolve the ChILI experience into a full-fledged interactive shell, tentatively named *Chell*.
+
+=== Chell's Purpose
+
+*   **Holistic Interaction**: Provide a seamless and intuitive environment for users to manage ChRIS resources.
+*   **Unix-like Familiarity**: Offer commands that feel natural to users accustomed to shell environments (`ls`, `cd`, `pwd`, `cp`, `mv`).
+*   **Interactive Context**: Maintain session state, allowing users to navigate the ChRIS filesystem and interact with resources dynamically.
+
+=== Role of 'chefs'
+
+The newly created `chefs` module within `chili` is the initial step towards realizing the *Chell* vision. It serves as the primitive layer for shell-like filesystem commands:
+
+*   **`chili chefs ls`**: Provides a `ls`-like output for ChRIS files and directories.
+*   **`chili chefs mkdir`**: Future command for creating directories (e.g., within feeds).
+
+`chefs` directly utilizes `salsa`'s high-level file management functions, demonstrating how `salsa` serves as the core logic provider for even specialized interface layers like a shell.

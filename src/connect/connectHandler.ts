@@ -1,7 +1,12 @@
 import { Command } from "commander";
 import { chrisConnection } from "@fnndsc/cumin";
 
-export function setupConnectCommand(program: Command): void {
+/**
+ * Sets up the 'connect' and 'logout' commands for the CLI program.
+ *
+ * @param program - The Commander.js program instance.
+ */
+export function connectCommand_setup(program: Command): void {
   program
     .command("connect")
     .description("Connect to a ChRIS instance")
@@ -11,7 +16,7 @@ export function setupConnectCommand(program: Command): void {
     .argument("<url>", "URL of the ChRIS instance")
     .action(async (url, options) => {
       try {
-        await chrisConnection.connect({
+        await chrisConnection.connection_connect({
           user: options.user,
           password: options.password,
           debug: options.debug,
@@ -26,6 +31,6 @@ export function setupConnectCommand(program: Command): void {
     .command("logout")
     .description("Log out from ChRIS")
     .action(() => {
-      chrisConnection.logout();
+      chrisConnection.connection_logout();
     });
 }

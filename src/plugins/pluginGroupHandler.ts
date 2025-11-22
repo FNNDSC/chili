@@ -1,14 +1,7 @@
 import { Command } from "commander";
 import { BaseGroupHandler } from "../handlers/baseGroupHandler.js";
-import {
-  ChRISEmbeddedResourceGroup,
-  createObjContext,
-  chrisContext,
-  Context,
-  errorStack,
-} from "@fnndsc/cumin";
 import { CLIoptions } from "../utils/cli.js";
-import { Plugin } from "@fnndsc/chrisapi";
+import { PluginContextController } from "../controllers/pluginContextController.js";
 
 class InitializationError extends Error {
   constructor(message: string) {
@@ -17,68 +10,56 @@ class InitializationError extends Error {
   }
 }
 
+/**
+ * Handles commands related to groups of plugin contexts (computes, instances, parameters).
+ */
 export class PluginContextGroupHandler {
   private baseGroupHandler: BaseGroupHandler | null = null;
-  private chrisPluginSystemGroup: ChRISEmbeddedResourceGroup | null = null;
-  private _id: number | null;
+  private controller: PluginContextController;
   readonly assetName: string;
 
   private constructor(
-    chrisPluginSystemGroup: ChRISEmbeddedResourceGroup,
-    id: number | null,
+    controller: PluginContextController,
     assetName: string
   ) {
-    this._id = id;
-    this.chrisPluginSystemGroup = chrisPluginSystemGroup;
+    this.controller = controller;
     this.assetName = assetName;
+    // Use 'any' cast here because BaseGroupHandler expects specific types but controller exposes generic BaseController interface property which might be broader.
+    // In practice, ChRISEmbeddedResourceGroup<Plugin> is compatible.
     this.baseGroupHandler = new BaseGroupHandler(
       this.assetName,
-      chrisPluginSystemGroup
+      this.controller.chrisObject as any
     );
   }
 
-  static async create(
+  /**
+   * Factory method to create a new PluginContextGroupHandler instance.
+   *
+   * @param assetName - The type of plugin context to handle ('computesofplugin', 'instancesofplugin', 'parametersofplugin').
+   * @param id - Optional plugin ID. Defaults to current ChRIS plugin context.
+   * @returns A Promise resolving to a new PluginContextGroupHandler instance.
+   * @throws InitializationError if an unsupported asset type is provided.
+   */
+  static async handler_create(
     assetName: string,
     id?: number | null
   ): Promise<PluginContextGroupHandler> {
-    if (!id) {
-      const pluginContext: number | null = Number(
-        chrisContext.getCurrent(Context.ChRISplugin)
-      );
-      id = pluginContext ? pluginContext : 1;
+    try {
+        const controller = await PluginContextController.controller_create(assetName, id);
+        return new PluginContextGroupHandler(controller, assetName);
+    } catch (error) {
+        throw new InitializationError(`Failed to initialize PluginContextGroupHandler: ${error}`);
     }
-
-    let chrisPluginSystemGroup: ChRISEmbeddedResourceGroup;
-
-    switch (assetName) {
-      case "computesofplugin":
-        chrisPluginSystemGroup = (await createObjContext(
-          "ComputesOfPlugin",
-          `plugin:${id}`
-        )) as ChRISEmbeddedResourceGroup<Plugin>;
-        break;
-      case "instancesofplugin":
-        chrisPluginSystemGroup = (await createObjContext(
-          "InstancesOfPlugin",
-          `plugin:${id}`
-        )) as ChRISEmbeddedResourceGroup<Plugin>;
-        break;
-      case "parametersofplugin":
-        chrisPluginSystemGroup = (await createObjContext(
-          "ParametersOfPlugin",
-          `plugin:${id}`
-        )) as ChRISEmbeddedResourceGroup<Plugin>;
-        break;
-      default:
-        throw new InitializationError(`Unsupported asset type: ${assetName}`);
-    }
-
-    return new PluginContextGroupHandler(chrisPluginSystemGroup, id, assetName);
   }
 
-  setupCommand(program: Command): void {
+  /**
+   * Sets up the Commander.js commands for plugin context group operations.
+   *
+   * @param program - The Commander.js program instance.
+   */
+  pluginContextGroupCommand_setup(program: Command): void {
     if (this.baseGroupHandler) {
-      this.baseGroupHandler.setupCommand(program);
+      this.baseGroupHandler.command_setup(program);
     }
 
     const fileGroupCommand = program.commands.find(

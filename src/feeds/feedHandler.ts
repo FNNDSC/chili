@@ -1,26 +1,36 @@
 import { Command } from "commander";
 import { BaseGroupHandler } from "../handlers/baseGroupHandler.js";
-import { ChRISFeedGroup, ChRISFeed } from "@fnndsc/cumin";
 import { CLIoptions } from "../utils/cli.js";
-import { optionsToParams, SimpleRecord } from "@fnndsc/cumin";
-import { displayTable } from "../screen/screen.js";
+import { SimpleRecord } from "@fnndsc/cumin";
+import { table_display } from "../screen/screen.js";
+import { FeedController } from "../controllers/feedController.js";
 import chalk from "chalk";
 
+/**
+ * Handles commands related to groups of ChRIS feeds.
+ */
 export class FeedGroupHandler {
   private baseGroupHandler: BaseGroupHandler;
+  private controller: FeedController;
   assetName = "feeds";
 
   constructor() {
-    const chrisFeedGroup = new ChRISFeedGroup();
+    this.controller = FeedController.controller_create();
     this.baseGroupHandler = new BaseGroupHandler(
       this.assetName,
-      chrisFeedGroup
+      this.controller.chrisObject
     );
   }
 
-  async shareFeeds(options: CLIoptions): Promise<void> {
+  /**
+   * Handles sharing of ChRIS feeds.
+   *
+   * @param options - CLI options for sharing feeds.
+   */
+  async feeds_share(options: CLIoptions): Promise<void> {
     try {
       console.log("Share feeds...");
+      await this.controller.feeds_share(options);
     } catch (error: unknown) {
       if (error instanceof Error) {
         console.error(`Error sharing feed(s): ${error.message}`);
@@ -30,8 +40,13 @@ export class FeedGroupHandler {
     }
   }
 
-  setupCommand(program: Command): void {
-    this.baseGroupHandler.setupCommand(program);
+  /**
+   * Sets up the Commander.js commands for feed group operations.
+   *
+   * @param program - The Commander.js program instance.
+   */
+  feedGroupCommand_setup(program: Command): void {
+    this.baseGroupHandler.command_setup(program);
 
     const feedGroupCommand = program.commands.find(
       (cmd) => cmd.name() === this.assetName
@@ -46,7 +61,7 @@ export class FeedGroupHandler {
           "force deletion (do not ask for user confirmation)"
         )
         .action(async (options: CLIoptions) => {
-          await this.shareFeeds(options);
+          await this.feeds_share(options);
         });
     } else {
       console.error(
@@ -56,14 +71,24 @@ export class FeedGroupHandler {
   }
 }
 
+/**
+ * Handles commands related to individual ChRIS feeds.
+ */
 export class FeedMemberHandler {
   private assetName: string;
+  private controller: FeedController;
 
   constructor() {
     this.assetName = "feed";
+    this.controller = FeedController.controller_create();
   }
 
-  private feedCreate_report(feedInfo: SimpleRecord | null): void {
+  /**
+   * Reports the result of a feed creation operation.
+   *
+   * @param feedInfo - The SimpleRecord of the created feed, or null if creation failed.
+   */
+  private feed_reportCreation(feedInfo: SimpleRecord | null): void {
     const headers: string[] = ["Property", "Value"];
     let tableData: any[][];
 
@@ -78,29 +103,36 @@ export class FeedMemberHandler {
         ["Owner", feedInfo.owner_username],
       ];
     }
-    displayTable(tableData, headers);
+    table_display(tableData, headers);
   }
 
-  async createFeed(options: CLIoptions): Promise<SimpleRecord | null> {
-    const chrisFeed: ChRISFeed = new ChRISFeed();
+  /**
+   * Creates a new ChRIS feed based on CLI options.
+   *
+   * @param options - CLI options for feed creation.
+   * @returns A Promise resolving to the SimpleRecord of the created feed, or null on failure.
+   */
+  async feed_create(options: CLIoptions): Promise<SimpleRecord | null> {
     let feedInfo: SimpleRecord | null;
 
     try {
-      feedInfo = await chrisFeed.createFromDirs(
-        options.dirs,
-        optionsToParams({ ...options, returnFilter: "params" })
-      );
+      feedInfo = await this.controller.feed_create(options);
     } catch (error) {
       console.error("An error occurred during feed creation:", error);
       feedInfo = null;
     }
 
-    this.feedCreate_report(feedInfo);
+    this.feed_reportCreation(feedInfo);
 
     return feedInfo;
   }
 
-  setupCommand(program: Command): void {
+  /**
+   * Sets up the Commander.js commands for individual feed operations.
+   *
+   * @param program - The Commander.js program instance.
+   */
+  feedCommand_setup(program: Command): void {
     const feedCommand = program
       .command(this.assetName)
       .description(`Interact with a single ChRIS ${this.assetName}`);
@@ -118,7 +150,7 @@ export class FeedMemberHandler {
           "a (comma separated) path inside the ChRIS FS containing data for the root node"
         )
         .action(async (options: CLIoptions) => {
-          await this.createFeed(options);
+          await this.feed_create(options);
         });
     } else {
       console.error(

@@ -1,0 +1,65 @@
+= filesystem interaction
+
+== intro
+
+While `chili` is great at managing abstract things like "feeds" and "plugins," sometimes you just want to look at your files. You want to know what data you have, where it is, and how to organize it.
+
+We are building a suite of commands called `chefs` (Chris Experimental File System) to give you a familiar, shell-like way to browse your ChRIS storage.
+
+== the chefs ls command
+
+If you have ever used a Linux or Mac terminal, you know the `ls` command. It lists files. We have brought this same convenience to `chili`.
+
+```bash
+chili chefs ls
+```
+
+This command looks at your current ChRIS folder context (remember _context_?) and lists everything in it.
+
+=== what you will see
+
+The output is designed to be clean and readable, using colors to help you distinguish item types:
+
+|===
+| Type | Color | Example
+
+| **Directory**
+| **Bold Blue**
+| `data/`
+
+| **Link**
+| **Cyan**
+| `link -> target`
+
+| **File**
+| Standard
+| `image.dcm`
+|===
+
+It organizes the names into neat columns, so even if you have hundreds of files, you can scan them easily.
+
+=== looking elsewhere
+
+You aren't limited to just looking at your current directory. You can peek into any path you have access to:
+
+```bash
+chili chefs ls /home/jane.doe/uploads
+```
+
+This will list the contents of that specific folder without changing your current location.
+
+== moving around
+
+You can also change your current working directory using the `cd` command, just like in a real shell:
+
+```bash
+chili chefs cd /home/jane.doe/analysis
+```
+
+And if you ever get lost, you can ask "where am I?" with:
+
+```bash
+chili chefs pwd
+```
+
+These tools are designed to make the remote ChRIS filesystem feel as comfortable and accessible as the one on your own laptop.

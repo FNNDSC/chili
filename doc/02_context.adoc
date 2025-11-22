@@ -1,16 +1,128 @@
-= intro
+= context
+
+== intro
 
 An important idea in `chili` is the concept of _context_. The _context_ of a command can be thought of as the scope of its activity -- or alternatively the possible set of implicit data which the command can access as it performs its actions.
 
-== context is what?
+== context operates at two levels
 
-Think of context like this: when you log into a ChRIS or CUBE instance, all subsequent commands are obviously being applied to, or executed on, this ChRIS.
+To truly understand context, it helps to see it operating on two distinct levels. One determines *where* you are connecting, and the other determines *what* you are doing inside that connection.
 
+=== level 1: the environment (global context)
 
-== welcome
+This is the highest level. It defines the "universe" you are operating in.
 
-Welome to the inline `chili` documentation system! This set of documents provides help text for each `chili` command. Additionally several important concepts like _searchable_ and _context_ are discussed.
+|===
+| Pillar | Concept | Description
 
-== how to use
+| **The CUBE**
+| Server
+| The physical ChRIS server address (URL). You might have a "Production" CUBE and a "Local Testing" CUBE. Switching this context completely changes the universe of available data.
 
-To use this documentation system, simply read it!
+| **The User**
+| Identity
+| Who you are on that server. You might be `admin` on Local and `jane` on Production. `chili` remembers your login token for each identity independently.
+|===
+
+=== level 2: the resource (local session)
+
+Once you are inside an environment (User + CUBE), you need a way to navigate. This level acts like your "working directory" or "focus."
+
+|===
+| Pillar | Concept | Description
+
+| **The Folder**
+| Filesystem
+| Your current path in the ChRIS storage (e.g., `/home/jane/data`). Commands like `ls` look here.
+
+| **The Feed**
+| Workflow
+| A specific analysis execution (Feed ID). Commands related to logs or status check this feed.
+
+| **The Plugin**
+| Tool
+| A specific plugin instance or definition. Commands listing parameters or instances use this scope.
+|===
+
+Imagine a standard shell. Level 1 is like choosing which computer to SSH into. Level 2 is what you do (`cd`, `ls`) once you are logged in. `chili` handles both layers seamlessly.
+
+== viewing your context
+
+At any time, you can ask `chili` "where am I?" by simply typing:
+
+```bash
+chili context get
+```
+
+This will show you your current active URL, your username, and any specific "working directories" you have set.
+
+If you want to see the bigger picture -- all the users and servers `chili` knows about -- you can ask for the full view:
+
+```bash
+chili context get --full
+```
+
+== changing your context
+
+Moving around is easy and can be done at either level.
+
+=== switching resources (level 2)
+
+Let's say you want to switch your focus to a specific directory in your ChRIS storage so you can explore files there. You can "cd" into it like this:
+
+```bash
+chili context set --ChRISfolder /home/jane.doe/data
+```
+
+Now, any file operations you perform will happen in `/home/jane.doe/data` automatically.
+
+=== switching environments (level 1)
+
+You can also switch your identity or server completely. If you have previously logged in as user `bob` on a different server, you can switch back to him with a single command, and `chili` will remember exactly where `bob` left off (his Level 2 context):
+
+```bash
+chili context set --ChRISuser bob
+```
+
+== scoped execution (inline context)
+
+Sometimes you don't want to change your "global" settings just to run one command. You want to peek into a directory or run a plugin in a specific feed without "cd-ing" there permanently.
+
+`chili` allows you to define a **temporary scope** right in the command itself. It looks almost like a simplified URL or query string.
+
+=== the syntax
+
+You can prepend any command with `key=value` arguments. `chili` interprets these as a temporary context override for *just that command*.
+
+```bash
+chili scope=<value> [scope=<value>...] <command>
+```
+
+=== examples
+
+**Peeking into a folder (Level 2 override):**
+Instead of changing your directory, just tell `chili` to look at `/home/rudolph` for this one command:
+
+```bash
+chili folder=/home/rudolph files list
+```
+
+**Acting on a specific feed (Level 2 override):**
+Run a note listing on feed ID 105, regardless of your current context:
+
+```bash
+chili feed=105 note list
+```
+
+**The Full URI Power (Level 1 & 2 override):**
+You can even specify the user and server inline! This allows you to run a command on a completely different server as a different user without logging out:
+
+```bash
+chili "rudolph@https://cube.chrisproject.org?folder=/home/rudolph" files list
+```
+
+In this example, `chili` temporarily connects to the remote CUBE as user `rudolph`, sets the working directory to `/home/rudolph`, lists the files, and then immediately returns you to your previous local session. It is incredibly powerful for scripting or cross-server management.
+
+== persistence
+
+The best part about context is that it is persistent. You can close your terminal, reboot your computer, or go on vacation. When you come back and open `chili` again, you will be exactly where you were. This makes managing long-running workflows or jumping between complex tasks much less of a headache.

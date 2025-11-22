@@ -1,14 +1,8 @@
 import { Command } from "commander";
 import { BaseGroupHandler } from "../handlers/baseGroupHandler.js";
-import {
-  ChRISPluginMetaPluginGroup,
-  QueryHits,
-  ChRISPlugin,
-  Context,
-  chrisContext,
-} from "@fnndsc/cumin";
+import { Context, chrisContext } from "@fnndsc/cumin";
 import { CLIoptions } from "../utils/cli";
-import axios from "axios";
+import { PluginMetaController } from "../controllers/pluginMetaController.js";
 import chalk from "chalk";
 import { marked } from "marked";
 import TerminalRenderer from "marked-terminal";
@@ -34,60 +28,54 @@ marked.setOptions({
   }),
 });
 
+/**
+ * Handles commands related to groups of plugin metadata.
+ */
 export class PluginMetaGroupHandler {
   private baseGroupHandler: BaseGroupHandler;
-  private chrisPlugin: ChRISPlugin;
+  private controller: PluginMetaController;
   assetName = "pluginMetas";
 
   constructor() {
-    const chrisPluginMetaGroup = new ChRISPluginMetaPluginGroup();
-    this.chrisPlugin = new ChRISPlugin();
+    this.controller = PluginMetaController.controller_create();
     this.baseGroupHandler = new BaseGroupHandler(
       this.assetName,
-      chrisPluginMetaGroup
+      this.controller.chrisObject
     );
   }
 
-  async printReadme(repoUrl: string): Promise<void> {
-    const readmeUrls = [
-      `${repoUrl}/raw/master/README.md`,
-      `${repoUrl}/raw/master/README.rst`,
-      `${repoUrl}/raw/main/README.md`,
-      `${repoUrl}/raw/main/README.rst`,
-    ];
-
-    for (const url of readmeUrls) {
-      try {
-        const response = await axios.get(url);
-        if (response.status === 200) {
-          console.log(chalk.green.bold("\nREADME Content:"));
-          const parsedContent = marked(response.data);
-          console.log(parsedContent);
-          return;
-        }
-      } catch (error) {
-        // If we get here, the current URL didn't work. We'll try the next one.
-      }
+  /**
+   * Prints the content of a README file from a given repository URL.
+   * Attempts to fetch README.md or README.rst from 'master' or 'main' branches.
+   *
+   * @param repoUrl - The base URL of the plugin repository.
+   */
+  async readme_print(repoUrl: string): Promise<void> {
+    const content = await this.controller.readmeContent_fetch(repoUrl);
+    if (content) {
+      console.log(chalk.green.bold("\nREADME Content:"));
+      const parsedContent = marked(content);
+      console.log(parsedContent);
+    } else {
+      console.log(chalk.red("README not found in the repository."));
     }
-    console.log(chalk.red("README not found in the repository."));
   }
 
-  async getPluginReadme(pluginId: string): Promise<string | null> {
+  /**
+   * Retrieves and displays the README for a specific plugin.
+   *
+   * @param pluginId - The ID of the plugin.
+   * @returns A Promise resolving to the documentation URL or null.
+   */
+  async pluginReadme_get(pluginId: string): Promise<string | null> {
     try {
       console.log(`Fetching info for plugin with ID: ${pluginId}`);
-      const query: QueryHits | null =
-        await this.chrisPlugin.pluginData_getFromSearch(
-          { search: "id: " + pluginId },
-          "documentation"
-        );
-      if (!query) {
+      const documentation = await this.controller.documentationUrl_get(pluginId);
+      if (!documentation) {
         return null;
       }
-      const documentation = query.hits[0];
       console.log(documentation);
-      if (documentation) {
-        await this.printReadme(documentation);
-      }
+      await this.readme_print(documentation);
       return documentation;
     } catch (error: unknown) {
       if (error instanceof Error) {
@@ -99,23 +87,26 @@ export class PluginMetaGroupHandler {
     return null;
   }
 
-  async pluginID_getFromSearch(options: CLIoptions): Promise<string | null> {
-    const queryHits: QueryHits | null =
-      await this.chrisPlugin.pluginData_getFromSearch(options, "id");
-    if (queryHits) {
-      if (queryHits.length > 1) {
-        console.log(
-          "Warning: the search spec returned multiple hits -- only the first hit will be used."
-        );
-      }
-      return queryHits.hits[0];
-    } else {
-      return null;
-    }
+  /**
+   * Retrieves a plugin ID based on search options.
+   *
+   * @param options - CLI options for searching for a plugin.
+   * @returns A Promise resolving to the plugin ID as a string, or null if not found.
+   */
+  async pluginID_fromSearch(options: CLIoptions): Promise<string | null> {
+    const pluginId = await this.controller.pluginID_fromSearch(options);
+    // Warning logic could be here if controller returns array, but controller returns single ID or null.
+    // Assuming single hit for simplicity based on previous refactor
+    return pluginId;
   }
 
-  setupCommand(program: Command): void {
-    this.baseGroupHandler.setupCommand(program);
+  /**
+   * Sets up the Commander.js commands for plugin metadata group operations.
+   *
+   * @param program - The Commander.js program instance.
+   */
+  pluginMetaGroupCommand_setup(program: Command): void {
+    this.baseGroupHandler.command_setup(program);
 
     const pluginCommand = program.commands.find(
       (cmd) => cmd.name() === this.assetName
@@ -139,15 +130,15 @@ export class PluginMetaGroupHandler {
             let targetId: string | null;
             if (pluginId === undefined) {
               if (options.search === undefined) {
-                targetId = chrisContext.getCurrent(Context.ChRISplugin);
+                targetId = await chrisContext.current_get(Context.ChRISplugin); // Await and RPN change
               } else {
-                targetId = await this.pluginID_getFromSearch(options);
+                targetId = await this.pluginID_fromSearch(options);
               }
             } else {
               targetId = pluginId;
             }
             if (targetId) {
-              await this.getPluginReadme(targetId);
+              await this.pluginReadme_get(targetId);
             }
           }
         );

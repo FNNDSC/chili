@@ -38,7 +38,14 @@ interface TableContent {
   body: any[][];
 }
 
-function processTableInput(
+/**
+ * Processes raw table input data and headers into a standardized format.
+ *
+ * @param tableData - The raw table data, can be `any[] | string[][] | string[]`.
+ * @param headers - The headers for the table, can be `string[] | string`.
+ * @returns An object containing the processed table data and headers.
+ */
+function tableInput_process(
   tableData: any[] | string[][] | string[],
   headers: string[] | string
 ): { processedTableData: any[]; processedHeaders: string[] } {
@@ -77,6 +84,13 @@ function processTableInput(
   return { processedTableData, processedHeaders };
 }
 
+/**
+ * Packs table data and selected fields into a `TableContent` object.
+ *
+ * @param tableData - The table data.
+ * @param selectedFields - The fields to include as headers.
+ * @returns A `TableContent` object or null if invalid data.
+ */
 function tableContent_pack(
   tableData: any[],
   selectedFields: string[]
@@ -97,7 +111,14 @@ function tableContent_pack(
   return { headers, body };
 }
 
-export function drawBorder(text: string, borders: Borders = {}): string {
+/**
+ * Draws a border around the given text.
+ *
+ * @param text - The text to wrap with a border.
+ * @param borders - Optional configuration for which borders to draw.
+ * @returns The text surrounded by a border.
+ */
+export function border_draw(text: string, borders: Borders = {}): string {
   const defaultBorders: Required<Borders> = {
     left: true,
     top: true,
@@ -124,7 +145,13 @@ export function drawBorder(text: string, borders: Borders = {}): string {
   return table(data, config).trim();
 }
 
-function applyFirstColumnSettings(columns: ColumnOptions[]): ColumnOptions[] {
+/**
+ * Applies default settings to the first column of a table.
+ *
+ * @param columns - An array of ColumnOptions.
+ * @returns The updated array of ColumnOptions.
+ */
+function firstColumnSettings_apply(columns: ColumnOptions[]): ColumnOptions[] {
   if (columns.length > 1) {
     return [
       { ...columns[0], justification: "right", color: "white" },
@@ -134,29 +161,37 @@ function applyFirstColumnSettings(columns: ColumnOptions[]): ColumnOptions[] {
   return columns;
 }
 
-export function displayTable(
+/**
+ * Displays a formatted table in the console.
+ *
+ * @param tableData - The data for the table.
+ * @param headers - The headers for the table.
+ * @param options - Optional table display options.
+ * @returns The `TableContent` object or null on error.
+ */
+export function table_display(
   tableData: any[] | string[][] | string[],
   headers: string[] | string,
   options: TableOptions = {}
 ): TableContent | null {
-  const { processedTableData, processedHeaders } = processTableInput(
+  const { processedTableData, processedHeaders } = tableInput_process(
     tableData,
     headers
   );
 
-  const table: TableContent | null = tableContent_pack(
+  const tableObj: TableContent | null = tableContent_pack(
     processedTableData,
     processedHeaders
   );
 
-  if (!table) {
+  if (!tableObj) {
     return null;
   }
 
-  const columns: ColumnOptions[] = table.headers.map(() => ({
+  const columns: ColumnOptions[] = tableObj.headers.map(() => ({
     justification: "left" as const,
   }));
-  const updatedColumns = applyFirstColumnSettings(columns);
+  const updatedColumns = firstColumnSettings_apply(columns);
 
   const tableOptions: TableOptions = {
     ...options,
@@ -170,12 +205,15 @@ export function displayTable(
     },
   };
 
-  const result = screen.tableOut(processedTableData, tableOptions);
+  const result = screen.table_output(processedTableData, tableOptions);
   console.log(result);
 
-  return table;
+  return tableObj;
 }
 
+/**
+ * Provides screen utilities for logging and table output.
+ */
 export class Screen {
   log(...args: any[]): void {
     console.log(...args);
@@ -193,16 +231,23 @@ export class Screen {
     console.info(chalk.blue(...args));
   }
 
-  public tableOut(data: any[] | Object, options: TableOptions = {}): string {
+  /**
+   * Generates a formatted table output string.
+   *
+   * @param data - The data to display in the table.
+   * @param options - Options for table formatting, including headers, columns, and title.
+   * @returns A string representation of the formatted table.
+   */
+  public table_output(data: any[] | Object, options: TableOptions = {}): string {
     try {
-      const { tableData, headers } = this.prepareData(data, options);
-      const safeColumns = this.prepareSafeColumns(tableData, headers, options);
-      const colWidths = this.calculateColumnWidths(
+      const { tableData, headers } = this.data_prepare(data, options);
+      const safeColumns = this.safeColumns_prepare(tableData, headers, options);
+      const colWidths = this.columnWidths_calculate(
         tableData,
         headers,
         safeColumns
       );
-      const styledData = this.applyStyleToData(
+      const styledData = this.data_applyStyle(
         tableData,
         headers,
         safeColumns,
@@ -211,31 +256,38 @@ export class Screen {
       );
 
       // First pass: Generate table without title to get width
-      const config = this.prepareTableConfig(false);
+      const config = this.tableConfig_prepare(false);
       const tempOutput: string = table(styledData, config);
       const tableWidth = tempOutput.split("\n")[0].length;
 
       // Prepare title if needed
       let titleString = "";
       if (options.title) {
-        titleString = this.prepareTitle(options.title, tableWidth);
+        titleString = this.title_prepare(options.title, tableWidth);
       }
 
       // Second pass: Generate full table with correct title
-      const fullConfig = this.prepareTableConfig(!!options.title);
+      const fullConfig = this.tableConfig_prepare(!!options.title);
       const output: string = table(styledData, fullConfig);
 
       // Combine title (if any) and table
       return titleString
-        ? drawBorder(titleString, { bottom: false }) + "\n" + output
+        ? border_draw(titleString, { bottom: false }) + "\n" + output
         : output;
     } catch (error) {
-      console.error("Error in tableOut method:", error);
+      console.error("Error in table_output method:", error);
       return "Error generating table";
     }
   }
 
-  private prepareData(
+  /**
+   * Prepares raw data for table display.
+   *
+   * @param data - The input data, which can be an array or an object.
+   * @param options - Table options, specifically for `head`.
+   * @returns An object containing `tableData` (2D array) and `headers`.
+   */
+  private data_prepare(
     data: any[] | Object,
     options: TableOptions
   ): { tableData: any[][]; headers: string[] } {
@@ -258,7 +310,15 @@ export class Screen {
     return { tableData, headers };
   }
 
-  private prepareSafeColumns(
+  /**
+   * Ensures that the `columns` option has enough entries for all table columns.
+   *
+   * @param tableData - The 2D array of table data.
+   * @param headers - The array of table headers.
+   * @param options - Table options.
+   * @returns An array of `ColumnOptions` with enough entries for all columns.
+   */
+  private safeColumns_prepare(
     tableData: any[][],
     headers: string[],
     options: TableOptions
@@ -274,29 +334,54 @@ export class Screen {
     return safeColumns;
   }
 
-  private calculateColumnWidths(
+  /**
+   * Calculates the width for each column.
+   *
+   * @param tableData - The 2D array of table data.
+   * @param headers - The array of table headers.
+   * @param safeColumns - The array of `ColumnOptions` for each column.
+   * @returns An array of numbers representing the calculated width for each column.
+   */
+  private columnWidths_calculate(
     tableData: any[][],
     headers: string[],
     safeColumns: ColumnOptions[]
   ): number[] {
     return safeColumns.map(
       (col: ColumnOptions, index: number): number =>
-        col.width || this.calculateColumnWidth([headers, ...tableData], index)
+        col.width || this.columnWidth_calculate([headers, ...tableData], index)
     );
   }
 
-  private calculateColumnWidth(data: any[][], columnIndex: number): number {
+  /**
+   * Calculates the maximum visible width for a specific column.
+   *
+   * @param data - The 2D array of data (including headers).
+   * @param columnIndex - The index of the column to calculate width for.
+   * @returns The maximum visible length in the column.
+   */
+  private columnWidth_calculate(data: any[][], columnIndex: number): number {
     const columnData: any[] = data.map((row: any[]): any => row[columnIndex]);
     const maxWidth: number = Math.max(
       ...columnData.map((cell: any): number =>
-        this.getVisibleLength(this.safeToString(cell))
+        this.visibleLength_get(this.string_safeConvert(cell))
       ),
       0
     );
     return maxWidth; // Add some padding
   }
 
-  private applyStyleToData(
+  /**
+   * Applies styling (color, justification) to the table data.
+   *
+   * @param tableData - The 2D array of raw table data.
+   * @param headers - The array of table headers.
+   * @param safeColumns - The array of `ColumnOptions`.
+   * @param colWidths - The calculated widths for each column.
+   * @param options - Table options for type colors.
+   * @returns A 2D array of styled strings.
+   */
+  private data_applyStyle(
     tableData: any[][],
     headers: string[],
     safeColumns: ColumnOptions[],
@@ -305,19 +390,29 @@ export class Screen {
   ): string[][] {
     const styledData: string[][] = tableData.map((row: any[]): string[] =>
       row.map((cell: any, index: number): string =>
-        this.styleCell(cell, index, safeColumns, colWidths, options)
+        this.cell_style(cell, index, safeColumns, colWidths, options)
       )
     );
 
     const styledHeaders: string[] = headers.map(
       (header: string, index: number): string =>
-        this.styleHeader(header, index, safeColumns, colWidths)
+        this.header_style(header, index, safeColumns, colWidths)
     );
 
     return [styledHeaders, ...styledData];
   }
 
-  private styleCell(
+  /**
+   * Styles an individual table cell based on its content type and column options.
+   *
+   * @param cell - The cell content.
+   * @param index - The column index of the cell.
+   * @param safeColumns - The array of `ColumnOptions`.
+   * @param colWidths - The calculated width for the column.
+   * @param options - Table options for type colors.
+   * @returns The styled and justified cell string.
+   */
+  private cell_style(
     cell: any,
     index: number,
     safeColumns: ColumnOptions[],
@@ -331,21 +426,30 @@ export class Screen {
     let color: string | undefined = columnOptions.color;
 
     if (!color && options.typeColors) {
-      color = this.determineColor(cell, options.typeColors);
+      color = this.color_determine(cell, options.typeColors);
     }
 
-    const cellString: string = this.safeToString(cell);
+    const cellString: string = this.string_safeConvert(cell);
 
-    const coloredCell: string = cellString.includes("\x1B")
+    const coloredCell: string = cellString.includes("\u001b")
       ? cellString
       : color
       ? chalk[color](cellString)
       : cellString;
 
-    return this.justifyText(coloredCell, width, justification);
+    return this.text_justify(coloredCell, width, justification);
   }
 
-  private styleHeader(
+  /**
+   * Styles a table header cell.
+   *
+   * @param header - The header string.
+   * @param index - The column index of the header.
+   * @param safeColumns - The array of `ColumnOptions`.
+   * @param colWidths - The calculated width for the column.
+   * @returns The styled and justified header string.
+   */
+  private header_style(
     header: string,
     index: number,
     safeColumns: ColumnOptions[],
@@ -355,10 +459,17 @@ export class Screen {
     const color: string = columnOptions.color || "white";
     const justification: Justification = columnOptions.justification || "left";
     const width: number = colWidths[index];
-    return this.justifyText(chalk[color].bold(header), width, justification);
+    return this.text_justify(chalk[color].bold(header), width, justification);
   }
 
-  private determineColor(
+  /**
+   * Determines the color for a cell based on its type.
+   *
+   * @param cell - The cell content.
+   * @param typeColors - Map of type to color strings.
+   * @returns The color string or undefined if no specific color for the type.
+   */
+  private color_determine(
     cell: any,
     typeColors: TableOptions["typeColors"]
   ): string | undefined {
@@ -377,7 +488,14 @@ export class Screen {
     return undefined;
   }
 
-  private prepareTitle(title: Title, width: number): string {
+  /**
+   * Prepares the title string for the table, including justification and truncation.
+   *
+   * @param title - The Title object.
+   * @param width - The total width of the table.
+   * @returns The formatted title string.
+   */
+  private title_prepare(title: Title, width: number): string {
     let { title: titleText, justification = "left" } = title;
     const contentWidth = width - 4; // Accounting for border characters
 
@@ -404,7 +522,13 @@ export class Screen {
     return titleText;
   }
 
-  private prepareTableConfig(hasTitle: boolean): TableUserConfig {
+  /**
+   * Prepares the `table` library configuration object.
+   *
+   * @param hasTitle - Whether the table has a title (affects border drawing).
+   * @returns The `TableUserConfig` object.
+   */
+  private tableConfig_prepare(hasTitle: boolean): TableUserConfig {
     const borderCharacters = getBorderCharacters("norc");
     const customBorderCharacters = hasTitle
       ? {
@@ -421,11 +545,23 @@ export class Screen {
     };
   }
 
-  private getVisibleLength(str: string): number {
+  /**
+   * Calculates the visible length of a string, accounting for ANSI escape codes.
+   *
+   * @param str - The string to measure.
+   * @returns The visible length of the string.
+   */
+  private visibleLength_get(str: string): number {
     return str.replace(/\u001b\[[0-9;]*m/g, "").length;
   }
 
-  private safeToString(value: any): string {
+  /**
+   * Safely converts any value to a string.
+   *
+   * @param value - The value to convert.
+   * @returns The string representation of the value.
+   */
+  private string_safeConvert(value: any): string {
     if (value === null || value === undefined) {
       return "";
     }
@@ -441,12 +577,20 @@ export class Screen {
     return String(value);
   }
 
-  private justifyText(
+  /**
+   * Justifies text within a given width.
+   *
+   * @param text - The text to justify.
+   * @param width - The total width for justification.
+   * @param justification - The justification type ('left', 'center', 'right').
+   * @returns The justified text string.
+   */
+  private text_justify(
     text: string,
     width: number,
     justification: Justification
   ): string {
-    const visibleLength: number = this.getVisibleLength(text);
+    const visibleLength: number = this.visibleLength_get(text);
     const paddingLength: number = Math.max(0, width - visibleLength);
 
     switch (justification) {

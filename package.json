@@ -10,7 +10,7 @@
   "scripts": {
     "build": "tsc && chmod +x ./dist/index.js",
     "start": "node dist/index.js",
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "jest",
     "clean": "rm -rf dist types fnndsc-chili*tgz",
     "build:cumin": "cd ../cumin && npm run build",
     "build:chili": "npm run clean && npm install && npm run build",
@@ -34,6 +34,7 @@
   "dependencies": {
     "@fnndsc/chrisapi": "^1.21.0",
     "@fnndsc/cumin": "file:../cumin",
+    "@fnndsc/salsa": "file:../salsa",
     "@fortawesome/fontawesome-free": "^6.6.0",
     "@fortawesome/fontawesome-svg-core": "^6.6.0",
     "@fortawesome/free-solid-svg-icons": "^6.6.0",
@@ -57,10 +58,13 @@
   "devDependencies": {
     "@types/cli-progress": "^3.11.6",
     "@types/figlet": "^1.5.8",
+    "@types/jest": "^30.0.0",
     "@types/node": "^24.10.1",
     "@types/node-fetch": "^2.6.11",
     "@types/omelette": "^0.4.4",
     "@types/table": "^6.3.2",
+    "jest": "^30.2.0",
+    "ts-jest": "^29.4.5",
     "typescript": "^5.5.2"
   }
 }

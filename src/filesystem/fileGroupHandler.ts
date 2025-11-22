@@ -1,93 +1,63 @@
 import { Command } from "commander";
 import { BaseGroupHandler } from "../handlers/baseGroupHandler.js";
-import {
-  ChRISEmbeddedResourceGroup,
-  createObjContext,
-  chrisContext,
-  Context,
-} from "@fnndsc/cumin";
 import { CLIoptions } from "../utils/cli.js";
-import { FileBrowserFolder } from "@fnndsc/chrisapi";
+import { FileController } from "../controllers/fileController.js";
 
-class InitializationError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = "InitializationError";
-  }
-}
-
+/**
+ * Handles commands related to groups of ChRIS files, links, or directories.
+ */
 export class FileGroupHandler {
   private baseGroupHandler: BaseGroupHandler | null = null;
-  private chrisFileSystemGroup: ChRISEmbeddedResourceGroup | null = null;
-  private _path: string;
+  private controller: FileController;
   readonly assetName: string;
 
   private constructor(
-    chrisFileSystemGroup: ChRISEmbeddedResourceGroup,
-    path: string,
+    controller: FileController,
     assetName: string
   ) {
-    this._path = path;
-    this.chrisFileSystemGroup = chrisFileSystemGroup;
+    this.controller = controller;
     this.assetName = assetName;
     this.baseGroupHandler = new BaseGroupHandler(
       this.assetName,
-      chrisFileSystemGroup
+      this.controller.chrisObject
     );
   }
 
-  static async create(
+  /**
+   * Factory method to create a new FileGroupHandler instance.
+   *
+   * @param assetName - The type of asset to handle ('files', 'links', 'dirs').
+   * @param path - Optional path within ChRIS FS. Defaults to current ChRIS folder context.
+   * @returns A Promise resolving to a new FileGroupHandler instance.
+   */
+  static async handler_create(
     assetName: string,
     path?: string
   ): Promise<FileGroupHandler> {
-    if (!path) {
-      const fileContext: string | null = chrisContext.getCurrent(
-        Context.ChRISfolder
-      );
-      path = fileContext ? fileContext : "/";
+    try {
+      const controller = await FileController.handler_create(assetName, path);
+      if (controller === null) {
+        throw new Error(`Failed to create FileController for asset type: ${assetName}`);
+      }
+      return new FileGroupHandler(controller, assetName);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      throw new Error(`Failed to initialize FileGroupHandler for ${assetName}: ${errorMessage}`);
     }
-
-    let chrisFileSystemGroup: ChRISEmbeddedResourceGroup;
-
-    switch (assetName) {
-      case "files":
-        try {
-          chrisFileSystemGroup = (await createObjContext(
-            "ChRISFilesContext",
-            `folder:${path}`
-          )) as ChRISEmbeddedResourceGroup<FileBrowserFolder>;
-        } catch (error) {}
-        break;
-      case "links":
-        try {
-          chrisFileSystemGroup = (await createObjContext(
-            "ChRISLinksContext",
-            `folder:${path}`
-          )) as ChRISEmbeddedResourceGroup<FileBrowserFolder>;
-        } catch (error) {}
-        break;
-      case "dirs":
-        try {
-          chrisFileSystemGroup = (await createObjContext(
-            "ChRISDirsContext",
-            `folder:${path}`
-          )) as ChRISEmbeddedResourceGroup<FileBrowserFolder>;
-        } catch (error) {}
-        break;
-      default:
-        throw new InitializationError(`Unsupported asset type: ${assetName}`);
-    }
-
-    return new FileGroupHandler(chrisFileSystemGroup, path, assetName);
   }
 
-  async shareFiles(options: CLIoptions): Promise<void> {
+  /**
+   * Handles sharing of ChRIS files.
+   *
+   * @param options - CLI options for sharing files.
+   */
+  async files_share(options: CLIoptions): Promise<void> {
     try {
-      console.log(`Sharing ${this.assetName} from ${this._path}...`);
+      console.log(`Sharing ${this.assetName} from ${this.controller.path_get}...`);
       if (options.force) {
         console.log("Force sharing enabled");
       }
-      // Implement actual file sharing logic here
+      await this.controller.files_share(options);
     } catch (error: unknown) {
       if (error instanceof Error) {
         console.error(`Error sharing ${this.assetName}: ${error.message}`);
@@ -99,9 +69,14 @@ export class FileGroupHandler {
     }
   }
 
-  setupCommand(program: Command): void {
+  /**
+   * Sets up the Commander.js commands for file group operations.
+   *
+   * @param program - The Commander.js program instance.
+   */
+  fileGroupCommand_setup(program: Command): void {
     if (this.baseGroupHandler) {
-      this.baseGroupHandler.setupCommand(program);
+      this.baseGroupHandler.command_setup(program);
     }
 
     const fileGroupCommand = program.commands.find(
@@ -117,7 +92,7 @@ export class FileGroupHandler {
           "force sharing (do not ask for user confirmation)"
         )
         .action(async (options: CLIoptions) => {
-          await this.shareFiles(options);
+          await this.files_share(options);
         });
     } else {
       console.error(
@@ -127,31 +102,57 @@ export class FileGroupHandler {
   }
 }
 
+/**
+ * Handles commands related to individual ChRIS files.
+ */
 export class FileMemberHandler {
   private baseGroupHandler: BaseGroupHandler | null = null;
-  private chrisFileSystemGroup: ChRISEmbeddedResourceGroup | null = null;
-  private _path: string;
+  private controller: FileController;
   assetName = "file";
 
   private constructor(
-    chrisFilesGroup: ChRISEmbeddedResourceGroup,
-    path: string
+    controller: FileController
   ) {
-    this._path = path;
-    this.chrisFileSystemGroup = chrisFilesGroup;
+    this.controller = controller;
     this.baseGroupHandler = new BaseGroupHandler(
       this.assetName,
-      chrisFilesGroup
+      this.controller.chrisObject
     );
   }
 
-  static async create(path: string): Promise<FileMemberHandler> {
-    const chrisFilesGroup = await ChRISEmbeddedResourceGroup.create(path);
-    return new FileMemberHandler(chrisFilesGroup, path);
+  /**
+   * Factory method to create a new FileMemberHandler instance.
+   *
+   * @param path - The path to the individual file.
+   * @returns A Promise resolving to a new FileMemberHandler instance.
+   */
+  static async handler_create(path: string): Promise<FileMemberHandler> {
+    try {
+      const controller = await FileController.member_create(path);
+      if (controller === null) {
+        throw new Error(`Failed to create FileController for path: ${path}`);
+      }
+      return new FileMemberHandler(controller);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      throw new Error(`Failed to initialize FileMemberHandler for path ${path}: ${errorMessage}`);
+    }
   }
 
-  setupCommand(program: Command): void {
-    program
+  /**
+   * Sets up the Commander.js commands for individual file operations.
+   *
+   * @param program - The Commander.js program instance.
+   */
+  fileMemberCommand_setup(program: Command): void {
+    const fileCommand = program
+      .command(this.assetName)
+      .description(`Interact with a single ChRIS ${this.assetName}`);
+    
+    const existingCommand = program.commands.find(cmd => cmd.name() === this.assetName);
+    const commandToUse = existingCommand || fileCommand;
+
+    commandToUse
       .command("view")
       .description("view a file")
       .option(
@@ -159,18 +160,23 @@ export class FileMemberHandler {
         "explicit file type specifier (for better outputting)"
       )
       .action(async (options: CLIoptions) => {
-        await this.catFile(options);
+        await this.file_cat(options);
       });
     console.log("FileMemberHandler commands set up successfully");
   }
 
-  async catFile(options: CLIoptions): Promise<void> {
+  /**
+   * Displays the content of the file.
+   *
+   * @param options - CLI options for viewing the file.
+   */
+  async file_cat(options: CLIoptions): Promise<void> {
     try {
-      console.log(`Viewing file at ${this._path}`);
-      // Implement actual file viewing logic here
+      console.log(`Viewing file at ${this.controller.path_get}`);
       if (options.type) {
         console.log(`File type specified: ${options.type}`);
       }
+      await this.controller.file_view(options);
     } catch (error: unknown) {
       if (error instanceof Error) {
         console.error(`Error viewing file: ${error.message}`);

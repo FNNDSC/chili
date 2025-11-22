@@ -1,0 +1,84 @@
+= Architecture of Context-Driven Resource Resolution
+:toc: left
+:toclevels: 3
+
+This document details the core architectural pattern that powers ChILI and Salsa: **Context-Driven Resource Resolution**. This mechanism allows the application to dynamically resolve and interact with nested API resources based on a persistent session state, decoupling the CLI commands from the hierarchical structure of the REST API.
+
+== The Challenge
+
+The ChRIS REST API is hierarchical. To access a specific resource, you often need to traverse a path:
+`GET /api/v1/plugins/14/parameters/`
+
+In a traditional CLI, this would require repetitive arguments:
+`chili parameters list --plugin 14`
+
+If a user is performing multiple operations on Plugin 14, repeating `--plugin 14` is tedious. Furthermore, different resources (Files, Feed Notes, Plugin Instances) share this "child-of-parent" pattern but have completely different API endpoints and types. Hardcoding handlers for each would violate DRY (Don't Repeat Yourself) principles.
+
+== The Solution: Dynamic Object Contexts
+
+We solve this by abstracting the interaction into three layers:
+
+1.  **State Persistence (`chrisContext`)**: Stores the "ID" or "Path" of the current parent object (e.g., `plugin:14`).
+2.  **The Registry (`ObjContexts`)**: Maps abstract resource names to API methods.
+3.  **The Factory (`objContext_create`)**: Dynamically instantiates a resource manager for the current state.
+
+=== 1. The Registry (`ObjContexts`)
+
+Located in `cumin/src/resources/chrisObjContext.ts`, this registry defines the "universe" of context-aware resources. It maps a generic `type` string to the specific method required to fetch that collection from a parent.
+
+[source,typescript]
+----
+const ObjContexts = {
+  ParametersOfPlugin: {
+    name: "ParametersOfPlugin",
+    getMethod: "getPluginParameters", // The API method to call on the parent
+    contextType: "plugin",            // The type of parent required
+  },
+  ChRISFilesContext: {
+    name: "Files",
+    getMethod: "getFiles",
+    contextType: "folder",
+  },
+  // ...
+};
+----
+
+=== 2. The Factory (`objContext_create`)
+
+This function acts as the bridge between the persistent state and the live API.
+
+1.  It accepts a **Type** (e.g., `"ParametersOfPlugin"`) and a **Context String** (e.g., `"plugin:14"`).
+2.  It parses the context string to extract the ID (`14`).
+3.  It fetches the *Parent Object* (Plugin 14) from the API.
+4.  It returns a `ChRISEmbeddedResourceGroup` bound to that parent.
+
+This generic group object exposes standard methods (`list`, `search`) that the CLI handlers consume, completely unaware of whether they are listing "files in a folder" or "parameters of a plugin."
+
+== Data Flow Example
+
+When a user runs:
+`chili parametersofplugin list`
+
+The flow is:
+
+1.  **CLI Handler**: `PluginContextGroupHandler` is invoked.
+2.  **Context Lookup**: It asks `chrisContext`: "What is the current plugin?" -> Returns `14`.
+3.  **Controller**: `PluginContextController` calls the factory:
+    `objContext_create("ParametersOfPlugin", "plugin:14")`
+4.  **Factory**:
+    *   Looks up `ParametersOfPlugin` in registry.
+    *   Fetches Plugin `14`.
+    *   Returns a group object bound to `plugin.getPluginParameters()`.
+5.  **BaseHandler**: Calls `.list()` on the group and displays the results.
+
+== Extensibility
+
+This architecture allows for rapid expansion. To support a new nested resource (e.g., "Comments on a Feed"):
+
+1.  Add an entry to `ObjContexts` in `cumin`:
+    ```typescript
+    FeedComments: { getMethod: 'getComments', contextType: 'feed' }
+    ```
+2.  Register a command in `chili` that calls the factory with `"FeedComments"`.
+
+No new logic for listing, filtering, or displaying data is required. The system handles it generically.

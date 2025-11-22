@@ -6,17 +6,17 @@ import {
   errorStack,
   ChRISEmbeddedResourceGroup,
   ListOptions,
-  FileBrowserFolder,
   FilteredResourceData,
-  createObjContext,
+  objContext_create,
 } from "@fnndsc/cumin";
+import { FileBrowserFolder } from "@fnndsc/chrisapi";
 import chalk from "chalk";
 import fs from "fs";
 import path from "path";
 import cliProgress from "cli-progress";
-import { displayTable, TableOptions, drawBorder } from "../screen/screen.js";
+import { table_display, border_draw, TableOptions } from "../screen/screen.js";
 import { FileGroupHandler } from "../filesystem/fileGroupHandler.js";
-import { optionsToParams } from "../utils/cli.js";
+import { options_toParams } from "../utils/cli.js";
 import archy from "archy";
 import open from "open";
 import { exec } from "child_process";
@@ -80,7 +80,13 @@ interface CLIscan {
   save?: string;
 }
 
-function createSummaryTable(summary: TransferDetail): string[][] {
+/**
+ * Creates a summary table for file transfer details.
+ *
+ * @param summary - The TransferDetail object containing transfer statistics.
+ * @returns A 2D array representing the summary table.
+ */
+function summaryTable_create(summary: TransferDetail): string[][] {
   const summaryTable: string[][] = [
     ["Total files", summary.totalFiles.toString()],
     [
@@ -90,11 +96,11 @@ function createSummaryTable(summary: TransferDetail): string[][] {
     ["Failed to transfer", chalk.red(summary.failedCount.toString())],
     [
       "Total data transferred",
-      chalk.blueBright(formatBytes(summary.transferSize)),
+      chalk.blueBright(bytes_format(summary.transferSize)),
     ],
     [
       "Average transfer speed",
-      chalk.blueBright(`${formatBytes(summary.speed)}/s`),
+      chalk.blueBright(`${bytes_format(summary.speed)}/s`),
     ],
     ["Duration", `${summary.duration.toFixed(2)} seconds`],
   ];
@@ -102,26 +108,32 @@ function createSummaryTable(summary: TransferDetail): string[][] {
   return summaryTable;
 }
 
-async function createResourceGroups(
+/**
+ * Creates resource groups (files, directories, links) for a given ChRIS path.
+ *
+ * @param currentPath - The ChRIS path to create resource groups for.
+ * @returns A Promise resolving to an object containing the resource groups, or null on error.
+ */
+async function resourceGroups_create(
   currentPath: string
 ): Promise<ResourceGroups | null> {
   try {
-    const filesGroup = (await createObjContext(
+    const filesGroup = (await objContext_create(
       "ChRISFilesContext",
       `folder:${currentPath}`
     )) as ChRISEmbeddedResourceGroup<FileBrowserFolder>;
-    const dirsGroup = (await createObjContext(
+    const dirsGroup = (await objContext_create(
       "ChRISDirsContext",
       `folder:${currentPath}`
     )) as ChRISEmbeddedResourceGroup<FileBrowserFolder>;
-    const linksGroup = (await createObjContext(
+    const linksGroup = (await objContext_create(
       "ChRISLinksContext",
       `folder:${currentPath}`
     )) as ChRISEmbeddedResourceGroup<FileBrowserFolder>;
 
     return { filesGroup, dirsGroup, linksGroup };
   } catch (error) {
-    errorStack.push(
+    errorStack.stack_push(
       "error",
       `Failed to create ChRISEmbeddedResourceGroup objects for path ${currentPath}: ${error}`
     );
@@ -129,7 +141,13 @@ async function createResourceGroups(
   }
 }
 
-function generateMermaidDefinition(scanResult: ScanRecord): string {
+/**
+ * Generates a Mermaid diagram definition from a scan result.
+ *
+ * @param scanResult - The ScanRecord containing file information.
+ * @returns The Mermaid diagram definition string.
+ */
+function mermaidDefinition_generate(scanResult: ScanRecord): string {
   let definition = "graph TD\n";
   definition += "    %% Styles\n";
   definition +=
@@ -164,7 +182,8 @@ function generateMermaidDefinition(scanResult: ScanRecord): string {
         edges.add(edge);
         definition += `    ${parentNode}[${parts[i - 1]}] --> ${currentNode}[${
           parts[i]
-        }]\n`;
+        }]
+`;
       }
 
       if (i === parts.length - 1) {
@@ -183,7 +202,13 @@ function generateMermaidDefinition(scanResult: ScanRecord): string {
   return definition;
 }
 
-function generateMermaidHtml(mermaidDefinition: string): string {
+/**
+ * Generates an HTML page for displaying a Mermaid diagram.
+ *
+ * @param mermaidDefinition - The Mermaid diagram definition string.
+ * @returns The HTML content as a string.
+ */
+function mermaidHtml_generate(mermaidDefinition: string): string {
   return `
 <!DOCTYPE html>
 <html lang="en">
@@ -205,15 +230,28 @@ function generateMermaidHtml(mermaidDefinition: string): string {
   `;
 }
 
-async function renderMermaidInBrowser(mermaidDefinition: string) {
-  const html = generateMermaidHtml(mermaidDefinition);
+/**
+ * Renders a Mermaid diagram in a browser window.
+ *
+ * @param mermaidDefinition - The Mermaid diagram definition string.
+ */
+async function mermaid_renderInBrowser(mermaidDefinition: string) {
+  const html = mermaidHtml_generate(mermaidDefinition);
   const tempDir = os.tmpdir();
   const filePath = path.join(tempDir, "mermaid-diagram.html");
   fs.writeFileSync(filePath, html);
   await open(filePath);
 }
 
-async function renderMermaidServerSide(
+/**
+ * Renders a Mermaid diagram on the server-side and saves it to a file.
+ * Requires `mmdc` (Mermaid CLI) to be installed.
+ *
+ * @param mermaidDefinition - The Mermaid diagram definition string.
+ * @param outputFile - The path to save the output file.
+ * @returns A Promise resolving to the output file path.
+ */
+async function mermaid_renderServerSide(
   mermaidDefinition: string,
   outputFile: string
 ): Promise<string> {
@@ -237,7 +275,13 @@ async function renderMermaidServerSide(
   });
 }
 
-function createArchyTree(files: FileInfo[]): string {
+/**
+ * Creates an Archy-formatted tree structure from file information.
+ *
+ * @param files - An array of FileInfo objects.
+ * @returns The Archy-formatted tree string.
+ */
+function archyTree_create(files: FileInfo[]): string {
   interface ArchyNode {
     label: string;
     nodes: { [key: string]: ArchyNode };
@@ -271,6 +315,15 @@ function createArchyTree(files: FileInfo[]): string {
   return archy(convertToArchyFormat(root));
 }
 
+/**
+ * Scans directories within ChRIS.
+ *
+ * @param dirsGroup - The ChRISEmbeddedResourceGroup for directories.
+ * @param chrisPath - The base ChRIS path.
+ * @param hostBasePath - The base path on the host system.
+ * @param linkedPath - Optional linked path for resolving relative paths.
+ * @returns A Promise resolving to an array of FileInfo objects for directories.
+ */
 async function dirs_scan(
   dirsGroup: ChRISEmbeddedResourceGroup<FileBrowserFolder>,
   chrisPath: string,
@@ -278,9 +331,9 @@ async function dirs_scan(
   linkedPath: string = ""
 ): Promise<FileInfo[]> {
   const dirs: FileInfo[] = [];
-  const dirResults: FilteredResourceData | void =
+  const dirResults: FilteredResourceData | null =
     await dirsGroup.asset.resources_listAndFilterByOptions(
-      optionsToParams({ fields: "path" })
+      options_toParams({ fields: "path" })
     );
   if (dirResults && dirResults.tableData) {
     for (const dir of dirResults.tableData) {
@@ -306,6 +359,15 @@ async function dirs_scan(
   return dirs;
 }
 
+/**
+ * Scans files within ChRIS.
+ *
+ * @param filesGroup - The ChRISEmbeddedResourceGroup for files.
+ * @param chrisPath - The base ChRIS path.
+ * @param hostBasePath - The base path on the host system.
+ * @param linkedPath - Optional linked path for resolving relative paths.
+ * @returns A Promise resolving to an array of FileInfo objects for files.
+ */
 async function files_scan(
   filesGroup: ChRISEmbeddedResourceGroup<FileBrowserFolder>,
   chrisPath: string,
@@ -313,9 +375,9 @@ async function files_scan(
   linkedPath: string = ""
 ): Promise<FileInfo[]> {
   const files: FileInfo[] = [];
-  const fileResults: FilteredResourceData | void =
+  const fileResults: FilteredResourceData | null =
     await filesGroup.asset.resources_listAndFilterByOptions(
-      optionsToParams({ fields: "id,fname,fsize" })
+      options_toParams({ fields: "id,fname,fsize" })
     );
   if (fileResults && fileResults.tableData) {
     for (const file of fileResults.tableData) {
@@ -342,6 +404,15 @@ async function files_scan(
   return files;
 }
 
+/**
+ * Scans links within ChRIS.
+ *
+ * @param linksGroup - The ChRISEmbeddedResourceGroup for links.
+ * @param chrisPath - The base ChRIS path.
+ * @param hostBasePath - The base path on the host system.
+ * @param linkedPath - Optional linked path for resolving relative paths.
+ * @returns A Promise resolving to an array of FileInfo objects for links.
+ */
 async function links_scan(
   linksGroup: ChRISEmbeddedResourceGroup<FileBrowserFolder>,
   chrisPath: string,
@@ -349,9 +420,9 @@ async function links_scan(
   linkedPath: string = ""
 ): Promise<FileInfo[]> {
   const links: FileInfo[] = [];
-  const linkResults: FilteredResourceData | void =
+  const linkResults: FilteredResourceData | null =
     await linksGroup.asset.resources_listAndFilterByOptions(
-      optionsToParams({ fields: "id,path,fname" })
+      options_toParams({ fields: "id,path,fname" })
     );
   if (linkResults && linkResults.tableData) {
     for (const link of linkResults.tableData) {
@@ -378,6 +449,15 @@ async function links_scan(
   return links;
 }
 
+/**
+ * Scans the ChRIS filesystem recursively.
+ *
+ * @param chrisPath - The starting ChRIS path for the scan.
+ * @param hostBasePath - The base path on the host system for path mapping.
+ * @param followLinks - If true, follow ChRIS links.
+ * @param dirsOnly - If true, scan only directories.
+ * @returns A Promise resolving to a ScanRecord, or null on error.
+ */
 async function chrisFS_scan(
   chrisPath: string,
   hostBasePath: string,
@@ -391,7 +471,7 @@ async function chrisFS_scan(
     currentPath: string,
     linkedPath: string = ""
   ): Promise<void> {
-    const resourceGroups: ResourceGroups | null = await createResourceGroups(
+    const resourceGroups: ResourceGroups | null = await resourceGroups_create( // Renamed
       currentPath
     );
     if (!resourceGroups) return;
@@ -442,13 +522,21 @@ async function chrisFS_scan(
     await walkChrisDir(chrisPath);
     return { fileInfo: files, totalSize };
   } catch (error) {
-    errorStack.push("error", `Failed to scan ChRIS filesystem: ${error}`);
+    errorStack.stack_push("error", `Failed to scan ChRIS filesystem: ${error}`);
     return null;
   }
 }
 
+/**
+ * Initiates a scan of the ChRIS filesystem and presents the results.
+ *
+ * @param options - CLI options for the scan, including display format and filters.
+ * @returns A Promise resolving to a ScanRecord, or null on error.
+ */
 async function scan(options: CLIscan): Promise<ScanRecord | null> {
-  const chrisFolder: string | undefined = chrisContext.getCurrent("folder");
+  const chrisFolder: string | null = await chrisContext.current_get(
+    "folder" as any
+  );
   if (!chrisFolder) {
     console.error(
       chalk.red("No ChRIS folder context set. Use 'folder=' to set a context.")
@@ -458,9 +546,7 @@ async function scan(options: CLIscan): Promise<ScanRecord | null> {
   if (!options.silent) {
     console.log(
       chalk.cyan(
-        `Scanning for ${
-          options.dirsOnly ? "directories" : "all files"
-        } recursively from ${chrisFolder}`
+        `Scanning for ${options.dirsOnly ? "directories" : "all files"} recursively from ${chrisFolder}`
       )
     );
   }
@@ -509,11 +595,11 @@ async function scan(options: CLIscan): Promise<ScanRecord | null> {
   }
 
   if (options.mermaid) {
-    const mermaidDefinition = generateMermaidDefinition(scanResult);
+    const mermaidDefinition = mermaidDefinition_generate(scanResult);
     if (options.save) {
       try {
         const outputFile = path.resolve(options.save);
-        const savedFilePath = await renderMermaidServerSide(
+        const savedFilePath = await mermaid_renderServerSide(
           mermaidDefinition,
           outputFile
         );
@@ -522,11 +608,11 @@ async function scan(options: CLIscan): Promise<ScanRecord | null> {
         console.error(`Failed to save Mermaid diagram: ${error}`);
       }
     } else {
-      await renderMermaidInBrowser(mermaidDefinition);
+      await mermaid_renderInBrowser(mermaidDefinition);
     }
   } else {
     if (options.tree) {
-      console.log(createArchyTree(scanResult.fileInfo));
+      console.log(archyTree_create(scanResult.fileInfo));
     } else {
       if (!options.silent) {
         scanResult.fileInfo.forEach((file: FileInfo) => {
@@ -542,7 +628,7 @@ async function scan(options: CLIscan): Promise<ScanRecord | null> {
 
   if (!options.silent) {
     console.log(
-      chalk.green(`Total size: ${formatBytes(scanResult.totalSize)}`)
+      chalk.green(`Total size: ${bytes_format(scanResult.totalSize)}`)
     );
     if (options.filter || options.endsWith) {
       console.log(
@@ -553,7 +639,14 @@ async function scan(options: CLIscan): Promise<ScanRecord | null> {
   return scanResult;
 }
 
-async function getFilesToUpload(
+/**
+ * Recursively gets files from the host path to be uploaded to ChRIS.
+ *
+ * @param hostpath - The host system path to scan.
+ * @param chrisdir - The target ChRIS directory path.
+ * @returns A Promise resolving to an array of FileInfo objects for files to upload.
+ */
+async function filesToUpload_get(
   hostpath: string,
   chrisdir: string
 ): Promise<FileInfo[]> {
@@ -592,24 +685,36 @@ async function getFilesToUpload(
   return files;
 }
 
+/**
+ * Scans the local filesystem for files to upload to ChRIS.
+ *
+ * @param options - TransferCLI options specifying the host path.
+ * @returns A Promise resolving to a ScanRecord of local files, or null on error.
+ */
 async function localFS_scan(options: TransferCLI): Promise<ScanRecord | null> {
-  chrisContext.currentContext_update();
-  chrisIO.chrisFolder = chrisContext.singleContext.folder;
-  const initOK: boolean | null = await chrisIO.initialize();
+  await chrisContext.currentContext_update();
+  const folder = chrisContext.singleContext.folder as any as string | undefined;
+  if (folder) {
+    chrisIO.chrisFolder = folder;
+  } else {
+    console.error("ChRIS folder context is undefined, cannot initialize chrisIO.");
+    return null;
+  }
+  const initOK: boolean | null = await chrisIO.init();
   if (!initOK) {
     console.log(
-      drawBorder(
-        chalk.red(errorStack.searchMessagesOfType("error", "FileBrowserFolder"))
+      border_draw(
+        chalk.red(errorStack.messagesOfType_search("error", "FileBrowserFolder"))
       )
     );
-    console.log(drawBorder(chalk.red("Failed to initialize ChRIS folder.")));
+    console.log(border_draw(chalk.red("Failed to initialize ChRIS folder.")));
     return null;
   }
 
-  console.log(drawBorder(chalk.cyan("Scanning files to upload...")));
-  const filesToUpload: FileInfo[] = await getFilesToUpload(
+  console.log(border_draw(chalk.cyan("Scanning files to upload...")));
+  const filesToUpload: FileInfo[] = await filesToUpload_get(
     options.hostpath,
-    chrisContext.singleContext.folder
+    folder as string
   );
 
   let totalSize: number = 0;
@@ -625,6 +730,12 @@ async function localFS_scan(options: TransferCLI): Promise<ScanRecord | null> {
   };
 }
 
+/**
+ * Sets up and starts a CLI progress bar for file transfers.
+ *
+ * @param scanRecord - The ScanRecord containing total files and size.
+ * @returns The initialized cliProgress.SingleBar instance.
+ */
 function progressBar_setupAndStart(
   scanRecord: ScanRecord
 ): cliProgress.SingleBar {
@@ -637,11 +748,16 @@ function progressBar_setupAndStart(
   );
   progressBar.start(scanRecord.fileInfo.length, 0, {
     bytes: "0 B",
-    totalBytes: formatBytes(scanRecord.totalSize),
+    totalBytes: bytes_format(scanRecord.totalSize), // Renamed
   });
   return progressBar;
 }
 
+/**
+ * Initializes a TransferDetail object.
+ *
+ * @returns An initialized TransferDetail object.
+ */
 function transferDetail_init(): TransferDetail {
   const uploadSummary: TransferDetail = {
     startTime: 0 as number,
@@ -656,6 +772,12 @@ function transferDetail_init(): TransferDetail {
   return uploadSummary;
 }
 
+/**
+ * Calculates transmission summary details (duration and speed).
+ *
+ * @param transfer - The TransferDetail object to update.
+ * @returns A Tranmission object with calculated speed and duration.
+ */
 function transmissionSummary_do(transfer: TransferDetail): Tranmission {
   let transmission: Tranmission = {
     duration: 0,
@@ -667,8 +789,14 @@ function transmissionSummary_do(transfer: TransferDetail): Tranmission {
   return transmission;
 }
 
+/**
+ * Resolves the parent directory name for pulled files.
+ *
+ * @returns The parent directory name or an empty string.
+ */
 function pulledParentDir_resolve(): string {
-  const chrisFolder: string | undefined = chrisContext.getCurrent("folder");
+  const chrisFolder: string | undefined = chrisContext.singleContext.folder as any as string | undefined;
+
   if (!chrisFolder) {
     return "";
   }
@@ -678,6 +806,13 @@ function pulledParentDir_resolve(): string {
   return path.basename(chrisFolder);
 }
 
+/**
+ * Pulls files from ChRIS to the local filesystem.
+ *
+ * @param scanRecord - The ScanRecord of files to pull.
+ * @param progressBar - The CLI progress bar instance.
+ * @returns A Promise resolving to a TransferDetail object with pull statistics.
+ */
 async function chris_pull(
   scanRecord: ScanRecord,
   progressBar: cliProgress.SingleBar
@@ -714,15 +849,13 @@ async function chris_pull(
       summary.failedCount++;
       console.log(
         chalk.red(
-          `Error downloading ${file.hostPath}: ${
-            error instanceof Error ? error.message : String(error)
-          }`
+          `Error downloading ${file.hostPath}: ${error instanceof Error ? error.message : String(error)}`
         )
       );
     }
 
     progressBar.update(index + 1, {
-      bytes: formatBytes(summary.transferSize),
+      bytes: bytes_format(summary.transferSize), // Renamed
     });
   }
 
@@ -736,6 +869,13 @@ async function chris_pull(
   return summary;
 }
 
+/**
+ * Pushes files from the local filesystem to ChRIS.
+ *
+ * @param scanRecord - The ScanRecord of files to push.
+ * @param progressBar - The CLI progress bar instance.
+ * @returns A Promise resolving to a TransferDetail object with push statistics.
+ */
 async function chris_push(
   scanRecord: ScanRecord,
   progressBar: cliProgress.SingleBar
@@ -766,15 +906,13 @@ async function chris_push(
       summary.failedCount++;
       console.log(
         chalk.red(
-          `Error uploading ${file.hostPath}: ${
-            error instanceof Error ? error.message : String(error)
-          }`
+          `Error uploading ${file.hostPath}: ${error instanceof Error ? error.message : String(error)}`
         )
       );
     }
 
     progressBar.update(index + 1, {
-      bytes: formatBytes(summary.transferSize),
+      bytes: bytes_format(summary.transferSize), // Renamed
     });
   }
   const transmission: Tranmission = transmissionSummary_do(summary);
@@ -787,7 +925,13 @@ async function chris_push(
   return summary;
 }
 
-async function download(options: TransferCLI): Promise<boolean> {
+/**
+ * Downloads files from ChRIS to the local filesystem.
+ *
+ * @param options - TransferCLI options including host path.
+ * @returns A Promise resolving to true if download was successful, false otherwise.
+ */
+async function download_handle(options: TransferCLI): Promise<boolean> { // Renamed
   const scanRecord: ScanRecord | null = await scan({
     silent: true,
     follow: true,
@@ -799,14 +943,20 @@ async function download(options: TransferCLI): Promise<boolean> {
   const progressBar: cliProgress.SingleBar =
     progressBar_setupAndStart(scanRecord);
   const summary = await chris_pull(scanRecord, progressBar);
-  displayTable(createSummaryTable(summary), ["Metric", "Value"], {
+  table_display(summaryTable_create(summary), ["Metric", "Value"], { // Renamed
     title: { title: "Download summary", justification: "center" },
   });
 
   return summary.failedCount === 0;
 }
 
-async function upload(options: TransferCLI): Promise<boolean> {
+/**
+ * Uploads files from the local filesystem to ChRIS.
+ *
+ * @param options - TransferCLI options including host path.
+ * @returns A Promise resolving to true if upload was successful, false otherwise.
+ */
+async function upload_handle(options: TransferCLI): Promise<boolean> { // Renamed
   const scanRecord: ScanRecord | null = await localFS_scan(options);
   if (!scanRecord) {
     return false;
@@ -814,14 +964,20 @@ async function upload(options: TransferCLI): Promise<boolean> {
   const progressBar: cliProgress.SingleBar =
     progressBar_setupAndStart(scanRecord);
   const summary = await chris_push(scanRecord, progressBar);
-  displayTable(createSummaryTable(summary), ["Metric", "Value"], {
+  table_display(summaryTable_create(summary), ["Metric", "Value"], { // Renamed
     title: { title: "Upload summary", justification: "center" },
   });
 
   return summary.failedCount === 0;
 }
 
-function formatBytes(bytes: number): string {
+/**
+ * Formats a number of bytes into a human-readable string.
+ *
+ * @param bytes - The number of bytes.
+ * @returns A formatted string (e.g., "1.23 MB").
+ */
+function bytes_format(bytes: number): string {
   if (bytes === 0) return "0 B";
   const k = 1024;
   const sizes = ["B", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"];
@@ -829,7 +985,12 @@ function formatBytes(bytes: number): string {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
 }
 
-export async function setupPathCommand(program: Command): Promise<void> {
+/**
+ * Sets up the 'path' command for performing operations on ChRIS paths.
+ *
+ * @param program - The Commander.js program instance.
+ */
+export async function pathCommand_setup(program: Command): Promise<void> {
   const pathCommand: Command = program
     .command("path")
     .description("Perform operations on ChRIS paths");
@@ -840,7 +1001,7 @@ export async function setupPathCommand(program: Command): Promise<void> {
       "upload the <hostpath> from your computer into the current ChRIS folder context"
     )
     .action(async (hostpath: string) => {
-      const result: boolean = await upload({ hostpath });
+      const result: boolean = await upload_handle({ hostpath });
     });
 
   pathCommand
@@ -849,7 +1010,7 @@ export async function setupPathCommand(program: Command): Promise<void> {
       "download the current ChRIS folder context to current dir or [hostdir]"
     )
     .action(async (hostpath: string) => {
-      const result: boolean = await download({
+      const result: boolean = await download_handle({
         hostpath: hostpath || process.cwd(),
       });
       console.log(result);

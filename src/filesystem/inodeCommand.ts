@@ -1,7 +1,12 @@
 import { Command } from "commander";
 import { FileGroupHandler, FileMemberHandler } from "./fileGroupHandler.js";
 
-export async function setupInodeCommand(program: Command): Promise<void> {
+/**
+ * Sets up the 'inode' command for interacting with ChRIS filesystem resources.
+ *
+ * @param program - The Commander.js program instance.
+ */
+export async function inodeCommand_setup(program: Command): Promise<void> {
   const inodeCommand = program
     .command("inode <path>")
     .description("Interact with ChRIS filesystem resources at a specific path")
@@ -10,14 +15,14 @@ export async function setupInodeCommand(program: Command): Promise<void> {
       const subcommand = args[0];
 
       if (subcommand === "files") {
-        const fileGroupHandler = await FileGroupHandler.create(path);
+        const fileGroupHandler = await FileGroupHandler.handler_create("files", path);
         const filesProgram = new Command();
-        fileGroupHandler.setupCommand(filesProgram);
+        fileGroupHandler.fileGroupCommand_setup(filesProgram);
         await filesProgram.parseAsync(args);
       } else if (subcommand === "file") {
-        const fileMemberHandler = await FileMemberHandler.create(path);
+        const fileMemberHandler = await FileMemberHandler.handler_create(path);
         const fileProgram = new Command();
-        fileMemberHandler.setupCommand(fileProgram);
+        fileMemberHandler.fileMemberCommand_setup(fileProgram);
         await fileProgram.parseAsync(args);
       } else {
         console.error("Usage: chili inode <path> <files|file> [options]");

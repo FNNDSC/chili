@@ -1,0 +1,94 @@
+= Architecture of "Searchable" Strings
+:toc: left
+:toclevels: 3
+
+The **"Searchable"** architecture is a core ChILI concept designed to unify resource identification and searching into a single, flexible string format. It allows users to specify resources by ID, Name, or complex query parameters seamlessly within CLI arguments and context strings.
+
+== The Concept: "One String to Find Them All"
+
+In a traditional REST API, fetching a resource by ID (`GET /plugins/14/`) is distinct from searching for resources (`GET /plugins/?name=pl-dircopy`). The Searchable concept blurs this line for the CLI user.
+
+A "Searchable" string is an input argument that the system automatically interprets as either:
+1.  **A Direct ID/Name**: `"14"`, `"pl-dircopy"`
+2.  **An Explicit Query**: `"name_exact:pl-dircopy"`, `"version:1.0.2, min_creation_date:2023-01-01"`
+
+== Syntax Specification
+
+The explicit syntax is a comma-separated list of key-value pairs:
+
+`"key1: value1, key2: value2, ..."`
+
+*   **Keys**: Correspond directly to the Django filter fields supported by the ChRIS API (e.g., `name`, `name_exact`, `id`, `min_creation_date`).
+*   **Values**: The values to search for.
+*   **Separator**: A colon (`:`) separates key and value. A comma (`,`) separates pairs.
+
+== Implementation Mechanism
+
+The logic resides primarily in `cumin/src/utils/keypair.ts` and `cumin/src/plugins/chrisPlugins.ts`.
+
+=== 1. Heuristic Interpretation (`pluginString_makeSearchable`)
+
+When a string is passed to a resolver (e.g., `pluginIDs_resolve`), the system applies a heuristic:
+
+*   **Explicit Mode**: If the string contains a colon (`:`), it is treated as a raw key-value search string.
+    *   Input: `"id:14"` -> Result: `"id:14"`
+*   **Implicit Mode**: If the string contains *no* colon, it is assumed to be a name query.
+    *   Input: `"pl-dircopy"` -> Result: `"name: pl-dircopy"`
+
+=== 2. Parsing (`keyPairString_parse`)
+
+The generic string is parsed into a JavaScript object (dictionary):
+
+[source,typescript]
+----
+// Input: "name: foo, version: 1.0"
+const params = {
+  "name": "foo",
+  "version": "1.0"
+}
+----
+
+=== 3. API Query Construction (`options_toParams`)
+
+This object is merged with standard API options (like pagination limits) and passed to the underlying `@fnndsc/chrisapi` client. The client translates this object into a standard HTTP Query String:
+
+`GET /api/v1/endpoint/?name=foo&version=1.0`
+
+=== 4. Resolution
+
+The API returns a list of matching objects. The system then extracts the relevant identifier (typically `id`) from the first result (or handles errors if multiple/zero results are found).
+
+== Integration Points
+
+The Searchable concept is integrated deeply into two main areas:
+
+=== Resource Commands
+
+Commands that operate on resources accept searchable strings as arguments.
+
+[source,bash]
+----
+chili plugin run "name_exact:pl-dircopy, version:2.0.1"
+----
+
+=== Context Initialization
+
+The Context parser (`chrisContextURL_parse` in `cumin`) supports searchables within the query string of a context URI.
+
+[source,bash]
+----
+chili "user@http://cube.org?plugin=name_exact:pl-dircopy" ...
+----
+
+When the parser encounters a key like `plugin` with a value containing a colon (`:`), it triggers the full resolution logic (API call -> Search -> Resolve ID) *before* setting the persistent session state.
+
+== Data Flow Summary
+
+1.  **User Input**: `"name_exact:foo"`
+2.  **CLI Parser**: Passes string to Resolver.
+3.  **Resolver**: calls `keyPairString_parse("name_exact:foo")`.
+4.  **Object**: `{ name_exact: "foo" }`.
+5.  **API Client**: `GET .../?name_exact=foo`.
+6.  **Response**: `[{ id: 42, name: "foo", ... }]`.
+7.  **Resolution**: Returns ID `42`.
+8.  **Action**: Command operates on Resource ID `42`.

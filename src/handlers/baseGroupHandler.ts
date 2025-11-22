@@ -3,36 +3,37 @@ import {
   FilteredResourceData,
   ChRISPluginGroup,
   ChRISFeedGroup,
-  ChRISFileSystemGroup,
-  ChRISPluginSystemGroup,
+  ChRISEmbeddedResourceGroup,
   ListOptions,
   QueryHits,
-  extractRecordToQueryHits,
+  record_extract,
   errorStack,
 } from "@fnndsc/cumin";
-import { CLIoptions, optionsToParams } from "../utils/cli.js";
-import { displayTable, drawBorder, TableOptions } from "../screen/screen.js";
+import { CLIoptions, options_toParams } from "../utils/cli.js";
+import { table_display, border_draw, TableOptions } from "../screen/screen.js";
 import * as util from "util";
 import * as readline from "readline";
 import { title } from "process";
 import { Table } from "cli-table3";
 
+/**
+ * Base handler for groups of ChRIS resources.
+ * Provides common functionality for listing and deleting resources.
+ */
 export class BaseGroupHandler {
   assetName: string = "";
   displayOptions: TableOptions;
   chrisObject:
     | ChRISPluginGroup
     | ChRISFeedGroup
-    | ChRISFileSystemGroup
-    | ChRISPluginSystemGroup;
+    | ChRISEmbeddedResourceGroup<any>;
 
   constructor(
     assetName: string,
     chrisObject:
       | ChRISPluginGroup
       | ChRISFeedGroup
-      | ChRISFileSystemGroup
-      | ChRISPluginSystemGroup
+      | ChRISEmbeddedResourceGroup<any>
   ) {
     this.assetName = assetName;
     this.chrisObject = chrisObject;
@@ -41,7 +42,13 @@ export class BaseGroupHandler {
     };
   }
 
-  private removeDuplicateColumns(
+  /**
+   * Removes duplicate column headers from FilteredResourceData results.
+   *
+   * @param results - The FilteredResourceData to process.
+   * @returns FilteredResourceData with unique headers and corresponding data.
+   */
+  private columns_removeDuplicates(
     results: FilteredResourceData
   ): FilteredResourceData {
     const uniqueHeaders = Array.from(
@@ -64,9 +71,14 @@ export class BaseGroupHandler {
     };
   }
 
-  async listResources(options: CLIoptions): Promise<void> {
+  /**
+   * Lists ChRIS resources based on provided CLI options.
+   *
+   * @param options - CLI options for filtering and pagination.
+   */
+  async resources_list(options: CLIoptions): Promise<void> {
     try {
-      const params = optionsToParams(options);
+      const params = options_toParams(options);
       const results: FilteredResourceData | null =
         await this.chrisObject.asset.resources_listAndFilterByOptions(params);
 
@@ -80,19 +92,22 @@ export class BaseGroupHandler {
       if (results.tableData.length === 0) {
         console.log(`No ${this.assetName} found matching the criteria.`);
       } else {
-        const uniqueResults = this.removeDuplicateColumns(results);
-        displayTable(
+        const uniqueResults = this.columns_removeDuplicates(results);
+        table_display(
           uniqueResults.tableData,
           uniqueResults.selectedFields,
           this.displayOptions
         );
       }
     } catch (error) {
-      console.log(errorStack.searchStack(this.assetName)[0]);
+      console.log(errorStack.stack_search(this.assetName)[0]);
     }
   }
 
-  async listResourceFields(): Promise<void> {
+  /**
+   * Lists available fields for the current ChRIS resource type.
+   */
+  async resourceFields_list(): Promise<void> {
     try {
       const results = await this.chrisObject.asset.resourceFields_get();
 
@@ -106,14 +121,21 @@ export class BaseGroupHandler {
       if (results.fields.length === 0) {
         console.log(`No resource fields found for ${this.assetName}.`);
       } else {
-        displayTable(results.fields, ["fields"]);
+        table_display(results.fields, ["fields"]);
       }
     } catch (error) {
-      console.log(errorStack.searchStack(this.assetName)[0]);
+      console.log(errorStack.stack_search(this.assetName)[0]);
     }
   }
 
-  private async confirmOperation(ID: number, opName: string): Promise<boolean> {
+  /**
+   * Prompts the user for confirmation before performing an operation.
+   *
+   * @param ID - The ID of the resource.
+   * @param opName - The name of the operation.
+   * @returns A Promise resolving to true if confirmed, false otherwise.
+   */
+  private async operation_confirm(ID: number, opName: string): Promise<boolean> {
     const rl = readline.createInterface({
       input: process.stdin,
       output: process.stdout,
@@ -130,6 +152,12 @@ export class BaseGroupHandler {
     });
   }
 
+  /**
+   * Prints details of a specific resource by its ID.
+   *
+   * @param ID - The ID of the resource.
+   * @param fields - Optional comma-separated list of fields to display.
+   */
   async resource_printGivenID(ID: number, fields?: string): Promise<void> {
     if (!fields) {
       if (this.chrisObject instanceof ChRISFeedGroup) {
@@ -138,23 +166,38 @@ export class BaseGroupHandler {
         fields = "";
       }
     }
-    await this.listResources({
+    await this.resources_list({
       fields: fields,
       search: `id: ${ID}`,
     });
   }
 
-  async userContinue(
+  /**
+   * Prompts the user to continue an operation after displaying resource info.
+   *
+   * @param ID - The ID of the resource.
+   * @param operation - The name of the operation.
+   * @param fields - Optional comma-separated list of fields to display.
+   * @returns A Promise resolving to true if confirmed, false otherwise.
+   */
+  async user_confirmContinuation(
     ID: number,
     operation: string,
     fields?: string
   ): Promise<boolean> {
     await this.resource_printGivenID(ID);
-    const confirmed = await this.confirmOperation(ID, operation);
+    const confirmed = await this.operation_confirm(ID, operation);
     return confirmed;
   }
 
-  OKorNot_msg(obj: any | null, failureNotice?: string): string {
+  /**
+   * Generates an "OK" or "Failed" message based on a boolean condition.
+   *
+   * @param obj - The object to check (truthy implies OK).
+   * @param failureNotice - Optional custom failure message.
+   * @returns The formatted status message.
+   */
+  msg_OKorNot(obj: any | null, failureNotice?: string): string {
     let failMessage: string;
     if (!failureNotice) {
       failMessage = "[ Failed ]";
@@ -168,7 +211,14 @@ export class BaseGroupHandler {
     }
   }
 
-  async deleteResources(IDs: number[], force: boolean): Promise<boolean> {
+  /**
+   * Deletes ChRIS resources by their IDs.
+   *
+   * @param IDs - An array of resource IDs to delete.
+   * @param force - If true, bypasses user confirmation.
+   * @returns A Promise resolving to true on success, false on failure.
+   */
+  async resources_delete(IDs: number[], force: boolean): Promise<boolean> {
     let delop: boolean = true;
     let confirm: boolean = false;
     let title: string = "";
@@ -180,21 +230,21 @@ export class BaseGroupHandler {
             id: id,
           });
         console.log(
-          drawBorder(
-            `checking ${this.assetName} id ${id} ... ${this.OKorNot_msg(
+          border_draw(
+            `checking ${this.assetName} id ${id} ... ${this.msg_OKorNot(
               searchResults
             )}`
           )
         );
         if (!force) {
-          confirm = await this.userContinue(id, "delete");
+          confirm = await this.user_confirmContinuation(id, "delete");
           if (!confirm) {
             continue;
           }
         }
         delop = await this.chrisObject.asset.resourceItem_delete(id);
-        drawBorder(
-          `deleting ${this.assetName} id ${id} ... ${this.OKorNot_msg(true)}`
+        border_draw(
+          `deleting ${this.assetName} id ${id} ... ${this.msg_OKorNot(true)}`
         );
       } catch (error) {
         console.error(`${error}`);
@@ -204,21 +254,32 @@ export class BaseGroupHandler {
     return true;
   }
 
+  /**
+   * Retrieves resource IDs based on search options.
+   *
+   * @param options - CLI options for searching.
+   * @returns A Promise resolving to an array of IDs or null if no matches.
+   */
   async IDs_getFromSearch(options: CLIoptions): Promise<number[] | null> {
-    const params: ListOptions = optionsToParams(options);
+    const params: ListOptions = options_toParams(options);
     const searchResults: FilteredResourceData | null =
       await this.chrisObject.asset.resources_listAndFilterByOptions(params);
     if (!searchResults) {
       return null;
     }
-    const queryHits: QueryHits = extractRecordToQueryHits(
+    const queryHits: QueryHits = record_extract(
       searchResults.tableData,
       "id"
     );
-    return queryHits.hits;
+    return queryHits.hits as number[];
   }
 
-  async deleteHandler(options: CLIoptions): Promise<void> {
+  /**
+   * Handles the deletion of resources based on CLI options.
+   *
+   * @param options - CLI options including search terms and force flag.
+   */
+  async delete_handle(options: CLIoptions): Promise<void> {
     let nIDs: number[] | null;
     nIDs = await this.IDs_getFromSearch(options);
     if (!nIDs) {
@@ -226,11 +287,16 @@ export class BaseGroupHandler {
       return;
     }
     if (nIDs) {
-      await this.deleteResources(nIDs, options.force);
+      await this.resources_delete(nIDs, options.force);
     }
   }
 
-  setupCommand(program: Command): void {
+  /**
+   * Sets up the Commander.js commands for resource listing and deletion.
+   *
+   * @param program - The Commander.js program instance.
+   */
+  command_setup(program: Command): void {
     const command = program
       .command(this.assetName)
       .description(`Interact with a group of ChRIS ${this.assetName}`);
@@ -247,15 +313,15 @@ export class BaseGroupHandler {
         "-s, --search <searchTerms>",
         `search for ${this.assetName} using comma-separated key-value pairs`
       )
-      .action(async (options) => {
-        await this.listResources(options);
+      .action(async (options: CLIoptions) => {
+        await this.resources_list(options);
       });
 
     command
       .command("fieldslist")
       .description(`list the ${this.assetName} resource fields`)
       .action(async () => {
-        await this.listResourceFields();
+        await this.resourceFields_list();
       });
 
     command
@@ -275,7 +341,7 @@ export class BaseGroupHandler {
             ...options,
             search: searchPart,
           };
-          await this.deleteHandler(currentOptions);
+          await this.delete_handle(currentOptions);
         }
       });
   }
