@@ -11,7 +11,7 @@ This tool is designed for developers and power-users who want to script and cont
 `chili` is the top layer of a robust "Sandwich" architecture designed for modularity and reusability:
 
 1.  **`chili` (Presentation)**: The user-facing CLI. It parses commands, formats output (tables, grids), and manages user interaction. It contains the **`chefs`** module, which provides a familiar Unix-like shell experience (`ls`, `cd`, `pwd`).
-2.  **[`salsa`](../salsa/README.md) (Logic)**: The shared application logic layer. It defines high-level "intents" (e.g., `feed_create`, `files_touch`) that are independent of the specific frontend.
+2.  **[`salsa`](../salsa/README.md) (Logic)**: The **S**hared **A**pplication **L**ogic and **S**ervice **A**ssets layer. It defines high-level "intents" (e.g., `feed_create`, `files_touch`) that are independent of the specific frontend.
 3.  **[`cumin`](../cumin/README.md) (Infrastructure)**: The state and operations layer. It manages authentication, persistent context, and low-level API interactions.
 
 This design ensures that the core logic in `salsa` can be reused in future web or mobile interfaces.
