@@ -1,11 +1,16 @@
-import { ListOptions } from "@fnndsc/cumin";
+import { ListOptions, chrisContext, Context } from "@fnndsc/cumin";
 import { keyPairParams_apply } from "@fnndsc/cumin";
+import path from "path"; // Node.js path module for joining paths
 
 export interface CLIoptions {
   page?: string;
   fields?: string;
   search?: string;
   params?: string;
+  content?: string; // New option for file create
+  fromFile?: string; // New option for file create
+  path?: string; // New option for explicit base path
+  name?: string; // New option for explicit filename
   [key: string]: any;
 }
 
@@ -26,4 +31,47 @@ export function options_toParams(
   }
 
   return baseParams;
+}
+
+/**
+ * Resolves a ChRIS filesystem path based on various inputs.
+ *
+ * @param fileIdentifier - The primary argument, which can be a filename or a path fragment (relative or absolute).
+ * @param options - CLI options including optional `path` (base directory) and `name` (explicit filename).
+ * @returns The fully resolved absolute ChRIS path.
+ */
+export async function path_resolve_chrisfs(
+  fileIdentifier: string | undefined,
+  options: { path?: string; name?: string }
+): Promise<string> {
+  // If fileIdentifier is explicitly absolute, use it directly.
+  if (fileIdentifier && fileIdentifier.startsWith('/')) {
+    return fileIdentifier.replace(/\/\//g, '/'); // Normalize double slashes
+  }
+
+  // 1. Determine base directory
+  let baseDir: string;
+  if (options.path) {
+    baseDir = options.path;
+  } else {
+    const currentContext = await chrisContext.current_get(Context.ChRISfolder);
+    baseDir = currentContext || "/";
+  }
+
+  if (!baseDir.startsWith('/')) { // Ensure baseDir is absolute
+    baseDir = `/${baseDir}`;
+  }
+
+  // 2. Determine the filename/pathFragment to be joined to baseDir
+  let pathFragment: string;
+  if (options.name) {
+    pathFragment = options.name;
+  } else if (fileIdentifier) {
+    pathFragment = fileIdentifier;
+  } else {
+    throw new Error("Cannot resolve file path: no filename or path fragment provided.");
+  }
+
+  const resolvedPath = path.join(baseDir, pathFragment);
+  return resolvedPath.replace(/\/\//g, '/'); // Final normalization
 }

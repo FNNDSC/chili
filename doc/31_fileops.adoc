@@ -1,0 +1,51 @@
+= advanced file operations
+
+== intro
+
+While `chefs` gives you the basics (`ls`, `touch`), sometimes you need to do more with files. You might want to create a file with specific text, upload a local file to ChRIS, or peek at what's inside a file stored on the server.
+
+For these tasks, `chili` provides the `file` command suite.
+
+== creating files with content
+
+The `chefs touch` command is great for empty files, but what if you want to write a note or a script directly?
+
+```bash
+chili file create notes.txt --content "meeting at 2pm"
+```
+
+This creates `notes.txt` in your current folder and fills it with your text.
+
+=== specifying paths
+
+You aren't stuck in your current directory. You can tell `chili` exactly where to put the file:
+
+```bash
+chili file create --name README.md --path /home/jane.doe/project --content "# Project X"
+```
+
+Or, just include the path in the filename:
+
+```bash
+chili file create /home/jane.doe/project/README.md --content "# Project X"
+```
+
+== uploading from local
+
+This is where it gets powerful. You can "create" a file in ChRIS by reading from a file on your own computer.
+
+```bash
+chili file create data.csv --from-file ./local_data.csv
+```
+
+This takes `./local_data.csv` from your laptop and creates `data.csv` on the ChRIS server. It's a quick and easy way to get single files into the system.
+
+== viewing files
+
+Want to see what's in a file without downloading it?
+
+```bash
+chili file view results.json
+```
+
+This prints the content of the file directly to your terminal. It's perfect for checking configuration files, logs, or small datasets.

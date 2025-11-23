@@ -1,7 +1,9 @@
 import { Command } from "commander";
 import { BaseGroupHandler } from "../handlers/baseGroupHandler.js";
-import { CLIoptions } from "../utils/cli.js";
+import { CLIoptions, path_resolve_chrisfs } from "../utils/cli.js";
 import { FileController } from "../controllers/fileController.js";
+import { files_create } from "@fnndsc/salsa"; // Import files_create from salsa
+import * as fs from "fs"; // Import Node.js 'fs' for reading local files
 
 /**
  * Handles commands related to groups of ChRIS files, links, or directories.
@@ -140,6 +142,52 @@ export class FileMemberHandler {
   }
 
   /**
+   * Creates a new file in ChRIS with specified content.
+   *
+   * @param fileIdentifier - The primary argument for the file (name or path).
+   * @param options - CLI options including `--content`, `--from-file`, `--path`, `--name`.
+   */
+  async file_create(fileIdentifier: string | undefined, options: CLIoptions): Promise<void> {
+    try {
+      if (!fileIdentifier && !options.name) {
+        console.error("Error: Filename or path is required.");
+        return;
+      }
+      if (options.content && options.fromFile) {
+        console.error("Error: Cannot use both --content and --from-file. Please choose one.");
+        return;
+      }
+
+      const resolvedChRISPath = await path_resolve_chrisfs(fileIdentifier, options);
+
+      let content: string | Buffer = '';
+      if (options.content) {
+        content = options.content;
+      } else if (options.fromFile) {
+        if (!fs.existsSync(options.fromFile)) {
+          console.error(`Error: Local file not found at ${options.fromFile}`);
+          return;
+        }
+        content = fs.readFileSync(options.fromFile);
+      } else {
+        // No content or from-file specified, create an empty file
+        console.log(`Creating empty file at ${resolvedChRISPath}`);
+      }
+
+      const success = await files_create(content, resolvedChRISPath);
+      if (success) {
+        console.log(`File created successfully at: ${resolvedChRISPath}`);
+      } else {
+        console.error(`Failed to create file at: ${resolvedChRISPath}`);
+      }
+
+    } catch (error: any) {
+      console.error(`Error creating file: ${error.message}`);
+    }
+  }
+
+
+  /**
    * Sets up the Commander.js commands for individual file operations.
    *
    * @param program - The Commander.js program instance.
@@ -162,6 +210,30 @@ export class FileMemberHandler {
       .action(async (options: CLIoptions) => {
         await this.file_cat(options);
       });
+
+    commandToUse
+      .command("create [fileIdentifier]")
+      .description("Create a new file in ChRIS with optional content")
+      .option(
+        "-c, --content <text>",
+        "Inline content for the new file"
+      )
+      .option(
+        "-f, --from-file <localPath>",
+        "Path to a local file to upload as content"
+      )
+      .option(
+        "-p, --path <path>",
+        "Base ChRIS directory for the file (overrides current context if relative)"
+      )
+      .option(
+        "-n, --name <name>",
+        "Explicit filename (useful when fileIdentifier is a path or omitted)"
+      )
+      .action(async (fileIdentifier: string | undefined, options: CLIoptions) => {
+        await this.file_create(fileIdentifier, options);
+      });
+
     console.log("FileMemberHandler commands set up successfully");
   }
 

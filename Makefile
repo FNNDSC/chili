@@ -1,120 +1,147 @@
 # ChILI Development Makefile
 #
-# Facilitates the development, building, and testing of the ChILI ecosystem:
-#   - chili (CLI)
-#   - cumin (Core Library)
-#   - salsa (Business Logic)
+# Facilitates the development of the ChILI ecosystem using a "Cooking" metaphor.
 #
-# Quick start:
-#   make install   - Install dependencies for all projects
-#   make build     - Build all projects in the correct order
-#   make test      - Run tests for all projects
-#   make clean     - Remove build artifacts and node_modules
-#   make link      - Link local packages for development
-#   make all       - Clean, install, link, build, and test
+# Menu (Main Commands):
+#   make shop    - Clone the necessary ingredients (repositories)
+#   make prep    - Install dependencies (npm install)
+#   make cook    - Build the code (compile TypeScript)
+#   make taste   - Run the tests (jest)
+#   make serve   - Link the packages globally for use
+#   make scrub   - Clean up the kitchen (remove build artifacts)
 #
-# The Big One:
-#   make meal      - The full course: all + link (Setup everything from scratch)
+# The Full Course:
+#   make meal    - The Chef's Special: scrub, shop, prep, cook, taste, serve
 #
-# Component shortcuts (builds dependencies automatically):
-#   make cumin     - Build cumin
-#   make salsa     - Build salsa (and cumin)
-#   make chili     - Build chili (and salsa, cumin)
+# Standard Aliases (for muscle memory):
+#   make install -> make prep
+#   make build   -> make cook
+#   make test    -> make taste
+#   make clean   -> make scrub
 
 # Directories
 CUMIN_DIR := ../cumin
 SALSA_DIR := ../salsa
 CHILI_DIR := .
 
-.PHONY: help install build test clean link all meal cumin salsa chili install-cumin install-salsa install-chili test-cumin test-salsa test-chili
+# Repository URLs
+CUMIN_REPO := https://github.com/FNNDSC/cumin.git
+SALSA_REPO := https://github.com/FNNDSC/salsa.git
+
+.PHONY: help shop prep cook taste serve scrub meal install build test clean link all
 
 help:
-	@echo "ChILI Ecosystem Makefile"
+	@echo "ChILI Kitchen Makefile 🌶️"
 	@echo ""
-	@echo "Usage:"
-	@echo "  make install    - Install dependencies for cumin, salsa, and chili"
-	@echo "  make build      - Build cumin, salsa, and chili (in order)"
-	@echo "  make test       - Run tests for all projects"
-	@echo "  make clean      - Remove dist/, types/, and node_modules/ directories"
-	@echo "  make link       - Link local packages (cumin -> salsa/chili, salsa -> chili)"
-	@echo "  make all        - Full reset: clean, install, build, test"
-	@echo "  make meal       - The full course: all + link (Setup everything globally)"
+	@echo "The Menu:"
+	@echo "  make shop    - Clone 'cumin' and 'salsa' repositories"
+	@echo "  make prep    - Install NPM dependencies for all components"
+	@echo "  make cook    - Build (compile) all components in order"
+	@echo "  make taste   - Run tests for all components"
+	@echo "  make serve   - Link 'chili' globally (npm link)"
+	@echo "  make scrub   - Clean build artifacts and node_modules"
 	@echo ""
-	@echo "Component shortcuts (Builds):"
-	@echo "  make cumin"
-	@echo "  make salsa"
-	@echo "  make chili"
+	@echo "The Special:"
+	@echo "  make meal    - Full setup: scrub, shop, prep, cook, taste, serve"
+	@echo ""
+	@echo "Standard Aliases:"
+	@echo "  make install, make build, make test, make clean"
 
-# --- Installation ---
+# --- Shopping (Cloning) ---
 
-install: install-cumin install-salsa install-chili
+shop: shop-cumin shop-salsa
 
-install-cumin:
-	@echo "Installing cumin dependencies..."
+shop-cumin:
+	@if [ ! -d "$(CUMIN_DIR)" ]; then \
+		echo "🛒 Shopping for cumin..."; \
+		git clone $(CUMIN_REPO) $(CUMIN_DIR); \
+	else \
+		echo "✅ Cumin is already in the pantry."; \
+	fi
+
+shop-salsa:
+	@if [ ! -d "$(SALSA_DIR)" ]; then \
+		echo "🛒 Shopping for salsa..."; \
+		git clone $(SALSA_REPO) $(SALSA_DIR); \
+	else \
+		echo "✅ Salsa is already in the pantry."; \
+	fi
+
+# --- Prep (Install Dependencies) ---
+
+prep: shop prep-cumin prep-salsa prep-chili
+
+prep-cumin:
+	@echo "🔪 Prepping cumin (installing deps)..."
 	cd $(CUMIN_DIR) && npm install
 
-install-salsa:
-	@echo "Installing salsa dependencies..."
+prep-salsa:
+	@echo "🔪 Prepping salsa (installing deps)..."
 	cd $(SALSA_DIR) && npm install
 
-install-chili:
-	@echo "Installing chili dependencies..."
+prep-chili:
+	@echo "🔪 Prepping chili (installing deps)..."
 	cd $(CHILI_DIR) && npm install --ignore-scripts
 
-# --- Building (Shortcuts) ---
+# --- Cook (Build) ---
 
-build: chili
+cook: prep cook-cumin cook-salsa cook-chili
 
-cumin:
-	@echo "Building cumin..."
+cook-cumin:
+	@echo "🍳 Cooking cumin..."
 	cd $(CUMIN_DIR) && npm run build
 
-salsa: cumin
-	@echo "Building salsa..."
+cook-salsa: cook-cumin
+	@echo "🍳 Cooking salsa..."
 	cd $(SALSA_DIR) && npm run build
 
-chili: salsa
-	@echo "Building chili..."
+cook-chili: cook-salsa
+	@echo "🍳 Cooking chili..."
 	cd $(CHILI_DIR) && npm run build
 
-# --- Testing ---
+# --- Taste (Test) ---
 
-test: test-cumin test-salsa test-chili
+taste: cook taste-cumin taste-salsa taste-chili
 
-test-cumin:
-	@echo "Testing cumin..."
+taste-cumin:
+	@echo "👅 Tasting cumin..."
 	cd $(CUMIN_DIR) && npm test
 
-test-salsa:
-	@echo "Testing salsa..."
+taste-salsa:
+	@echo "👅 Tasting salsa..."
 	cd $(SALSA_DIR) && npm test
 
-test-chili:
-	@echo "Testing chili..."
+taste-chili:
+	@echo "👅 Tasting chili..."
 	cd $(CHILI_DIR) && npm test
 
-# --- Cleaning ---
+# --- Serve (Link) ---
 
-clean:
-	@echo "Cleaning cumin..."
-	cd $(CUMIN_DIR) && rm -rf dist types node_modules package-lock.json
-	@echo "Cleaning salsa..."
-	cd $(SALSA_DIR) && rm -rf dist types node_modules package-lock.json
-	@echo "Cleaning chili..."
-	cd $(CHILI_DIR) && rm -rf dist types node_modules package-lock.json
-	@echo "Clean complete."
-
-# --- Linking ---
-# Useful if you want to develop simultaneously without repeated `npm install` of file: deps
-link:
-	@echo "Linking packages..."
+serve:
+	@echo "🍽️  Serving the meal (linking)..."
 	cd $(CUMIN_DIR) && npm link
 	cd $(SALSA_DIR) && npm link @fnndsc/cumin && npm link
 	cd $(CHILI_DIR) && npm link @fnndsc/cumin && npm link @fnndsc/salsa && npm link
-	@echo "Linking complete."
+	@echo "👨‍🍳 Bon Appétit! 'chili' is ready."
 
-all: clean install build test
-	@echo "All tasks completed successfully."
+# --- Scrub (Clean) ---
 
-meal: all link
-	@echo "Order up! The full meal is served. 'chili' is now linked globally."
+scrub:
+	@echo "🧽 Scrubbing the kitchen..."
+	cd $(CUMIN_DIR) && rm -rf dist types node_modules package-lock.json
+	cd $(SALSA_DIR) && rm -rf dist types node_modules package-lock.json
+	cd $(CHILI_DIR) && rm -rf dist types node_modules package-lock.json
+	@echo "✨ Kitchen is clean."
+
+# --- The Big One ---
+
+meal: scrub shop prep cook taste serve
+
+# --- Standard Aliases ---
+
+install: prep
+build: cook
+test: taste
+clean: scrub
+link: serve
+all: meal

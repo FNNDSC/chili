@@ -18,7 +18,7 @@ import { pathCommand_setup } from "./path/pathCommand.js";
 import { fileBrowserCommand_setup } from "./filesystem/filesystemHandler.js";
 import { manCommand_setup } from "./man/man.js";
 import { setupChefsCommand } from "./chefs/chefs.js";
-import * as Cumin from "@fnndsc/cumin";
+import { chrisConnection, chrisConnection_init, NodeStorageProvider } from "@fnndsc/cumin";
 import { FileGroupHandler } from "./filesystem/fileGroupHandler.js";
 import { screen, table_display } from "./screen/screen.js";
 
@@ -84,7 +84,7 @@ function setupCommandCompletion() {
  * @param program - The Commander.js program instance.
  */
 async function initializeHandlers() {
-  // const client = await Cumin.chrisConnection.client_get(); 
+  // const client = await chrisConnection.client_get(); 
   // We don't enforce connection here to allow --help to work. 
   // Commands will fail individually if not connected.
 
@@ -169,12 +169,12 @@ function parseContext(args: string[]): [string | undefined, string[]] {
  */
 async function main() {
   // Initialize storage provider and ChrisConnection
-  const nodeStorageProvider = new Cumin.NodeStorageProvider();
-  await Cumin.chrisConnection_init(nodeStorageProvider);
+  const nodeStorageProvider = new NodeStorageProvider();
+  await chrisConnection_init(nodeStorageProvider);
 
   const [context, newArgs] = parseContext(process.argv);
   if (context) {
-    await Cumin.chrisConnection.context_set(context);
+    await chrisConnection.context_set(context);
     process.argv = newArgs;
   }
 

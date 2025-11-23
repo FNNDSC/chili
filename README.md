@@ -10,17 +10,46 @@ This tool is designed for developers and power-users who want to script and cont
 
 `chili` is the top layer of a robust "Sandwich" architecture designed for modularity and reusability:
 
-1.  **`chili` (Presentation)**: The user-facing CLI. It parses commands, formats output (tables, grids), and manages user interaction. It contains the **`chefs`** module, which provides a familiar Unix-like shell experience (`ls`, `cd`, `pwd`).
+1.  **`chili` (Presentation)**: The user-facing CLI. It parses commands, formats output (tables, grids), and manages user interaction. It contains the **`chefs`** module, which provides a familiar Unix-like shell experience (`ls`, `cd`, `pwd`, `mkdir`).
 2.  **[`salsa`](../salsa/README.md) (Logic)**: The **S**hared **A**pplication **L**ogic and **S**ervice **A**ssets layer. It defines high-level "intents" (e.g., `feed_create`, `files_touch`) that are independent of the specific frontend.
 3.  **[`cumin`](../cumin/README.md) (Infrastructure)**: The state and operations layer. It manages authentication, persistent context, and low-level API interactions.
 
 This design ensures that the core logic in `salsa` can be reused in future web or mobile interfaces.
 
+## Installation & Development (The Kitchen 👨‍🍳)
+
+ChILI uses a "Cooking" metaphor for its development workflow. The `Makefile` in the `chili/` directory orchestrates the entire ecosystem (`cumin`, `salsa`, `chili`).
+
+### The Full Meal 🥘
+To set up the entire environment from scratch (Clone -> Install -> Build -> Test -> Link), simply run:
+
+```bash
+cd chili
+make meal
+```
+
+### The Menu (Individual Commands)
+You can also run individual steps:
+
+*   **`make shop`**: Clones the `cumin` and `salsa` repositories if they are missing.
+*   **`make prep`**: Installs NPM dependencies for all projects (`npm install`).
+*   **`make cook`**: Builds (compiles) all projects (`npm run build`).
+*   **`make taste`**: Runs the tests (`npm test`).
+*   **`make serve`**: Links the packages globally so you can run `chili` anywhere.
+*   **`make scrub`**: Cleans up build artifacts and `node_modules`.
+
+Standard aliases are also available:
+*   `make install` -> `make prep`
+*   `make build`   -> `make cook`
+*   `make test`    -> `make taste`
+*   `make clean`   -> `make scrub`
+
 ## Core Features
 
 -   **Context-Aware**: Remembers your active server, user, and working directory. You can "cd" into a ChRIS folder and stay there.
 -   **Searchable**: Powerful query syntax (`name:demo, version:2.0`) for finding resources without memorizing IDs.
--   **Chefs Shell**: Familiar Unix-like commands (`chili chefs ls`, `cd`, `pwd`, `touch`) for browsing the ChRIS filesystem intuitively.
+-   **Chefs Shell**: Familiar Unix-like commands (`chili chefs ls`, `cd`, `pwd`, `mkdir`, `touch`) for browsing and managing the ChRIS filesystem intuitively.
+-   **Advanced File Ops**: Create files with content (`chili file create`), view remote files (`chili file view`), and upload data seamlessly.
 -   **Scriptable**: Clean, predictable command structure for automation.
 
 ## Quick Start
@@ -39,23 +68,27 @@ After building and linking the project (`make meal`), you can run `chili` direct
     # List root directory
     chili chefs ls /
 
-    # Change working directory
-    chili chefs cd /home/user/uploads
+    # Create a folder
+    chili chefs mkdir /home/user/new_project
 
-    # Confirm location
-    chili chefs pwd
+    # Change working directory
+    chili chefs cd /home/user/new_project
     ```
 
-3.  **Upload Data:**
-    Upload local data to your current ChRIS location.
+3.  **Create & Upload Data:**
+    Create files directly or upload them.
     ```bash
-    chili path upload ~/data/project-x/scans
+    # Create a text file
+    chili file create notes.txt --content "Research data for Project X"
+
+    # Upload local data
+    chili file create data.csv --from-file ./local/data.csv
     ```
 
 4.  **Create a Feed:**
-    Create a new analysis feed using the data you just uploaded.
+    Create a new analysis feed using the data you just created.
     ```bash
-    chili feed create --dirs "/home/user/project-x/scans" --params "title:My Analysis"
+    chili feed create --dirs "/home/user/new_project" --params "title:My Analysis"
     ```
 
 ---

@@ -1,5 +1,5 @@
 import { Command } from "commander";
-import { files_getGroup, files_touch } from "@fnndsc/salsa";
+import { files_getGroup, files_touch, files_mkdir } from "@fnndsc/salsa";
 import { ChRISEmbeddedResourceGroup, ListOptions, FilteredResourceData, options_toParams, chrisContext, Context } from "@fnndsc/cumin";
 import chalk from "chalk";
 
@@ -104,7 +104,12 @@ async function ls(options: LsOptions, pathStr: string = ""): Promise<void> {
 }
 
 async function mkdir(dirPath: string): Promise<void> {
-  console.log("mkdir: Not implemented yet (requires explicit directory creation API or workaround)");
+  const success = await files_mkdir(dirPath);
+  if (success) {
+    console.log(`Created directory: ${dirPath}`);
+  } else {
+    console.error(`Failed to create directory: ${dirPath}`);
+  }
 }
 
 async function touch(filePath: string): Promise<void> {

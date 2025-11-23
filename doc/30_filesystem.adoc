@@ -62,4 +62,32 @@ And if you ever get lost, you can ask "where am I?" with:
 chili chefs pwd
 ```
 
+== making things
+
+Just like a real filesystem, you can create new directories and files.
+
+=== creating folders
+
+Need a new place to store your data? Use `mkdir`:
+
+```bash
+chili chefs mkdir new_project
+```
+
+This creates a folder named `new_project` in your current directory. You can also create folders deeper in the hierarchy:
+
+```bash
+chili chefs mkdir /home/jane.doe/analysis/run_01
+```
+
+=== touching files
+
+Sometimes you just need an empty file, maybe as a placeholder or a signal. Use `touch`:
+
+```bash
+chili chefs touch empty_file.txt
+```
+
+This creates a zero-byte file at the specified path. If you need to create a file with content, check out the specialized file operations.
+
 These tools are designed to make the remote ChRIS filesystem feel as comfortable and accessible as the one on your own laptop.
