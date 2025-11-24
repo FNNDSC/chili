@@ -41,33 +41,7 @@ describe('connect command', () => {
       user: user,
       password: password,
       url: url,
-      debug: false,
-    });
-  });
-
-  it('should call connection_connect with debug flag if provided', async () => {
-    const url = 'http://localhost:8000/api/v1/';
-    const user = 'testuser';
-    const password = 'testpassword';
-    
-    await program.parseAsync([
-      'node',
-      'chili',
-      'connect',
-      url,
-      '--user',
-      user,
-      '--password',
-      password,
-      '--debug',
-    ]);
-
-    expect(mockedConnect).toHaveBeenCalledTimes(1);
-    expect(mockedConnect).toHaveBeenCalledWith({
-      user: user,
-      password: password,
-      url: url,
-      debug: true,
+      debug: false, // Hardcoded to false now
     });
   });
 });

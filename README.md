@@ -23,6 +23,8 @@ ChILI uses a "Cooking" metaphor for its development workflow. The `Makefile` in 
 ### The Full Meal 🥘
 To set up the entire environment from scratch (Clone -> Install -> Build -> Test -> Link), simply run:
 
+> **Note:** It is highly recommended to use [NVM (Node Version Manager)](https://github.com/nvm-sh/nvm) to manage your Node.js installation. This allows `make meal` to link packages globally without requiring `sudo` or running into `EACCES` permission errors.
+
 ```bash
 cd chili
 make meal

@@ -5,6 +5,6 @@ import { plugins_overview } from "@fnndsc/salsa";
  *
  * @returns Promise resolving to void.
  */
-export async function plugins_overview_do(): Promise<void> {
+export async function plugins_doOverview(): Promise<void> {
   return await plugins_overview();
 }

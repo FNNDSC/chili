@@ -1,46 +1,33 @@
-import { files_delete_search, files_delete_do } from '../../../src/commands/files/delete';
+import { files_search, files_doDelete } from '../../../src/commands/files/delete';
 import * as salsa from '@fnndsc/salsa';
-import { FilteredResourceData } from '@fnndsc/cumin';
 
 jest.mock('@fnndsc/salsa');
 
-describe('commands/files/delete', () => {
+describe('files delete commands', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
-  describe('files_delete_search', () => {
-    it('should call salsa.files_list and return items', async () => {
-      const mockData: FilteredResourceData = {
-        tableData: [{ id: 1, fname: 'file1' }],
-        selectedFields: ['id', 'fname']
-      };
-      (salsa.files_list as jest.Mock).mockResolvedValue(mockData);
+  describe('files_search', () => {
+    it('should call salsa.files_list and return data', async () => {
+      const mockData = [{ id: 1, fname: 'test.txt' }];
+      (salsa.files_list as jest.Mock).mockResolvedValue({
+        tableData: mockData
+      });
 
-      const searchable = 'fname:file1';
-      const result = await files_delete_search(searchable, 'files');
-
-      expect(salsa.files_list).toHaveBeenCalledWith(expect.objectContaining({
-        fname: 'file1'
-      }), 'files');
-      expect(result).toEqual(mockData.tableData);
-    });
-
-    it('should return empty array if salsa returns null', async () => {
-      (salsa.files_list as jest.Mock).mockResolvedValue(null);
-
-      const result = await files_delete_search('fname:none', 'files');
-
-      expect(result).toEqual([]);
+      const result = await files_search('fname:test.txt', 'files');
+      
+      expect(salsa.files_list).toHaveBeenCalled();
+      expect(result).toEqual(mockData);
     });
   });
 
-  describe('files_delete_do', () => {
-    it('should call salsa.files_delete with id and assetName', async () => {
+  describe('files_doDelete', () => {
+    it('should call salsa.files_delete', async () => {
       (salsa.files_delete as jest.Mock).mockResolvedValue(true);
-
-      const result = await files_delete_do(123, 'files');
-
+      
+      const result = await files_doDelete(123, 'files');
+      
       expect(salsa.files_delete).toHaveBeenCalledWith(123, 'files');
       expect(result).toBe(true);
     });

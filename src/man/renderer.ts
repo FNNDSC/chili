@@ -74,7 +74,7 @@ export function projectDir_get(): string {
  * @param content - The AsciiDoc content string.
  * @returns The converted HTML string.
  */
-function adoc_toHtml(content: string): string {
+function adoc_HTMLconvert(content: string): string {
   const ascii: ReturnType<typeof asciidoctor> = asciidoctor();
   let result: string = ascii.convert(content, {
     standalone: false,
@@ -126,14 +126,14 @@ export async function asciidoc_render(
   style: "figlet" | "ascii",
   width?: number,
 ): Promise<string> {
-  let result: string = adoc_toHtml(content);
+  let result: string = adoc_HTMLconvert(content);
 
-  function createASCII(text: string, style: ASCIIHeadingStyle): string {
+  function ASCII_create(text: string, style: ASCIIHeadingStyle): string {
     const transformedText = style.textTransform(text);
     return style.color(transformedText);
   }
 
-  const processHeading = async (
+  const heading_process = async (
     text: string,
     style: "figlet" | "ascii",
     figletStyle: HeadingStyle,
@@ -143,7 +143,7 @@ export async function asciidoc_render(
       // Fallback to simple color as figlet is disabled in this environment
       return figletStyle.color(text);
     } else {
-      return createASCII(text, asciiStyle);
+      return ASCII_create(text, asciiStyle);
     }
   };
 
@@ -156,7 +156,7 @@ export async function asciidoc_render(
       const text = match
         .replace(/<\/?h[1-4].*?>/g, "")
         .replace(/<a.*?>(.*?)<\/a>/g, "$1");
-      const processed = await processHeading(
+      const processed = await heading_process(
         text,
         style,
         figletStyle,

@@ -1,4 +1,4 @@
-import { Dictionary, CLI_toDictionary } from "@fnndsc/cumin";
+import { Dictionary, dictionary_fromCLI } from "@fnndsc/cumin";
 import { plugin_run } from "@fnndsc/salsa";
 
 /**
@@ -9,10 +9,10 @@ import { plugin_run } from "@fnndsc/salsa";
  * @param params - The raw plugin parameters string from CLI.
  * @returns Promise resolving to the plugin instance dictionary or null.
  */
-export async function plugin_run_do(searchable: string, params: string): Promise<Dictionary | null> {
+export async function plugin_doRun(searchable: string, params: string): Promise<Dictionary | null> {
   let parsedParams: Dictionary = {};
   try {
-    parsedParams = CLI_toDictionary(params);
+    parsedParams = dictionary_fromCLI(params);
   } catch (e) {
     throw new Error(`Error parsing plugin parameters: ${e}`);
   }

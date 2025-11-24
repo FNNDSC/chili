@@ -4,7 +4,7 @@ import {
   ChRISinode_create,
   ListOptions,
   FilteredResourceData,
-  options_toParams,
+  params_fromOptions,
   ResourcesByFields,
   BrowserType,
 } from "@fnndsc/cumin";
@@ -32,7 +32,7 @@ async function inodeResources_list(
     console.error(`Could not find path '${path}' in the CUBE filesystem.`);
     return;
   }
-  const params: ListOptions = options_toParams({
+  const params: ListOptions = params_fromOptions({
     ...options,
     returnFilter: "limit,offset",
   });

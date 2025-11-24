@@ -17,7 +17,7 @@ import { contextCommand_setup } from "./context/contextCommand.js";
 import { pathCommand_setup } from "./path/pathCommand.js";
 import { fileBrowserCommand_setup } from "./filesystem/filesystemHandler.js";
 import { manCommand_setup } from "./man/man.js";
-import { setupChefsCommand } from "./chefs/chefs.js";
+import { chefsCommand_setup } from "./chefs/chefs.js";
 import { chrisConnection, chrisConnection_init, NodeStorageProvider } from "@fnndsc/cumin";
 import { FileGroupHandler } from "./filesystem/fileGroupHandler.js";
 import { screen, table_display } from "./screen/screen.js";
@@ -30,7 +30,7 @@ program.version("1.0.1").description("A CLI for ChRIS");
  * Sets up command completion for the ChILI CLI using omelette.
  * This provides auto-completion suggestions in the shell.
  */
-function setupCommandCompletion() {
+function commandCompletion_setup() {
   const completion = omelette(`chili|chili`);
   completion.tree({
     connect: ["--user", "--password"],
@@ -83,7 +83,7 @@ function setupCommandCompletion() {
  *
  * @param program - The Commander.js program instance.
  */
-async function initializeHandlers() {
+async function handlers_initialize() {
   // const client = await chrisConnection.client_get(); 
   // We don't enforce connection here to allow --help to work. 
   // Commands will fail individually if not connected.
@@ -92,7 +92,7 @@ async function initializeHandlers() {
   contextCommand_setup(program);
   pathCommand_setup(program);
   manCommand_setup(program);
-  setupChefsCommand(program);
+  chefsCommand_setup(program);
   await inodeCommand_setup(program);
 
   const pluginGroupHandler: PluginGroupHandler = new PluginGroupHandler();
@@ -127,7 +127,7 @@ async function initializeHandlers() {
     );
     dirsGroupHandler.fileGroupCommand_setup(program);
   } catch (e) {
-    // console.log("Could not initialize file group handlers (likely not connected)");
+    console.log("Could not initialize file group handlers (likely not connected)", e);
   }
 
   try {
@@ -146,7 +146,7 @@ async function initializeHandlers() {
     // console.log("Could not initialize plugin context handlers (likely not connected)");
   }
 
-  setupCommandCompletion();
+  commandCompletion_setup();
 }
 
 /**
@@ -155,7 +155,7 @@ async function initializeHandlers() {
  * @param args - The command line arguments array (process.argv).
  * @returns A tuple containing the context string (if found) and the remaining arguments.
  */
-function parseContext(args: string[]): [string | undefined, string[]] {
+function context_parse(args: string[]): [string | undefined, string[]] {
   if (args.length > 2 && args[2].includes("=")) {
     const context: string = args[2];
     return [context, [args[0], args[1], ...args.slice(3)]];
@@ -170,11 +170,11 @@ function parseContext(args: string[]): [string | undefined, string[]] {
 async function main() {
   // Initialize storage provider and ChrisConnection
   const nodeStorageProvider = new NodeStorageProvider();
-  await chrisConnection_init(nodeStorageProvider);
+  const connection = await chrisConnection_init(nodeStorageProvider);
 
-  const [context, newArgs] = parseContext(process.argv);
+  const [context, newArgs] = context_parse(process.argv);
   if (context) {
-    await chrisConnection.context_set(context);
+    await connection.context_set(context);
     process.argv = newArgs;
   }
 
@@ -219,7 +219,7 @@ async function main() {
 
   // If it's not a connect command, initialize other handlers
   if (!process.argv.includes("connect")) {
-    await initializeHandlers();
+    await handlers_initialize();
   }
 
   // Parse the command

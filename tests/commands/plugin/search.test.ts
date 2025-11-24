@@ -1,27 +1,22 @@
-import { plugin_search_do } from '../../../src/commands/plugin/search';
+import { plugin_search } from '../../../src/commands/plugin/search';
 import * as salsa from '@fnndsc/salsa';
 
 jest.mock('@fnndsc/salsa');
 
 describe('commands/plugin/search', () => {
-  beforeEach(() => {
-    jest.clearAllMocks();
-  });
-
-  it('should call salsa.plugins_searchableToIDs and return IDs', async () => {
-    const mockIDs = ['123', '456'];
-    (salsa.plugins_searchableToIDs as jest.Mock).mockResolvedValue(mockIDs);
-
-    const result = await plugin_search_do('name:test');
+  it('should call salsa.plugins_searchableToIDs', async () => {
+    (salsa.plugins_searchableToIDs as jest.Mock).mockResolvedValue(['1']);
+    
+    const result = await plugin_search('name:test');
 
     expect(salsa.plugins_searchableToIDs).toHaveBeenCalledWith('name:test');
-    expect(result).toEqual(mockIDs);
+    expect(result).toEqual(['1']);
   });
 
   it('should return null if salsa returns null', async () => {
     (salsa.plugins_searchableToIDs as jest.Mock).mockResolvedValue(null);
 
-    const result = await plugin_search_do('name:none');
+    const result = await plugin_search('name:none');
 
     expect(result).toBeNull();
   });

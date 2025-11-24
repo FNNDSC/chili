@@ -1,11 +1,11 @@
-import { plugins_add_do } from '../../../src/commands/plugins/add';
+import { plugins_add } from '../../../src/commands/plugins/add';
 import * as salsa from '@fnndsc/salsa';
 import * as dockerUtils from '../../../src/utils/docker';
 
 jest.mock('@fnndsc/salsa');
 jest.mock('../../../src/utils/docker');
 
-describe('commands/plugins/add', () => {
+describe('plugins_add', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     (dockerUtils.check_docker_availability as jest.Mock).mockResolvedValue(true);
@@ -13,7 +13,7 @@ describe('commands/plugins/add', () => {
 
   it('should fail if docker is not available', async () => {
     (dockerUtils.check_docker_availability as jest.Mock).mockResolvedValue(false);
-    const result = await plugins_add_do('image', {});
+    const result = await plugins_add('image', {});
     expect(result).toBe(false);
   });
 
@@ -26,7 +26,7 @@ describe('commands/plugins/add', () => {
 
     (salsa.plugin_register as jest.Mock).mockResolvedValue({ id: 1, name: 'pl-test' });
 
-    const result = await plugins_add_do('test/image', { compute: 'local' });
+    const result = await plugins_add('test/image', { compute: 'local' });
 
     expect(dockerUtils.run_command_get_stdout).toHaveBeenCalledWith(expect.stringContaining('docker pull'));
     expect(dockerUtils.run_command_get_stdout).toHaveBeenCalledWith(expect.stringContaining('chris_plugin_info'));
@@ -47,7 +47,7 @@ describe('commands/plugins/add', () => {
 
     (salsa.plugin_register as jest.Mock).mockResolvedValue({ id: 2, name: 'pl-legacy' });
 
-    const result = await plugins_add_do('legacy/image', {});
+    const result = await plugins_add('legacy/image', {});
 
     expect(dockerUtils.run_command_get_stdout).toHaveBeenCalledWith(expect.stringContaining('--json'));
     expect(salsa.plugin_register).toHaveBeenCalled();
@@ -57,7 +57,7 @@ describe('commands/plugins/add', () => {
   it('should fail if json extraction fails', async () => {
     (dockerUtils.run_command_get_stdout as jest.Mock).mockResolvedValue(null); // All commands fail or return empty
 
-    const result = await plugins_add_do('broken/image', {});
+    const result = await plugins_add('broken/image', {});
 
     expect(result).toBe(false);
     expect(salsa.plugin_register).not.toHaveBeenCalled();

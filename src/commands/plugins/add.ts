@@ -21,7 +21,7 @@ interface PluginInfo {
  * @param options - CLI options including public_repo and compute environments.
  * @returns A Promise resolving to true on success, false on failure.
  */
-export async function plugins_add_do(image: string, options: CLIoptions): Promise<boolean> {
+export async function plugins_add(image: string, options: CLIoptions): Promise<boolean> {
   if (!await check_docker_availability()) {
     return false;
   }

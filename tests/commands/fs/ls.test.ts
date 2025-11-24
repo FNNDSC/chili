@@ -1,11 +1,11 @@
-import { files_ls_do, ResourceItem } from '../../../src/commands/fs/ls';
+import { files_ls, ResourceItem } from '../../../src/commands/fs/ls';
 import * as salsa from '@fnndsc/salsa';
 import * as cumin from '@fnndsc/cumin';
 
 jest.mock('@fnndsc/salsa');
 jest.mock('@fnndsc/cumin');
 
-describe('commands/fs/ls', () => {
+describe('files_ls', () => {
   beforeEach(() => {
     jest.clearAllMocks();
 
@@ -36,14 +36,14 @@ describe('commands/fs/ls', () => {
       } as unknown as cumin.ChRISEmbeddedResourceGroup<any>; // Cast to unknown to satisfy mock requirements
     });
 
-    // Mock options_toParams directly since it's used in files_ls_do implementation
-    (cumin.options_toParams as jest.Mock).mockReturnValue({ limit: 100, offset: 0 });
+    // Mock params_fromOptions directly since it's used in files_ls implementation
+    (cumin.params_fromOptions as jest.Mock).mockReturnValue({ limit: 100, offset: 0 });
   });
 
   it('should return a sorted list of ResourceItems for dirs, files, and links', async () => {
     const options = {};
     const pathStr = '/';
-    const result = await files_ls_do(options, pathStr);
+    const result = await files_ls(options, pathStr);
 
     expect(salsa.files_getGroup).toHaveBeenCalledWith('dirs', pathStr);
     expect(salsa.files_getGroup).toHaveBeenCalledWith('files', pathStr);
@@ -67,7 +67,7 @@ describe('commands/fs/ls', () => {
 
     const options = {};
     const pathStr = '/empty';
-    const result = await files_ls_do(options, pathStr);
+    const result = await files_ls(options, pathStr);
 
     expect(result).toHaveLength(0);
   });
@@ -91,7 +91,7 @@ describe('commands/fs/ls', () => {
 
       const options = {};
       const pathStr = '/';
-      const result = await files_ls_do(options, pathStr);
+      const result = await files_ls(options, pathStr);
       expect(result).toHaveLength(1);
       expect(result[0]).toEqual({ name: 'my_file.txt', type: 'file' });
   });

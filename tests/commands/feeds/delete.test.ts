@@ -1,15 +1,11 @@
-import { feeds_delete_search, feeds_delete_do } from '../../../src/commands/feeds/delete';
+import { feeds_search, feeds_doDelete } from '../../../src/commands/feeds/delete';
 import * as salsa from '@fnndsc/salsa';
 import { FilteredResourceData } from '@fnndsc/cumin';
 
 jest.mock('@fnndsc/salsa');
 
 describe('commands/feeds/delete', () => {
-  beforeEach(() => {
-    jest.clearAllMocks();
-  });
-
-  describe('feeds_delete_search', () => {
+  describe('feeds_search', () => {
     it('should call salsa.feeds_list and return items', async () => {
       const mockData: FilteredResourceData = {
         tableData: [{ id: 1, name: 'feed-test' }],
@@ -18,7 +14,7 @@ describe('commands/feeds/delete', () => {
       (salsa.feeds_list as jest.Mock).mockResolvedValue(mockData);
 
       const searchable = 'name:test';
-      const result = await feeds_delete_search(searchable);
+      const result = await feeds_search(searchable);
 
       expect(salsa.feeds_list).toHaveBeenCalledWith(expect.objectContaining({
         name: 'test'
@@ -29,17 +25,17 @@ describe('commands/feeds/delete', () => {
     it('should return empty array if salsa returns null', async () => {
       (salsa.feeds_list as jest.Mock).mockResolvedValue(null);
 
-      const result = await feeds_delete_search('name:none');
+      const result = await feeds_search('name:none');
 
       expect(result).toEqual([]);
     });
   });
 
-  describe('feeds_delete_do', () => {
+  describe('feeds_doDelete', () => {
     it('should call salsa.feed_delete with id', async () => {
       (salsa.feed_delete as jest.Mock).mockResolvedValue(true);
 
-      const result = await feeds_delete_do(123);
+      const result = await feeds_doDelete(123);
 
       expect(salsa.feed_delete).toHaveBeenCalledWith(123);
       expect(result).toBe(true);

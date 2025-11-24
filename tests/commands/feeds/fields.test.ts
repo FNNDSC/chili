@@ -1,4 +1,4 @@
-import { feeds_fields_do } from '../../../src/commands/feeds/fields';
+import { feeds_fieldsGet } from '../../../src/commands/feeds/fields';
 import * as salsa from '@fnndsc/salsa';
 
 jest.mock('@fnndsc/salsa');
@@ -12,7 +12,7 @@ describe('commands/feeds/fields', () => {
     const mockFields = ['id', 'name', 'creation_date'];
     (salsa.feeds_fields_get as jest.Mock).mockResolvedValue(mockFields);
 
-    const result = await feeds_fields_do();
+    const result = await feeds_fieldsGet();
 
     expect(salsa.feeds_fields_get).toHaveBeenCalled();
     expect(result).toEqual(mockFields);
@@ -21,7 +21,7 @@ describe('commands/feeds/fields', () => {
   it('should return null if salsa returns null', async () => {
     (salsa.feeds_fields_get as jest.Mock).mockResolvedValue(null);
 
-    const result = await feeds_fields_do();
+    const result = await feeds_fieldsGet();
 
     expect(result).toBeNull();
   });

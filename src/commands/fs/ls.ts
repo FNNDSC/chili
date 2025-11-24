@@ -1,5 +1,5 @@
 import { files_getGroup } from "@fnndsc/salsa";
-import { FilteredResourceData, ListOptions, options_toParams } from "@fnndsc/cumin";
+import { FilteredResourceData, ListOptions, params_fromOptions } from "@fnndsc/cumin";
 
 export interface LsOptions {
   path?: string;
@@ -14,14 +14,14 @@ export interface ResourceItem {
 /**
  * Helper to get resources from a group and push to list.
  */
-async function resources_fetch_do(
+async function resources_fetch(
   assetName: string,
   path: string,
   items: ResourceItem[]
 ): Promise<void> {
   const group = await files_getGroup(assetName, path);
   if (group) {
-    const params: ListOptions = options_toParams({ limit: 100, offset: 0 }); // Hardcoded limit for ls, can be an option
+    const params: ListOptions = params_fromOptions({ limit: 100, offset: 0 }); // Hardcoded limit for ls, can be an option
     
     const results: FilteredResourceData | null = await group.asset.resources_listAndFilterByOptions(params);
     if (results && results.tableData) {
@@ -52,13 +52,13 @@ async function resources_fetch_do(
  * @param pathStr - The path to list.
  * @returns A Promise resolving to an array of ResourceItem.
  */
-export async function files_ls_do(options: LsOptions, pathStr: string = ""): Promise<ResourceItem[]> {
+export async function files_ls(options: LsOptions, pathStr: string = ""): Promise<ResourceItem[]> {
   const items: ResourceItem[] = [];
   
   await Promise.all([
-      resources_fetch_do('dirs', pathStr, items),
-      resources_fetch_do('files', pathStr, items),
-      resources_fetch_do('links', pathStr, items)
+      resources_fetch('dirs', pathStr, items),
+      resources_fetch('files', pathStr, items),
+      resources_fetch('links', pathStr, items)
   ]);
 
   items.sort((a: ResourceItem, b: ResourceItem) => a.name.localeCompare(b.name));

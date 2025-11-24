@@ -10,7 +10,7 @@ export async function inodeCommand_setup(program: Command): Promise<void> {
   const inodeCommand = program
     .command("inode <path>")
     .description("Interact with ChRIS filesystem resources at a specific path")
-    .action(async (path: string, options: any, command: Command) => {
+    .action(async (path: string, options: Record<string, unknown>, command: Command) => {
       const args = command.args.slice(1);
       const subcommand = args[0];
 

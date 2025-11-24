@@ -2,44 +2,54 @@
 
 This guide outlines the steps required to build and install `chili` from source.
 
+== Prerequisites: The Kitchen Sink
+
+To cook `chili` without needing `sudo` or running into permission errors (EACCES), we strictly recommend using **NVM (Node Version Manager)**.
+
+### Why NVM?
+The build process (`make meal`) uses `npm link` to symlink the packages globally. On a standard Linux system, the global npm directory is `/usr/lib/node_modules`, which requires root access. `nvm` installs Node.js in your home directory (e.g., `~/.nvm`), allowing you to install and link global packages without `sudo`.
+
+=== 1. Install NVM
+
+If you don't have it yet, install NVM:
+
+[source,bash]
+----
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
+----
+
+Restart your terminal, then install and use the latest Node LTS:
+
+[source,bash]
+----
+nvm install --lts
+nvm use --lts
+----
+
 == Developer Setup
 
-`chili` relies on a backend library called `cumin`, which must be built first.
+Once NVM is set up, you can use the "Cooking" makefile to handle everything.
 
 === 1. Clone the Repository
 
-Assuming you have cloned the main repository containing both projects:
+Clone the `chili` repository (and its siblings `cumin` and `salsa` if they are separate, though the Makefile handles cloning them if missing).
 
 [source,bash]
 ----
 git clone <repo_url>
-cd <repo_name>
+cd chili
 ----
 
-=== 2. Build `cumin`
+=== 2. The Full Meal
 
-First, navigate to the `cumin` directory, install dependencies, and build the project.
+Run the all-in-one command to clone dependencies, install packages, build, test, and link everything globally.
 
 [source,bash]
 ----
-cd cumin
-npm install
-npm run build
+make meal
 ----
 
-=== 3. Build and Link `chili`
-
-Next, navigate to the `chili` directory. Note the use of `--ignore-scripts` to bypass optional dependency issues.
-
-[source,bash]
-----
-cd ../chili
-npm install --ignore-scripts
-npm run build
-npm link
-----
-
-The `npm link` command is crucial as it makes the `chili` executable available globally in your terminal. You may need to run this with `sudo` depending on your system configuration.
+If your NVM environment is correct, this will complete successfully, and you will have the `chili` command available in your terminal immediately.
 
 == Verification
 

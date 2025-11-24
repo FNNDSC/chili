@@ -1,4 +1,4 @@
-import { files_fields_do } from '../../../src/commands/files/fields';
+import { fileFields_get } from '../../../src/commands/files/fields';
 import * as salsa from '@fnndsc/salsa';
 
 jest.mock('@fnndsc/salsa');
@@ -12,7 +12,7 @@ describe('commands/files/fields', () => {
     const mockFields = ['fname', 'fsize'];
     (salsa.files_fields_get as jest.Mock).mockResolvedValue(mockFields);
 
-    const result = await files_fields_do();
+    const result = await fileFields_get();
 
     expect(salsa.files_fields_get).toHaveBeenCalledWith('files');
     expect(result).toEqual(mockFields);
@@ -22,7 +22,7 @@ describe('commands/files/fields', () => {
     const mockFields = ['fname'];
     (salsa.files_fields_get as jest.Mock).mockResolvedValue(mockFields);
 
-    const result = await files_fields_do('dirs');
+    const result = await fileFields_get('dirs');
 
     expect(salsa.files_fields_get).toHaveBeenCalledWith('dirs');
     expect(result).toEqual(mockFields);
@@ -31,7 +31,7 @@ describe('commands/files/fields', () => {
   it('should return null if salsa returns null', async () => {
     (salsa.files_fields_get as jest.Mock).mockResolvedValue(null);
 
-    const result = await files_fields_do();
+    const result = await fileFields_get();
 
     expect(result).toBeNull();
   });

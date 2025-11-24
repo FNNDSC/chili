@@ -2,14 +2,14 @@ import { Command } from "commander";
 import { BaseGroupHandler } from "../handlers/baseGroupHandler.js";
 import { CLIoptions, path_resolve_chrisfs } from "../utils/cli.js";
 import { FileController } from "../controllers/fileController.js";
-import { files_create_do } from "../commands/fs/create.js";
+import { files_doCreate } from "../commands/fs/create.js";
 import { FilteredResourceData, errorStack } from "@fnndsc/cumin";
 import { table_display } from "../screen/screen.js";
-import { files_list_do } from "../commands/files/list.js";
-import { files_fields_do } from "../commands/files/fields.js";
-import { files_delete_search, files_delete_do } from "../commands/files/delete.js";
+import { files_doList } from "../commands/files/list.js";
+import { fileFields_get } from "../commands/files/fields.js";
+import { files_search, files_doDelete } from "../commands/files/delete.js";
 import { prompt_confirm } from "../utils/ui.js";
-import { files_view_do } from "../commands/file/view.js";
+import { files_doView } from "../commands/file/view.js";
 
 /**
  * Handles commands related to groups of ChRIS files, links, or directories.
@@ -87,7 +87,7 @@ export class FileGroupHandler {
    */
   async files_list(options: CLIoptions, path?: string): Promise<void> {
     try {
-      const results = await files_list_do(options, this.assetName, path);
+      const results = await files_doList(options, this.assetName, path);
 
       if (!results) {
         console.error(
@@ -116,7 +116,7 @@ export class FileGroupHandler {
    */
   async files_fields(): Promise<void> {
     try {
-      const fields = await files_fields_do(this.assetName);
+      const fields = await fileFields_get(this.assetName);
       if (fields && fields.length > 0) {
         table_display(fields, ["fields"]);
       } else {
@@ -133,7 +133,7 @@ export class FileGroupHandler {
   async files_delete(searchable: string, options: CLIoptions): Promise<void> {
     const searchParts = searchable.split("++").map((part) => part.trim());
     for (const searchPart of searchParts) {
-      const items = await files_delete_search(searchPart, this.assetName);
+      const items = await files_search(searchPart, this.assetName);
       if (items.length === 0) {
         console.log(`No ${this.assetName} found matching: ${searchPart}`);
         continue;
@@ -153,7 +153,7 @@ export class FileGroupHandler {
            if (!confirmed) continue;
         }
 
-        const success = await files_delete_do(item.id, this.assetName);
+        const success = await files_doDelete(item.id, this.assetName);
         if (success) {
             console.log(`Deleted ${this.assetName} ${item.id}`);
         } else {
@@ -294,16 +294,17 @@ export class FileMemberHandler {
    */
   async file_create(fileIdentifier: string | undefined, options: CLIoptions): Promise<void> {
     try {
-      // files_create_do now throws on error
-      const success: boolean = await files_create_do(fileIdentifier, options);
+      // files_doCreate now throws on error
+      const success: boolean = await files_doCreate(fileIdentifier, options);
       if (success) {
         const resolvedChRISPath: string = await path_resolve_chrisfs(fileIdentifier, options);
         console.log(`File created successfully at: ${resolvedChRISPath}`);
       }
-      // If success is false, files_create_do would have thrown an error which is caught below.
-    } catch (error: any) {
-      // Log the error from files_create_do
-      console.error(error.message);
+      // If success is false, files_doCreate would have thrown an error which is caught below.
+    } catch (error: unknown) {
+      // Log the error from files_doCreate
+      const message = error instanceof Error ? error.message : String(error);
+      console.error(message);
     }
   }
 
@@ -367,7 +368,7 @@ export class FileMemberHandler {
 
         
 
-        const content = await files_view_do(path);
+        const content = await files_doView(path);
 
         
 

@@ -10,7 +10,7 @@ import { CLIoptions, options_toParams } from "../../utils/cli.js";
  * @param path - Optional ChRIS path.
  * @returns Promise resolving to FilteredResourceData or null.
  */
-export async function files_list_do(options: CLIoptions, assetName: string = "files", path?: string): Promise<FilteredResourceData | null> {
+export async function files_doList(options: CLIoptions, assetName: string = "files", path?: string): Promise<FilteredResourceData | null> {
   const params = options_toParams(options);
   return await files_list(params, assetName, path);
 }

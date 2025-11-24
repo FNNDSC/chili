@@ -25,7 +25,7 @@ describe('feed create command', () => {
       owner_username: 'testuser',
       // Mock other necessary properties if SimpleRecord expects them
     };
-    const mockFeedCreateDo = jest.spyOn(feedCreateCmd, 'feed_create_do');
+    const mockFeedCreateDo = jest.spyOn(feedCreateCmd, 'feed_doCreate');
     mockFeedCreateDo.mockResolvedValue(mockFeedInfo);
 
     const dirs = '/path/to/data';

@@ -10,6 +10,11 @@ import {
   FileShareOptions
 } from "@fnndsc/salsa";
 
+// Helper interface to access internal property safely
+interface ChRISFileSystemGroupWithFolder extends ChRISEmbeddedResourceGroup<FileBrowserFolder> {
+  folder?: string;
+}
+
 /**
  * Controller for managing ChRIS file system resources (files, links, directories).
  * Extends BaseController to provide file-specific functionality.
@@ -47,7 +52,11 @@ export class FileController extends BaseController {
       // Error handling is done in salsa, so we just pass null here
       return null;
     }
-    return new FileController(chrisFileSystemGroup, path || (chrisFileSystemGroup as any).folder, assetName); // Casting to any to access folder for now. Need to properly type chrisFileSystemGroup to expose folder if needed.
+    
+    const groupWithFolder = chrisFileSystemGroup as unknown as ChRISFileSystemGroupWithFolder;
+    const effectivePath = path || groupWithFolder.folder || "";
+    
+    return new FileController(chrisFileSystemGroup, effectivePath, assetName);
   }
 
   /**

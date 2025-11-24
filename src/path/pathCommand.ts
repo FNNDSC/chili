@@ -159,7 +159,7 @@ function mermaidDefinition_generate(scanResult: ScanRecord): string {
   const edges = new Set<string>();
   let nodeCounter = 0;
 
-  function getOrCreateNodeId(path: string): number {
+  function nodeId_getOrCreate(path: string): number {
     if (!nodes.has(path)) {
       nodes.set(path, nodeCounter++);
     }
@@ -174,8 +174,8 @@ function mermaidDefinition_generate(scanResult: ScanRecord): string {
       const parentPath = "/" + parts.slice(0, i).join("/");
       const currentPath = "/" + parts.slice(0, i + 1).join("/");
 
-      const parentNode = getOrCreateNodeId(parentPath);
-      const currentNode = getOrCreateNodeId(currentPath);
+      const parentNode = nodeId_getOrCreate(parentPath);
+      const currentNode = nodeId_getOrCreate(currentPath);
 
       const edge = `${parentNode} --> ${currentNode}`;
       if (!edges.has(edge)) {
@@ -194,7 +194,7 @@ function mermaidDefinition_generate(scanResult: ScanRecord): string {
 
   // Apply styles
   definition += "\n    %% Applying styles\n";
-  definition += `    class ${getOrCreateNodeId("/")} root;\n`;
+  definition += `    class ${nodeId_getOrCreate("/")} root;\n`;
   leafNodes.forEach((nodeId) => {
     definition += `    class ${nodeId} leaf;\n`;
   });
@@ -305,14 +305,14 @@ function archyTree_create(files: FileInfo[]): string {
     }
   });
 
-  function convertToArchyFormat(node: ArchyNode): archy.Data {
+  function archyFormat_convert(node: ArchyNode): archy.Data {
     return {
       label: node.label,
-      nodes: Object.values(node.nodes).map(convertToArchyFormat),
+      nodes: Object.values(node.nodes).map(archyFormat_convert),
     };
   }
 
-  return archy(convertToArchyFormat(root));
+  return archy(archyFormat_convert(root));
 }
 
 /**
@@ -467,7 +467,7 @@ async function chrisFS_scan(
   const files: FileInfo[] = [];
   let totalSize: number = 0;
 
-  async function walkChrisDir(
+  async function chrisDir_walk(
     currentPath: string,
     linkedPath: string = ""
   ): Promise<void> {
@@ -505,13 +505,13 @@ async function chrisFS_scan(
 
       if (followLinks) {
         for (const link of linkInfos) {
-          await walkChrisDir(link.linkTarget, link.chrisPath);
+          await chrisDir_walk(link.linkTarget, link.chrisPath);
         }
       }
     }
 
     for (const dir of dirInfos) {
-      await walkChrisDir(
+      await chrisDir_walk(
         dir.chrisPath,
         linkedPath ? path.join(linkedPath, path.basename(dir.chrisPath)) : ""
       );
@@ -519,7 +519,7 @@ async function chrisFS_scan(
   }
 
   try {
-    await walkChrisDir(chrisPath);
+    await chrisDir_walk(chrisPath);
     return { fileInfo: files, totalSize };
   } catch (error) {
     errorStack.stack_push("error", `Failed to scan ChRIS filesystem: ${error}`);
@@ -533,7 +533,7 @@ async function chrisFS_scan(
  * @param options - CLI options for the scan, including display format and filters.
  * @returns A Promise resolving to a ScanRecord, or null on error.
  */
-async function scan(options: CLIscan): Promise<ScanRecord | null> {
+async function scan_do(options: CLIscan): Promise<ScanRecord | null> {
   const chrisFolder: string | null = await chrisContext.current_get(
     "folder" as any
   );
@@ -653,7 +653,7 @@ async function filesToUpload_get(
   const files: FileInfo[] = [];
   let idCounter: number = 1;
 
-  async function walkDir(
+  async function dir_walk(
     currentPath: string,
     currentChrisPath: string
   ): Promise<void> {
@@ -666,7 +666,7 @@ async function filesToUpload_get(
       const chrisFilePath: string = path.join(currentChrisPath, entry.name);
 
       if (entry.isDirectory()) {
-        await walkDir(hostFilePath, chrisFilePath);
+        await dir_walk(hostFilePath, chrisFilePath);
       } else {
         files.push({
           id: idCounter++,
@@ -681,7 +681,7 @@ async function filesToUpload_get(
     }
   }
 
-  await walkDir(hostpath, chrisdir);
+  await dir_walk(hostpath, chrisdir);
   return files;
 }
 
@@ -778,7 +778,7 @@ function transferDetail_init(): TransferDetail {
  * @param transfer - The TransferDetail object to update.
  * @returns A Tranmission object with calculated speed and duration.
  */
-function transmissionSummary_do(transfer: TransferDetail): Tranmission {
+function transmissionSummary_get(transfer: TransferDetail): Tranmission {
   let transmission: Tranmission = {
     duration: 0,
     speed: 0,
@@ -859,7 +859,7 @@ async function chris_pull(
     });
   }
 
-  const transmission: Tranmission = transmissionSummary_do(summary);
+  const transmission: Tranmission = transmissionSummary_get(summary);
   progressBar.stop();
 
   summary.totalFiles = scanRecord.fileInfo.length;
@@ -915,7 +915,7 @@ async function chris_push(
       bytes: bytes_format(summary.transferSize), // Renamed
     });
   }
-  const transmission: Tranmission = transmissionSummary_do(summary);
+  const transmission: Tranmission = transmissionSummary_get(summary);
   progressBar.stop();
 
   summary.totalFiles = scanRecord.fileInfo.length;
@@ -932,7 +932,7 @@ async function chris_push(
  * @returns A Promise resolving to true if download was successful, false otherwise.
  */
 async function download_handle(options: TransferCLI): Promise<boolean> { // Renamed
-  const scanRecord: ScanRecord | null = await scan({
+  const scanRecord: ScanRecord | null = await scan_do({
     silent: true,
     follow: true,
     hostpath: options.hostpath,
@@ -1040,6 +1040,6 @@ export async function pathCommand_setup(program: Command): Promise<void> {
       "save the Mermaid diagram to the specified file"
     )
     .action(async (options: CLIscan) => {
-      await scan(options);
+      await scan_do(options);
     });
 }

@@ -5,7 +5,7 @@ import { exec } from "child_process";
  * @param command - The command string to execute.
  * @returns A Promise that resolves with { stdout, stderr }.
  */
-export async function execPromise(command: string): Promise<{ stdout: string; stderr: string }> {
+export async function exec_promise(command: string): Promise<{ stdout: string; stderr: string }> {
   return new Promise((resolve, reject) => {
     exec(command, (error, stdout, stderr) => {
       if (error) {
@@ -24,7 +24,7 @@ export async function execPromise(command: string): Promise<{ stdout: string; st
  */
 export async function run_command_get_stdout(command: string): Promise<string | null> {
   try {
-    const { stdout, stderr } = await execPromise(command);
+    const { stdout, stderr } = await exec_promise(command);
     if (stderr) {
       // console.warn(`Command stderr: ${stderr.trim()}`); // Log stderr as warning, not necessarily an error
     }

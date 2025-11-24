@@ -1,5 +1,5 @@
 import { files_view } from "@fnndsc/salsa";
-import { files_list_do } from "../files/list.js";
+import { files_doList } from "../files/list.js";
 import { CLIoptions } from "../../utils/cli.js";
 import { FilteredResourceData } from "@fnndsc/cumin";
 
@@ -9,7 +9,7 @@ import { FilteredResourceData } from "@fnndsc/cumin";
  * @param fileIdentifier - The ID or name/path of the file.
  * @returns Promise resolving to string content (utf-8) or null.
  */
-export async function files_view_do(fileIdentifier: string): Promise<string | null> {
+export async function files_doView(fileIdentifier: string): Promise<string | null> {
   let fileId: number;
 
   if (/^\d+$/.test(fileIdentifier)) {
@@ -19,7 +19,7 @@ export async function files_view_do(fileIdentifier: string): Promise<string | nu
     // We treat fileIdentifier as a search term
     const options: CLIoptions = { search: fileIdentifier };
     // We search in 'files' asset type
-    const results: FilteredResourceData | null = await files_list_do(options, "files");
+    const results: FilteredResourceData | null = await files_doList(options, "files");
     
     if (!results || !results.tableData || results.tableData.length === 0) {
         throw new Error(`File not found: ${fileIdentifier}`);

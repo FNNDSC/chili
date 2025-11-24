@@ -7,6 +7,6 @@ import { files_touch } from "@fnndsc/salsa";
  * @param filePath - The full ChRIS path for the new empty file.
  * @returns A Promise resolving to true on success, false on failure.
  */
-export async function files_touch_do(filePath: string): Promise<boolean> {
+export async function files_doTouch(filePath: string): Promise<boolean> {
   return await files_touch(filePath);
 }

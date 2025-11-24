@@ -7,6 +7,6 @@ import { files_mkdir } from "@fnndsc/salsa";
  * @param dirPath - The full ChRIS path for the new folder.
  * @returns A Promise resolving to true on success, false on failure.
  */
-export async function files_mkdir_do(dirPath: string): Promise<boolean> {
+export async function files_doMkdir(dirPath: string): Promise<boolean> {
   return await files_mkdir(dirPath);
 }

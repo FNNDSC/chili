@@ -1,4 +1,4 @@
-import { SimpleRecord, CLI_toDictionary, ChRISObjectParams } from "@fnndsc/cumin";
+import { SimpleRecord, dictionary_fromCLI, ChRISObjectParams } from "@fnndsc/cumin";
 import { feed_create } from "@fnndsc/salsa";
 import { CLIoptions } from "../../utils/cli.js";
 
@@ -9,14 +9,14 @@ import { CLIoptions } from "../../utils/cli.js";
  * @param options - CLI options including params and dirs.
  * @returns Promise resolving to SimpleRecord of created feed, or null.
  */
-export async function feed_create_do(options: CLIoptions): Promise<SimpleRecord | null> {
+export async function feed_doCreate(options: CLIoptions): Promise<SimpleRecord | null> {
   const params = options.params;
   const dirs = options.dirs; // Expects a comma-separated string for directories
 
   let feedParams: ChRISObjectParams = {};
   if (params) {
     try {
-      feedParams = CLI_toDictionary(params);
+      feedParams = dictionary_fromCLI(params);
     } catch (e) {
       throw new Error(`Error parsing feed parameters: ${e}`);
     }

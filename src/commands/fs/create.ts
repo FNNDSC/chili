@@ -35,7 +35,7 @@ function content_get(options: CLIoptions): string | Buffer {
  * @returns A Promise resolving to true on success, false on failure.
  * @throws Error on invalid input or if underlying operations fail.
  */
-export async function files_create_do(fileIdentifier: string | undefined, options: CLIoptions): Promise<boolean> {
+export async function files_doCreate(fileIdentifier: string | undefined, options: CLIoptions): Promise<boolean> {
   if (!fileIdentifier && !options.name) {
     throw new Error('Filename or path is required.');
   }

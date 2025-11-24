@@ -6,6 +6,6 @@ import { plugin_readme } from "@fnndsc/salsa";
  * @param pluginId - The plugin ID.
  * @returns Promise resolving to string content or null.
  */
-export async function plugin_readme_do(pluginId: string): Promise<string | null> {
+export async function plugin_doReadme(pluginId: string): Promise<string | null> {
   return await plugin_readme(pluginId);
 }

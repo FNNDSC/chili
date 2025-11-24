@@ -1,7 +1,7 @@
 import {
   ChRISPluginGroup,
   Dictionary,
-  CLI_toDictionary
+  dictionary_fromCLI
 } from "@fnndsc/cumin";
 import { BaseController } from "./baseController.js";
 import { CLIoptions } from "../utils/cli.js";
@@ -59,7 +59,7 @@ export class PluginController extends BaseController {
   async plugin_run(searchable: string, params: string): Promise<Dictionary | null> {
     let parsedParams: Dictionary = {};
     try {
-      parsedParams = CLI_toDictionary(params);
+      parsedParams = dictionary_fromCLI(params);
     } catch (e) {
       console.error("Error parsing plugin parameters:", e);
       return null;

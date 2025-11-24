@@ -4,15 +4,15 @@ import { CLIoptions } from "../utils/cli";
 import { screen, table_display } from "../screen/screen.js";
 import { PluginController } from "../controllers/pluginController.js";
 import { Dictionary, errorStack, FilteredResourceData } from "@fnndsc/cumin";
-import { plugins_list_do } from "../commands/plugins/list.js";
-import { plugins_fields_do } from "../commands/plugins/fields.js";
-import { plugins_delete_search, plugins_delete_do } from "../commands/plugins/delete.js";
+import { plugins_doList } from "../commands/plugins/list.js";
+import { plugins_fieldsGet } from "../commands/plugins/fields.js";
+import { plugins_search, plugins_doDelete } from "../commands/plugins/delete.js";
 import { prompt_confirm } from "../utils/ui.js";
-import { plugins_add_do } from "../commands/plugins/add.js";
-import { plugins_overview_do } from "../commands/plugins/overview.js";
-import { plugin_readme_do } from "../commands/plugin/readme.js";
-import { plugin_run_do } from "../commands/plugin/run.js";
-import { plugin_search_do } from "../commands/plugin/search.js";
+import { plugins_add } from "../commands/plugins/add.js";
+import { plugins_doOverview } from "../commands/plugins/overview.js";
+import { plugin_doReadme } from "../commands/plugin/readme.js";
+import { plugin_doRun } from "../commands/plugin/run.js";
+import { plugin_search } from "../commands/plugin/search.js";
 
 /**
  * Handles commands related to groups of ChRIS plugins.
@@ -31,7 +31,7 @@ export class PluginGroupHandler {
   }
 
   async plugins_overview(): Promise<void> {
-    await plugins_overview_do();
+    await plugins_doOverview();
   }
 
   /**
@@ -66,7 +66,7 @@ export class PluginGroupHandler {
    */
   async plugins_list(options: CLIoptions): Promise<void> {
     try {
-      const results = await plugins_list_do(options);
+      const results = await plugins_doList(options);
 
       if (!results) {
         console.error(
@@ -95,7 +95,7 @@ export class PluginGroupHandler {
    */
   async plugins_fields(): Promise<void> {
     try {
-      const fields = await plugins_fields_do();
+      const fields = await plugins_fieldsGet();
       if (fields && fields.length > 0) {
         table_display(fields, ["fields"]);
       } else {
@@ -112,7 +112,7 @@ export class PluginGroupHandler {
   async plugins_delete(searchable: string, options: CLIoptions): Promise<void> {
     const searchParts = searchable.split("++").map((part) => part.trim());
     for (const searchPart of searchParts) {
-      const items = await plugins_delete_search(searchPart);
+      const items = await plugins_search(searchPart);
       if (items.length === 0) {
         console.log(`No plugins found matching: ${searchPart}`);
         continue;
@@ -127,7 +127,7 @@ export class PluginGroupHandler {
            if (!confirmed) continue;
         }
 
-        const success = await plugins_delete_do(item.id);
+        const success = await plugins_doDelete(item.id);
         if (success) {
             console.log(`Deleted plugin ${item.id}`);
         } else {
@@ -143,7 +143,7 @@ export class PluginGroupHandler {
    * @param options - CLI options including public_repo and compute environments.
    */
   async plugins_add(image: string, options: CLIoptions): Promise<void> {
-    await plugins_add_do(image, options);
+    await plugins_add(image, options);
   }
 
   /**
@@ -232,7 +232,7 @@ export class PluginMemberHandler {
   async plugin_readme(pluginId: string): Promise<void> {
     try {
       console.log(`Fetching readme for plugin with ID: ${pluginId}`);
-      const content = await plugin_readme_do(pluginId);
+      const content = await plugin_doReadme(pluginId);
       if (content) {
         console.log(content);
       } else {
@@ -249,7 +249,7 @@ export class PluginMemberHandler {
 
   async plugin_run(searchable: string, params: string): Promise<Number | null> {
     try {
-      const instance: Dictionary | null = await plugin_run_do(searchable, params);
+      const instance: Dictionary | null = await plugin_doRun(searchable, params);
       if (!instance) {
         console.log(errorStack.messagesOfType_search("error", "plugin"));
         return null;
@@ -264,7 +264,7 @@ export class PluginMemberHandler {
   }
 
   async plugin_searchableToIDs(searchable: string): Promise<string[] | null> {
-    const hits = await plugin_search_do(searchable);
+    const hits = await plugin_search(searchable);
     if (!hits) {
       return null;
     }

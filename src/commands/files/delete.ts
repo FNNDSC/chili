@@ -9,7 +9,7 @@ import { CLIoptions, options_toParams } from "../../utils/cli.js";
  * @param assetName - The asset name ('files', 'links', 'dirs').
  * @returns A Promise resolving to an array of file items.
  */
-export async function files_delete_search(searchable: string, assetName: string): Promise<any[]> {
+export async function files_search(searchable: string, assetName: string): Promise<any[]> {
   const options: CLIoptions = { search: searchable };
   const params = options_toParams(options);
   const results: FilteredResourceData | null = await files_list(params, assetName);
@@ -27,6 +27,6 @@ export async function files_delete_search(searchable: string, assetName: string)
  * @param assetName - The asset name.
  * @returns A Promise resolving to true on success.
  */
-export async function files_delete_do(id: number, assetName: string): Promise<boolean> {
+export async function files_doDelete(id: number, assetName: string): Promise<boolean> {
   return await files_delete(id, assetName);
 }
