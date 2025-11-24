@@ -1,25 +1,18 @@
 import { Command } from "commander";
 import {
-  Context,
-  chrisContext,
   FullContext,
   URLContext,
   UserContext,
-  errorStack,
 } from "@fnndsc/cumin";
+import {
+  context_getFull,
+  context_getSingle,
+  context_set as salsa_context_set,
+  ContextOptions
+} from "@fnndsc/salsa";
 import chalk from "chalk";
 // import Table from "cli-table3";
 import { screen, border_draw, table_display } from "../screen/screen.js";
-
-interface ContextCLIoptions {
-  ChRISurl?: string;
-  ChRISuser?: string;
-  ChRISfolder?: string;
-  ChRISfeed?: string;
-  ChRISplugin?: string;
-  full?: boolean;
-  all?: boolean;
-}
 
 /**
  * Retrieves and formats ChRIS context information based on CLI options.
@@ -27,12 +20,12 @@ interface ContextCLIoptions {
  * @param options - CLI options for context retrieval.
  * @returns A formatted string of context information.
  */
-function context_get(options: ContextCLIoptions): string {
+function context_get(options: ContextOptions): string {
   const results: string[] = [];
   if (options.all) {
-    return context_getFull(options);
+    return context_displayFull(options);
   } else {
-    return context_getSingle(options);
+    return context_displaySingle(options);
   }
 }
 
@@ -42,8 +35,8 @@ function context_get(options: ContextCLIoptions): string {
  * @param options - CLI options (currently only `all` is used to trigger this function).
  * @returns An empty string, as output is directly to console via `displayTable`.
  */
-function context_getFull(options: ContextCLIoptions): string {
-  const fullContext: FullContext = chrisContext.fullContext_get();
+function context_displayFull(options: ContextOptions): string {
+  const fullContext: FullContext = context_getFull();
   const currentUser: string | null = fullContext.currentUser;
   const currentURL: string | null = fullContext.currentURL;
 
@@ -85,30 +78,30 @@ function context_getFull(options: ContextCLIoptions): string {
  * @param options - CLI options for context retrieval (e.g., --full, --ChRISurl).
  * @returns A formatted string of context information, or an empty string if output handled by `screen.table_output`.
  */
-function context_getSingle(options: ContextCLIoptions): string {
-  chrisContext.currentContext_update();
+function context_displaySingle(options: ContextOptions): string {
+  const singleContext = context_getSingle();
 
   if (options.full) {
     const tableData = [
       {
         Context: "ChRIS URL",
-        Value: chrisContext.singleContext.URL || "Not set",
+        Value: singleContext.URL || "Not set",
       },
       {
         Context: "ChRIS User",
-        Value: chrisContext.singleContext.user || "Not set",
+        Value: singleContext.user || "Not set",
       },
       {
         Context: "ChRIS Folder",
-        Value: chrisContext.singleContext.folder || "Not set",
+        Value: singleContext.folder || "Not set",
       },
       {
         Context: "ChRIS Feed",
-        Value: chrisContext.singleContext.feed || "Not set",
+        Value: singleContext.feed || "Not set",
       },
       {
         Context: "ChRIS Plugin",
-        Value: chrisContext.singleContext.plugin || "Not set",
+        Value: singleContext.plugin || "Not set",
       },
     ];
 
@@ -131,30 +124,30 @@ function context_getSingle(options: ContextCLIoptions): string {
     const results: string[] = [];
 
     if (options.ChRISurl) {
-      results.push(`ChRIS URL: ${chrisContext.singleContext.URL || "Not set"}`);
+      results.push(`ChRIS URL: ${singleContext.URL || "Not set"}`);
     }
 
     if (options.ChRISuser) {
       results.push(
-        `ChRIS User: ${chrisContext.singleContext.user || "Not set"}`
+        `ChRIS User: ${singleContext.user || "Not set"}`
       );
     }
 
     if (options.ChRISfolder) {
       results.push(
-        `ChRIS Folder: ${chrisContext.singleContext.folder || "Not set"}`
+        `ChRIS Folder: ${singleContext.folder || "Not set"}`
       );
     }
 
     if (options.ChRISfeed) {
       results.push(
-        `ChRIS Feed: ${chrisContext.singleContext.feed || "Not set"}`
+        `ChRIS Feed: ${singleContext.feed || "Not set"}`
       );
     }
 
     if (options.ChRISplugin) {
       results.push(
-        `ChRIS Plugin: ${chrisContext.singleContext.plugin || "Not set"}`
+        `ChRIS Plugin: ${singleContext.plugin || "Not set"}`
       );
     }
 
@@ -169,56 +162,24 @@ function context_getSingle(options: ContextCLIoptions): string {
 }
 
 /**
- * Asynchronously checks and assigns a context value.
- *
- * @param context - The type of context to assign.
- * @param value - The value to assign to the context.
- * @returns A formatted string indicating success or failure.
- */
-async function assign_check_async(context: Context, value: string): Promise<string> {
-    const status: boolean = await chrisContext.current_set(context, value);
-    if (!status) {
-      border_draw(`${chalk.red(`ERROR: ${errorStack.allOfType_get("error")}`)}`);
-      return "";
-    } else return `${context} set to ${value}`;
-}
-
-/**
  * Sets various ChRIS context parameters based on CLI options.
  *
  * @param options - CLI options for setting context.
  * @returns A formatted string summarizing the context changes.
  */
-async function context_set(options: ContextCLIoptions): Promise<string> {
-  const results: string[] = [];
+async function context_set(options: ContextOptions): Promise<string> {
+  try {
+    const results = await salsa_context_set(options);
+    
+    if (results.length === 0) {
+      return "No context value was set. Use --ChRISurl, --ChRISuser, --ChRISFolder, --ChRISfeed, or --ChRISPlugin";
+    }
 
-  if (options.ChRISuser !== undefined) {
-    results.push(await assign_check_async(Context.ChRISuser, options.ChRISuser as string));
+    return results.join("\n");
+  } catch (e: any) {
+    border_draw(`${chalk.red(`ERROR: ${e.message}`)}`);
+    return "";
   }
-
-  if (options.ChRISurl !== undefined) {
-    results.push(await assign_check_async(Context.ChRISURL, options.ChRISurl as string));
-  }
-
-  if (options.ChRISfolder !== undefined) {
-    results.push(await assign_check_async(Context.ChRISfolder, options.ChRISfolder as string));
-  }
-
-  if (options.ChRISfeed !== undefined) {
-    results.push(await assign_check_async(Context.ChRISfeed, options.ChRISfeed as string));
-  }
-
-  if (options.ChRISplugin !== undefined) {
-    results.push(await assign_check_async(Context.ChRISplugin, options.ChRISplugin as string));
-  }
-
-  if (results.length === 0) {
-    results.push(
-      "No context value was set. Use --ChRISurl, --ChRISuser, --ChRISFolder, --ChRISfeed, or --ChRISPlugin"
-    );
-  }
-
-  return results.join("\n");
 }
 
 /**

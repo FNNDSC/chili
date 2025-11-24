@@ -3,61 +3,16 @@ import { BaseGroupHandler } from "../handlers/baseGroupHandler.js";
 import { CLIoptions } from "../utils/cli";
 import { screen, table_display } from "../screen/screen.js";
 import { PluginController } from "../controllers/pluginController.js";
-import { Dictionary, errorStack } from "@fnndsc/cumin";
-import { plugin_register } from "@fnndsc/salsa";
-import path from "path";
-import { exec } from "child_process";
-
-/**
- * Promisified version of child_process.exec.
- * @param command - The command string to execute.
- * @returns A Promise that resolves with { stdout, stderr }.
- */
-async function execPromise(command: string): Promise<{ stdout: string; stderr: string }> {
-  return new Promise((resolve, reject) => {
-    exec(command, (error, stdout, stderr) => {
-      if (error) {
-        reject(error);
-      } else {
-        resolve({ stdout, stderr });
-      }
-    });
-  });
-}
-
-/**
- * Executes a shell command and returns its stdout.
- * @param command - The command to execute.
- * @returns The stdout of the command, or null if an error occurred.
- */
-async function run_command_get_stdout(command: string): Promise<string | null> {
-  try {
-    const { stdout, stderr } = await execPromise(command);
-    if (stderr) {
-      // console.warn(`Command stderr: ${stderr.trim()}`); // Log stderr as warning, not necessarily an error
-    }
-    return stdout.trim();
-  } catch (error: any) {
-    // console.error(`Command failed: ${command}`);
-    // console.error(`Error: ${error.message}`);
-    return null;
-  }
-}
-
-/**
- * Checks if Docker is installed and running.
- * @returns True if Docker is available, false otherwise.
- */
-async function check_docker_availability(): Promise<boolean> {
-  // Use a simple docker command to check availability
-  const result = await run_command_get_stdout("docker info > /dev/null 2>&1 && echo OK");
-  if (result === "OK") {
-    return true;
-  }
-  console.error("Error: Docker is not installed or not running.");
-  console.error("Please ensure Docker is properly set up on your system to add plugins.");
-  return false;
-}
+import { Dictionary, errorStack, FilteredResourceData } from "@fnndsc/cumin";
+import { plugins_list_do } from "../commands/plugins/list";
+import { plugins_fields_do } from "../commands/plugins/fields";
+import { plugins_delete_search, plugins_delete_do } from "../commands/plugins/delete";
+import { prompt_confirm } from "../utils/ui";
+import { plugins_add_do } from "../commands/plugins/add";
+import { plugins_overview_do } from "../commands/plugins/overview";
+import { plugin_readme_do } from "../commands/plugin/readme";
+import { plugin_run_do } from "../commands/plugin/run";
+import { plugin_search_do } from "../commands/plugin/search";
 
 /**
  * Handles commands related to groups of ChRIS plugins.
@@ -76,7 +31,110 @@ export class PluginGroupHandler {
   }
 
   async plugins_overview(): Promise<void> {
-    await this.controller.plugins_overview();
+    await plugins_overview_do();
+  }
+
+  /**
+   * Removes duplicate column headers from FilteredResourceData results.
+   * Copied from BaseGroupHandler to support local listing logic.
+   */
+  private columns_removeDuplicates(
+    results: FilteredResourceData
+  ): FilteredResourceData {
+    const uniqueHeaders = Array.from(
+      new Set(results.selectedFields)
+    ) as string[];
+
+    const uniqueTableData = results.tableData.map((row) =>
+      uniqueHeaders.reduce<Record<string, any>>((acc, header) => {
+        if (typeof header === "string" && header in row) {
+          acc[header] = (row as Record<string, any>)[header];
+        }
+        return acc;
+      }, {})
+    );
+
+    return {
+      ...results,
+      selectedFields: uniqueHeaders,
+      tableData: uniqueTableData,
+    };
+  }
+
+  /**
+   * Lists plugins using the new command logic.
+   */
+  async plugins_list(options: CLIoptions): Promise<void> {
+    try {
+      const results = await plugins_list_do(options);
+
+      if (!results) {
+        console.error(
+          `No ${this.assetName} resources found. Perhaps check your current context?`
+        );
+        return;
+      }
+
+      if (results.tableData.length === 0) {
+        console.log(`No ${this.assetName} found matching the criteria.`);
+      } else {
+        const uniqueResults = this.columns_removeDuplicates(results);
+        table_display(
+          uniqueResults.tableData,
+          uniqueResults.selectedFields,
+          { title: { title: this.assetName, justification: "center" } }
+        );
+      }
+    } catch (error) {
+      console.log(errorStack.stack_search(this.assetName)[0]);
+    }
+  }
+
+  /**
+   * Lists plugin fields using the new command logic.
+   */
+  async plugins_fields(): Promise<void> {
+    try {
+      const fields = await plugins_fields_do();
+      if (fields && fields.length > 0) {
+        table_display(fields, ["fields"]);
+      } else {
+        console.log(`No resource fields found for ${this.assetName}.`);
+      }
+    } catch (error) {
+      console.log(errorStack.stack_search(this.assetName)[0]);
+    }
+  }
+
+  /**
+   * Deletes plugins using the new command logic.
+   */
+  async plugins_delete(searchable: string, options: CLIoptions): Promise<void> {
+    const searchParts = searchable.split("++").map((part) => part.trim());
+    for (const searchPart of searchParts) {
+      const items = await plugins_delete_search(searchPart);
+      if (items.length === 0) {
+        console.log(`No plugins found matching: ${searchPart}`);
+        continue;
+      }
+
+      for (const item of items) {
+        // Show item info - reusing table_display for single item details if possible, or simple log
+        console.log(`Preparing to delete Plugin: ID=${item.id}, Name=${item.name}, Version=${item.version}`);
+
+        if (!options.force) {
+           const confirmed = await prompt_confirm(`Are you sure you want to delete plugin ${item.name} (ID: ${item.id})?`);
+           if (!confirmed) continue;
+        }
+
+        const success = await plugins_delete_do(item.id);
+        if (success) {
+            console.log(`Deleted plugin ${item.id}`);
+        } else {
+            console.error(`Failed to delete plugin ${item.id}`);
+        }
+      }
+    }
   }
 
   /**
@@ -85,84 +143,7 @@ export class PluginGroupHandler {
    * @param options - CLI options including public_repo and compute environments.
    */
   async plugins_add(image: string, options: CLIoptions): Promise<void> {
-    if (!await check_docker_availability()) {
-      return;
-    }
-
-    console.log(`Attempting to add plugin from image: ${image}`);
-
-    // 1. Docker Pull
-    console.log(`Pulling Docker image: ${image}...`);
-    // Suppress verbose output of docker pull for cleaner CLI
-    const pullResult = await run_command_get_stdout(`docker pull ${image} --quiet`); 
-    if (pullResult === null) {
-      console.error(`Failed to pull Docker image: ${image}`);
-      return;
-    }
-    console.log(`Successfully pulled ${image}`);
-
-    // 2. Docker Run to get JSON descriptor
-    console.log("Extracting plugin descriptor from image...");
-    let pluginJsonString: string | null = null;
-    const commandChrisPluginInfo = `docker run --rm ${image} chris_plugin_info`;
-    const commandOldChrisApp = `docker run --rm ${image} --json`;
-
-    // Try chris_plugin_info first
-    pluginJsonString = await run_command_get_stdout(commandChrisPluginInfo);
-
-    if (pluginJsonString === null || pluginJsonString.trim() === "") {
-      // If chris_plugin_info failed or returned empty, try --json
-      console.log("chris_plugin_info failed or returned empty, trying --json...");
-      pluginJsonString = await run_command_get_stdout(commandOldChrisApp);
-    }
-
-    if (pluginJsonString === null || pluginJsonString.trim() === "") {
-      console.error("Failed to extract plugin descriptor JSON from the image.");
-      console.error("Ensure the plugin image supports 'chris_plugin_info' or '--json' output.");
-      return;
-    }
-
-    let pluginData: any;
-    try {
-      pluginData = JSON.parse(pluginJsonString);
-    } catch (e) {
-      console.error("Failed to parse plugin descriptor JSON.");
-      console.error(pluginJsonString);
-      return;
-    }
-
-    // 3. Infer missing fields (if any)
-    if (!pluginData.name) {
-      // Extract name from image, e.g., 'fnndsc/pl-dcm2niix:1.0.0' -> 'pl-dcm2niix'
-      const imageNameWithoutTag = image.split(':')[0];
-      pluginData.name = path.basename(imageNameWithoutTag);
-      console.log(`Inferred plugin name: ${pluginData.name}`);
-    }
-    if (!pluginData.dock_image) {
-      pluginData.dock_image = image;
-      console.log(`Inferred dock_image: ${pluginData.dock_image}`);
-    }
-    if (!pluginData.public_repo && options.public_repo) {
-        pluginData.public_repo = options.public_repo;
-        console.log(`Using provided public_repo: ${pluginData.public_repo}`);
-    } else if (!pluginData.public_repo && image.includes('/')) {
-        // Basic inference for repo from image name if not explicitly provided
-        const repoGuess = image.split('/')[0] + '/' + path.basename(image.split(':')[0]);
-        pluginData.public_repo = `https://github.com/${repoGuess}`;
-        console.log(`Inferred public_repo: ${pluginData.public_repo}`);
-    }
-    
-
-    // 4. Register with Salsa
-    console.log("Registering plugin with ChRIS CUBE...");
-    const computeResources = options.compute ? options.compute.split(',') : [];
-    const registeredPlugin = await plugin_register(pluginData, computeResources);
-
-    if (registeredPlugin) {
-      console.log(`Plugin '${registeredPlugin.name}' (ID: ${registeredPlugin.id}) added successfully.`);
-    } else {
-      console.error("Failed to add plugin to ChRIS CUBE.");
-    }
+    await plugins_add_do(image, options);
   }
 
   /**
@@ -171,21 +152,55 @@ export class PluginGroupHandler {
    * @param program - The Commander.js program instance.
    */
   pluginGroupCommand_setup(program: Command): void {
-    this.baseGroupHandler.command_setup(program);
+    // Manually set up commands to use new logic for list, but keep base for others
+    const pluginsCommand = program
+      .command(this.assetName)
+      .description(`Interact with a group of ChRIS ${this.assetName}`);
 
-    const pluginsCommand = program.commands.find(
-      (cmd) => cmd.name() === this.assetName
-    );
+    pluginsCommand
+      .command("list")
+      .description(`list ${this.assetName}`)
+      .option("-p, --page <size>", "Page size (default 20)")
+      .option(
+        "-f, --fields <fields>",
+        `comma-separated list of ${this.assetName} fields to display`
+      )
+      .option(
+        "-s, --search <searchTerms>",
+        `search for ${this.assetName} using comma-separated key-value pairs`
+      )
+      .action(async (options: CLIoptions) => {
+        await this.plugins_list(options);
+      });
 
-    if (pluginsCommand) {
-      pluginsCommand
+    pluginsCommand
+      .command("fieldslist")
+      .description(`list the ${this.assetName} resource fields`)
+      .action(async () => {
+        await this.plugins_fields();
+      });
+
+    pluginsCommand
+      .command("delete <searchable>")
+      .description(
+        `delete target ${this.assetName} resolved from '++' separated <searchable>, i.e. "id:77++id:33"`
+      )
+      .option(
+        "-f, --force",
+        `force the deletion without prompting for user confirmation`
+      )
+      .action(async (searchable: string, options: CLIoptions) => {
+        await this.plugins_delete(searchable, options);
+      });
+
+    pluginsCommand
         .command("overview")
         .description("Get an overview of various plugin-group operations")
         .action(async (pluginId: string, options: CLIoptions) => {
           await this.plugins_overview();
         });
 
-      pluginsCommand
+    pluginsCommand
         .command("add <image>")
         .description("Add a new plugin to ChRIS from a Docker image")
         .option(
@@ -199,10 +214,6 @@ export class PluginGroupHandler {
         .action(async (image: string, options: CLIoptions) => {
           await this.plugins_add(image, options);
         });
-
-    } else {
-      console.error(`Failed to find '${this.assetName}' command.`);
-    }
   }
 }
 
@@ -218,10 +229,15 @@ export class PluginMemberHandler {
     this.controller = PluginController.controller_create();
   }
 
-  async plugin_infoGet(pluginId: string): Promise<void> {
+  async plugin_readme(pluginId: string): Promise<void> {
     try {
-      console.log(`Fetching info for plugin with ID: ${pluginId}`);
-      await this.controller.plugin_infoGet(pluginId);
+      console.log(`Fetching readme for plugin with ID: ${pluginId}`);
+      const content = await plugin_readme_do(pluginId);
+      if (content) {
+        console.log(content);
+      } else {
+        console.error("Could not fetch README for this plugin.");
+      }
     } catch (error: unknown) {
       if (error instanceof Error) {
         console.error(`Error fetching plugin info: ${error.message}`);
@@ -232,21 +248,23 @@ export class PluginMemberHandler {
   }
 
   async plugin_run(searchable: string, params: string): Promise<Number | null> {
-    const instance: Dictionary | null = await this.controller.plugin_run(
-      searchable,
-      params
-    );
-    if (!instance) {
-      console.log(errorStack.messagesOfType_search("error", "plugin"));
+    try {
+      const instance: Dictionary | null = await plugin_run_do(searchable, params);
+      if (!instance) {
+        console.log(errorStack.messagesOfType_search("error", "plugin"));
+        return null;
+      }
+
+      table_display(Object.entries(instance), ["Plugin Parameter", "Value"]);
+      return instance.id as number;
+    } catch (e: any) {
+      console.error(e.message);
       return null;
     }
-
-    table_display(Object.entries(instance), ["Plugin Parameter", "Value"]);
-    return instance.id as number;
   }
 
   async plugin_searchableToIDs(searchable: string): Promise<string[] | null> {
-    const hits = await this.controller.plugin_searchableToIDs(searchable);
+    const hits = await plugin_search_do(searchable);
     if (!hits) {
       return null;
     }
@@ -269,7 +287,7 @@ export class PluginMemberHandler {
         .command("readme <pluginId>")
         .description("Get the readme of a specific plugin")
         .action(async (pluginId: string, options: CLIoptions) => {
-          await this.plugin_infoGet(pluginId);
+          await this.plugin_readme(pluginId);
         });
 
       pluginCommand

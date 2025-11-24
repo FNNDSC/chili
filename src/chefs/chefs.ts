@@ -1,50 +1,9 @@
 import { Command } from "commander";
-import { files_getGroup, files_touch, files_mkdir } from "@fnndsc/salsa";
-import { ChRISEmbeddedResourceGroup, ListOptions, FilteredResourceData, options_toParams, chrisContext, Context } from "@fnndsc/cumin";
+import { chrisContext, Context } from "@fnndsc/cumin";
 import chalk from "chalk";
-
-interface LsOptions {
-  path?: string;
-  [key: string]: any;
-}
-
-interface ResourceItem {
-  name: string;
-  type: 'dir' | 'file' | 'link';
-}
-
-/**
- * Helper to get resources from a group and push to list.
- */
-async function resources_fetch(
-  assetName: string,
-  path: string,
-  items: ResourceItem[]
-) {
-  const group = await files_getGroup(assetName, path);
-  if (group) {
-    const params = options_toParams({ limit: 100, offset: 0 });
-    
-    const results: FilteredResourceData | null = await group.asset.resources_listAndFilterByOptions(params);
-    if (results && results.tableData) {
-       results.tableData.forEach(item => {
-           let name = item.fname || item.path || "";
-           if (name.includes('/')) {
-               name = name.split('/').pop() || name;
-           }
-           
-           let type: 'dir' | 'file' | 'link' = 'file';
-           if (assetName === 'dirs') {
-             type = 'dir';
-           } else if (assetName === 'links') {
-             type = 'link';
-           }
-           
-           items.push({ name, type });
-       });
-    }
-  }
-}
+import { files_ls_do, LsOptions, ResourceItem } from '../commands/fs/ls';
+import { files_mkdir_do } from '../commands/fs/mkdir';
+import { files_touch_do } from '../commands/fs/touch'; // Import files_touch_do
 
 function formatItem(item: ResourceItem): string {
   switch (item.type) {
@@ -63,19 +22,11 @@ function getVisibleLength(str: string): number {
 }
 
 async function ls(options: LsOptions, pathStr: string = ""): Promise<void> {
-  const items: ResourceItem[] = [];
-  
-  await Promise.all([
-      resources_fetch('dirs', pathStr, items),
-      resources_fetch('files', pathStr, items),
-      resources_fetch('links', pathStr, items)
-  ]);
+  const items: ResourceItem[] = await files_ls_do(options, pathStr); // Call the core logic
 
   if (items.length === 0) {
       return; 
   }
-
-  items.sort((a, b) => a.name.localeCompare(b.name));
 
   const formattedItems = items.map(formatItem);
   
@@ -104,7 +55,7 @@ async function ls(options: LsOptions, pathStr: string = ""): Promise<void> {
 }
 
 async function mkdir(dirPath: string): Promise<void> {
-  const success = await files_mkdir(dirPath);
+  const success = await files_mkdir_do(dirPath); // Use the new doer function
   if (success) {
     console.log(`Created directory: ${dirPath}`);
   } else {
@@ -113,7 +64,7 @@ async function mkdir(dirPath: string): Promise<void> {
 }
 
 async function touch(filePath: string): Promise<void> {
-  const success = await files_touch(filePath);
+  const success = await files_touch_do(filePath); // Use the new doer function
   if (success) {
     console.log(`Created ${filePath}`);
   } else {

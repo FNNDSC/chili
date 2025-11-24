@@ -1,17 +1,10 @@
 import { Command } from 'commander';
 import { FeedMemberHandler } from '../src/feeds/feedHandler';
-import { ChRISFeed } from '@fnndsc/cumin';
+import { SimpleRecord } from '@fnndsc/cumin';
+import * as feedCreateCmd from '../src/commands/feed/create';
 
-// Mock the cumin module's ChRISFeed class
-const mockCreateFromDirs = jest.fn();
-jest.mock('@fnndsc/cumin', () => ({
-  ...jest.requireActual('@fnndsc/cumin'),
-  ChRISFeed: jest.fn().mockImplementation(() => {
-    return {
-      createFromDirs: mockCreateFromDirs,
-    };
-  }),
-}));
+// Mock the command implementation
+jest.mock('../src/commands/feed/create');
 
 describe('feed create command', () => {
   let program: Command;
@@ -21,18 +14,21 @@ describe('feed create command', () => {
     program = new Command();
     feedMemberHandler = new FeedMemberHandler();
     feedMemberHandler.feedCommand_setup(program);
-    mockCreateFromDirs.mockClear();
+    jest.clearAllMocks();
   });
 
-  it('should call createFromDirs with correct parameters', async () => {
-    mockCreateFromDirs.mockResolvedValue({
+  it('should call feed_create_do with correct options', async () => {
+    const mockFeedInfo: SimpleRecord = {
       pluginInstance: { data: { id: 100 } },
       id: 200,
       name: 'test-feed',
       owner_username: 'testuser',
-    });
+      // Mock other necessary properties if SimpleRecord expects them
+    };
+    const mockFeedCreateDo = jest.spyOn(feedCreateCmd, 'feed_create_do');
+    mockFeedCreateDo.mockResolvedValue(mockFeedInfo);
 
-    const dirs = 'chris/user/data';
+    const dirs = '/path/to/data';
     const params = 'title:MyFeed,cpu_limit:1000';
     
     await program.parseAsync([
@@ -46,10 +42,10 @@ describe('feed create command', () => {
       params,
     ]);
 
-    expect(mockCreateFromDirs).toHaveBeenCalledTimes(1);
-    expect(mockCreateFromDirs).toHaveBeenCalledWith(
-      dirs,
+    expect(mockFeedCreateDo).toHaveBeenCalledTimes(1);
+    expect(mockFeedCreateDo).toHaveBeenCalledWith(
       expect.objectContaining({
+        dirs: dirs,
         params: params,
       })
     );

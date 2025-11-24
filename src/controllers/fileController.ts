@@ -7,8 +7,7 @@ import {
   files_getSingle,
   files_share as salsa_files_share,
   files_view as salsa_files_view,
-  FileShareOptions,
-  FileViewOptions
+  FileShareOptions
 } from "@fnndsc/salsa";
 
 /**
@@ -96,9 +95,10 @@ export class FileController extends BaseController {
       console.error("Error: fileId is required for viewing.");
       return;
     }
-    const viewOptions: FileViewOptions = { ...options }; // Pass all CLI options as view options for now
-    const content = await salsa_files_view(fileId, viewOptions);
-    console.log(content); // Display content received from salsa
+    const content = await salsa_files_view(fileId);
+    if (content) {
+        console.log(content.toString());
+    }
   }
 
   /**
