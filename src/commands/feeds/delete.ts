@@ -1,6 +1,6 @@
 import { feeds_list, feed_delete } from "@fnndsc/salsa";
 import { FilteredResourceData } from "@fnndsc/cumin";
-import { CLIoptions, options_toParams } from "../../utils/cli";
+import { CLIoptions, options_toParams } from "../../utils/cli.js";
 
 /**
  * Resolves search terms to a list of feed items.

@@ -1,5 +1,5 @@
-import { CLIoptions } from "../../utils/cli";
-import { check_docker_availability, run_command_get_stdout } from "../../utils/docker";
+import { CLIoptions } from "../../utils/cli.js";
+import { check_docker_availability, run_command_get_stdout } from "../../utils/docker.js";
 import { plugin_register } from "@fnndsc/salsa";
 import path from "path";
 

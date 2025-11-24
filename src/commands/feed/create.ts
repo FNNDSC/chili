@@ -1,6 +1,6 @@
 import { SimpleRecord, CLI_toDictionary, ChRISObjectParams } from "@fnndsc/cumin";
 import { feed_create } from "@fnndsc/salsa";
-import { CLIoptions } from "../../utils/cli";
+import { CLIoptions } from "../../utils/cli.js";
 
 /**
  * Core logic for 'feed create'.

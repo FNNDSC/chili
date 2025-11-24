@@ -1,9 +1,11 @@
 import { Command } from "commander";
 import { chrisContext, Context } from "@fnndsc/cumin";
 import chalk from "chalk";
-import { files_ls_do, LsOptions, ResourceItem } from '../commands/fs/ls';
-import { files_mkdir_do } from '../commands/fs/mkdir';
-import { files_touch_do } from '../commands/fs/touch'; // Import files_touch_do
+import { files_ls_do, LsOptions, ResourceItem } from '../commands/fs/ls.js';
+import { plugin_run_do } from '../commands/plugin/run.js';
+import { feed_create_do } from '../commands/feed/create.js';
+import { files_mkdir_do } from '../commands/fs/mkdir.js';
+import { files_touch_do } from '../commands/fs/touch.js';
 
 function formatItem(item: ResourceItem): string {
   switch (item.type) {

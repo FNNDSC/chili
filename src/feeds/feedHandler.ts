@@ -5,12 +5,12 @@ import { SimpleRecord, FilteredResourceData, errorStack } from "@fnndsc/cumin";
 import { table_display } from "../screen/screen.js";
 import { FeedController } from "../controllers/feedController.js";
 import chalk from "chalk";
-import { feeds_list_do } from "../commands/feeds/list";
-import { feeds_fields_do } from "../commands/feeds/fields";
-import { feeds_share_do } from "../commands/feeds/share"; // Import share command logic
+import { feeds_list_do } from "../commands/feeds/list.js";
+import { feeds_fields_do } from "../commands/feeds/fields.js";
+import { feeds_share_do } from "../commands/feeds/share.js"; // Import share command logic
 import { FeedShareOptions } from "@fnndsc/salsa"; // Import FeedShareOptions directly from salsa
-import { feeds_delete_search, feeds_delete_do } from "../commands/feeds/delete"; // Import delete command logic
-import { prompt_confirm } from "../utils/ui"; // Import prompt_confirm
+import { feeds_delete_search, feeds_delete_do } from "../commands/feeds/delete.js"; // Import delete command logic
+import { prompt_confirm } from "../utils/ui.js"; // Import prompt_confirm
 
 /**
  * Handles commands related to groups of ChRIS feeds.
@@ -211,7 +211,7 @@ export class FeedGroupHandler {
   }
 }
 
-import { feed_create_do } from "../commands/feed/create";
+import { feed_create_do } from "../commands/feed/create.js";
 
 /**
  * Handles commands related to individual ChRIS feeds.

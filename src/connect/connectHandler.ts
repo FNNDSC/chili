@@ -1,6 +1,6 @@
 import { Command } from "commander";
-import { login_do } from "../commands/connect/login";
-import { logout_do } from "../commands/connect/logout";
+import { login_do } from "../commands/connect/login.js";
+import { logout_do } from "../commands/connect/logout.js";
 
 /**
  * Sets up the 'connect' and 'logout' commands for the CLI program.

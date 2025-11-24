@@ -1,6 +1,6 @@
 import fs from "fs";
 import path from "path";
-import { projectDir_get } from "../../man/renderer";
+import { projectDir_get } from "../../man/renderer.js";
 import { library } from "@fortawesome/fontawesome-svg-core";
 import { faBook } from "@fortawesome/free-solid-svg-icons";
 

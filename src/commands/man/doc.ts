@@ -1,6 +1,6 @@
 import fs from "fs";
 import path from "path";
-import { projectDir_get, browser_open, asciidoc_render } from "../../man/renderer";
+import { projectDir_get, browser_open, asciidoc_render } from "../../man/renderer.js";
 
 export interface ManPageOptions {
   topic: string;

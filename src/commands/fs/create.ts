@@ -1,5 +1,5 @@
 import { files_create } from "@fnndsc/salsa";
-import { path_resolve_chrisfs, CLIoptions } from "../../utils/cli";
+import { path_resolve_chrisfs, CLIoptions } from "../../utils/cli.js";
 import * as fs from "fs";
 import { errorStack } from "@fnndsc/cumin";
 

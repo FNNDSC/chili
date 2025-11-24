@@ -1,6 +1,6 @@
 import { files_view } from "@fnndsc/salsa";
-import { files_list_do } from "../files/list";
-import { CLIoptions } from "../../utils/cli";
+import { files_list_do } from "../files/list.js";
+import { CLIoptions } from "../../utils/cli.js";
 import { FilteredResourceData } from "@fnndsc/cumin";
 
 /**

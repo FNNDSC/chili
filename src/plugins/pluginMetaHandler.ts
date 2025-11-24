@@ -1,7 +1,7 @@
 import { Command } from "commander";
 import { BaseGroupHandler } from "../handlers/baseGroupHandler.js";
 import { Context, chrisContext } from "@fnndsc/cumin";
-import { CLIoptions } from "../utils/cli";
+import { CLIoptions } from "../utils/cli.js";
 import { PluginMetaController } from "../controllers/pluginMetaController.js";
 import chalk from "chalk";
 import { marked } from "marked";

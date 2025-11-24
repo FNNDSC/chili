@@ -1,6 +1,6 @@
 import { Command } from "commander";
-import { topics_list } from "../commands/man/topics";
-import { manpage_handle, ManPageOptions } from "../commands/man/doc";
+import { topics_list } from "../commands/man/topics.js";
+import { manpage_handle, ManPageOptions } from "../commands/man/doc.js";
 
 /**
  * Sets up the 'man' command for displaying ChILI manual and help pages.

@@ -1,6 +1,6 @@
 import { files_list } from "@fnndsc/salsa";
 import { FilteredResourceData } from "@fnndsc/cumin";
-import { CLIoptions, options_toParams } from "../../utils/cli";
+import { CLIoptions, options_toParams } from "../../utils/cli.js";
 
 /**
  * Core logic for 'files list', 'links list', 'dirs list'.

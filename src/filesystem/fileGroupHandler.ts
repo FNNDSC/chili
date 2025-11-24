@@ -2,14 +2,14 @@ import { Command } from "commander";
 import { BaseGroupHandler } from "../handlers/baseGroupHandler.js";
 import { CLIoptions, path_resolve_chrisfs } from "../utils/cli.js";
 import { FileController } from "../controllers/fileController.js";
-import { files_create_do } from "../commands/fs/create"; // Import files_create_do
+import { files_create_do } from "../commands/fs/create.js";
 import { FilteredResourceData, errorStack } from "@fnndsc/cumin";
 import { table_display } from "../screen/screen.js";
-import { files_list_do } from "../commands/files/list"; // Import files_list_do
-import { files_fields_do } from "../commands/files/fields";
-import { files_delete_search, files_delete_do } from "../commands/files/delete";
-import { prompt_confirm } from "../utils/ui";
-import { files_view_do } from "../commands/file/view"; // Import files_view_do
+import { files_list_do } from "../commands/files/list.js";
+import { files_fields_do } from "../commands/files/fields.js";
+import { files_delete_search, files_delete_do } from "../commands/files/delete.js";
+import { prompt_confirm } from "../utils/ui.js";
+import { files_view_do } from "../commands/file/view.js";
 
 /**
  * Handles commands related to groups of ChRIS files, links, or directories.

@@ -4,15 +4,15 @@ import { CLIoptions } from "../utils/cli";
 import { screen, table_display } from "../screen/screen.js";
 import { PluginController } from "../controllers/pluginController.js";
 import { Dictionary, errorStack, FilteredResourceData } from "@fnndsc/cumin";
-import { plugins_list_do } from "../commands/plugins/list";
-import { plugins_fields_do } from "../commands/plugins/fields";
-import { plugins_delete_search, plugins_delete_do } from "../commands/plugins/delete";
-import { prompt_confirm } from "../utils/ui";
-import { plugins_add_do } from "../commands/plugins/add";
-import { plugins_overview_do } from "../commands/plugins/overview";
-import { plugin_readme_do } from "../commands/plugin/readme";
-import { plugin_run_do } from "../commands/plugin/run";
-import { plugin_search_do } from "../commands/plugin/search";
+import { plugins_list_do } from "../commands/plugins/list.js";
+import { plugins_fields_do } from "../commands/plugins/fields.js";
+import { plugins_delete_search, plugins_delete_do } from "../commands/plugins/delete.js";
+import { prompt_confirm } from "../utils/ui.js";
+import { plugins_add_do } from "../commands/plugins/add.js";
+import { plugins_overview_do } from "../commands/plugins/overview.js";
+import { plugin_readme_do } from "../commands/plugin/readme.js";
+import { plugin_run_do } from "../commands/plugin/run.js";
+import { plugin_search_do } from "../commands/plugin/search.js";
 
 /**
  * Handles commands related to groups of ChRIS plugins.
