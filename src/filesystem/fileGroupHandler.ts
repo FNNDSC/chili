@@ -294,19 +294,16 @@ export class FileMemberHandler {
    */
   async file_create(fileIdentifier: string | undefined, options: CLIoptions): Promise<void> {
     try {
-      // files_create_do handles all validation and error throwing internally
-      const success = await files_create_do(fileIdentifier, options);
+      // files_create_do now throws on error
+      const success: boolean = await files_create_do(fileIdentifier, options);
       if (success) {
-        // Path resolution for display purposes only, as it's already handled in files_create_do
-        const resolvedChRISPath = await path_resolve_chrisfs(fileIdentifier, options);
+        const resolvedChRISPath: string = await path_resolve_chrisfs(fileIdentifier, options);
         console.log(`File created successfully at: ${resolvedChRISPath}`);
-      } else {
-        // Error messages are already pushed to errorStack by files_create_do
-        console.error(`Failed to create file.`);
       }
-
+      // If success is false, files_create_do would have thrown an error which is caught below.
     } catch (error: any) {
-      console.error(`Error creating file: ${error.message}`);
+      // Log the error from files_create_do
+      console.error(error.message);
     }
   }
 

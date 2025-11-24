@@ -66,7 +66,7 @@ function tableInput_process(
       return processedHeaders.reduce((rowObj, header, index) => {
         rowObj[header] = row[index];
         return rowObj;
-      }, {});
+      }, {} as Record<string, any>);
     });
   } else if (Array.isArray(tableData) && typeof tableData[0] === "string") {
     // tableData is a string[]
@@ -75,7 +75,7 @@ function tableInput_process(
       return processedHeaders.reduce((rowObj, header, index) => {
         rowObj[header] = rowValues[index];
         return rowObj;
-      }, {});
+      }, {} as Record<string, any>);
     });
   } else {
     // tableData is neither string[][] nor string[]
@@ -434,7 +434,7 @@ export class Screen {
     const coloredCell: string = cellString.includes("\u001b")
       ? cellString
       : color
-      ? chalk[color](cellString)
+      ? (chalk as any)[color](cellString)
       : cellString;
 
     return this.text_justify(coloredCell, width, justification);
@@ -459,7 +459,7 @@ export class Screen {
     const color: string = columnOptions.color || "white";
     const justification: Justification = columnOptions.justification || "left";
     const width: number = colWidths[index];
-    return this.text_justify(chalk[color].bold(header), width, justification);
+    return this.text_justify((chalk as any)[color].bold(header), width, justification);
   }
 
   /**

@@ -1,9 +1,9 @@
 import { files_getGroup } from "@fnndsc/salsa";
-import { FilteredResourceData, options_toParams } from "@fnndsc/cumin";
+import { FilteredResourceData, ListOptions, options_toParams } from "@fnndsc/cumin";
 
 export interface LsOptions {
   path?: string;
-  [key: string]: any;
+  [key: string]: string | undefined;
 }
 
 export interface ResourceItem {
@@ -18,15 +18,15 @@ async function resources_fetch_do(
   assetName: string,
   path: string,
   items: ResourceItem[]
-) {
+): Promise<void> {
   const group = await files_getGroup(assetName, path);
   if (group) {
-    const params = options_toParams({ limit: 100, offset: 0 }); // Hardcoded limit for ls, can be an option
+    const params: ListOptions = options_toParams({ limit: 100, offset: 0 }); // Hardcoded limit for ls, can be an option
     
     const results: FilteredResourceData | null = await group.asset.resources_listAndFilterByOptions(params);
     if (results && results.tableData) {
-       results.tableData.forEach(item => {
-           let name = item.fname || item.path || "";
+       results.tableData.forEach((item: Record<string, any>) => {
+           let name: string = item.fname || item.path || "";
            if (name.includes('/')) {
                name = name.split('/').pop() || name;
            }
@@ -61,6 +61,6 @@ export async function files_ls_do(options: LsOptions, pathStr: string = ""): Pro
       resources_fetch_do('links', pathStr, items)
   ]);
 
-  items.sort((a, b) => a.name.localeCompare(b.name));
+  items.sort((a: ResourceItem, b: ResourceItem) => a.name.localeCompare(b.name));
   return items;
 }

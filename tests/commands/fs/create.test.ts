@@ -57,12 +57,10 @@ describe('commands/fs/create', () => {
     expect(result).toBe(true);
   });
 
-  it('should return false if files_create fails', async () => {
+  it('should throw an error if files_create returns false', async () => {
     (salsa.files_create as jest.Mock).mockResolvedValue(false);
     const options: CLIoptions = { content: 'fail' };
-    const result = await files_create_do('file.txt', options);
-
-    expect(result).toBe(false);
+    await expect(files_create_do('file.txt', options)).rejects.toThrow();
   });
 
   it('should throw error if local file not found', async () => {
