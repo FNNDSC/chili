@@ -127,7 +127,7 @@ async function handlers_initialize() {
     );
     dirsGroupHandler.fileGroupCommand_setup(program);
   } catch (e) {
-    console.log("Could not initialize file group handlers (likely not connected)", e);
+    console.log("Note: Not connected to ChRIS. File group commands (files, dirs, links) are unavailable.");
   }
 
   try {
@@ -143,7 +143,7 @@ async function handlers_initialize() {
       await PluginContextGroupHandler.handler_create("parametersofplugin");
     pluginParametersHandler.pluginContextGroupCommand_setup(program);
   } catch (e) {
-    // console.log("Could not initialize plugin context handlers (likely not connected)");
+    console.log("Note: Not connected to ChRIS. Plugin context commands are unavailable.");
   }
 
   commandCompletion_setup();
