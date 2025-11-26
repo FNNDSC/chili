@@ -19,8 +19,8 @@ export function options_toParams(
   keyPairField: keyof CLIoptions = "search"
 ): ListOptions {
   const baseParams: ListOptions = {
-    limit: options.page ? parseInt(options.page, 10) : 20,
-    offset: 0,
+    limit: options.limit ? Number(options.limit) : (options.page ? parseInt(options.page, 10) : 20),
+    offset: options.offset ? Number(options.offset) : 0,
     fields: options.fields,
   };
 
