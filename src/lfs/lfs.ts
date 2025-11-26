@@ -1,7 +1,20 @@
+/**
+ * @file Local File System (LFS) Operations.
+ *
+ * This module provides command implementations for interacting with the
+ * local filesystem, mirroring standard shell commands like ls, mkdir, touch.
+ *
+ * @module
+ */
 import * as fs from 'fs';
 import * as path from 'path';
 import { Command } from 'commander';
 
+/**
+ * Lists the contents of a directory with details.
+ *
+ * @param filepath - The directory path to list.
+ */
 export async function dirContents_list(filepath: string) {
   try {
     const files = await fs.promises.readdir(filepath);
@@ -17,6 +30,11 @@ export async function dirContents_list(filepath: string) {
   }
 }
 
+/**
+ * Creates a directory if it does not exist.
+ *
+ * @param filepath - The directory path to create.
+ */
 export function dir_create(filepath: string) {
   if (!fs.existsSync(filepath)) {
     fs.mkdirSync(filepath);
@@ -24,11 +42,21 @@ export function dir_create(filepath: string) {
   }
 }
 
+/**
+ * Creates an empty file.
+ *
+ * @param filepath - The file path to create.
+ */
 export function file_create(filepath: string) {
   fs.openSync(filepath, "w");
   console.log("An empty file has been created");
 }
 
+/**
+ * Sets up the 'lfs' command group in Commander.
+ *
+ * @param program - The Commander program instance.
+ */
 export function lfsCommand_setup(program: Command) {
   const lfs = program.command('lfs')
     .description('Local filesystem operations');

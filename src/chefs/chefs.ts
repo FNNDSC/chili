@@ -1,3 +1,11 @@
+/**
+ * @file ChEFS - ChRIS Experimental File System Shell Primitives.
+ *
+ * This module provides basic shell-like commands (`ls`, `cd`, `mkdir`, `touch`, `pwd`)
+ * that operate on the ChRIS filesystem context.
+ *
+ * @module
+ */
 import { Command } from "commander";
 import { chrisContext, Context } from "@fnndsc/cumin";
 import chalk from "chalk";
@@ -5,6 +13,12 @@ import { files_list, LsOptions, ResourceItem } from '../commands/fs/ls.js';
 import { files_mkdir } from '../commands/fs/mkdir.js';
 import { files_touch } from '../commands/fs/touch.js';
 
+/**
+ * Formats a resource item for display (color coding).
+ *
+ * @param item - The resource item to format.
+ * @returns The formatted name string.
+ */
 function item_format(item: ResourceItem): string {
   switch (item.type) {
     case 'dir':
@@ -17,10 +31,22 @@ function item_format(item: ResourceItem): string {
   }
 }
 
+/**
+ * Calculates the visible length of a string, stripping ANSI codes.
+ *
+ * @param str - The string to measure.
+ * @returns The visible length.
+ */
 function visibleLength_get(str: string): number {
   return str.replace(/\u001b\[[0-9;]*m/g, "").length;
 }
 
+/**
+ * Lists directory contents.
+ *
+ * @param options - Listing options.
+ * @param pathStr - The path to list.
+ */
 async function ls(options: LsOptions, pathStr: string = ""): Promise<void> {
   const items: ResourceItem[] = await files_list(options, pathStr); // Call the core logic
 
@@ -54,6 +80,11 @@ async function ls(options: LsOptions, pathStr: string = ""): Promise<void> {
   console.log(output);
 }
 
+/**
+ * Creates a directory.
+ *
+ * @param dirPath - The path of the directory to create.
+ */
 async function mkdir(dirPath: string): Promise<void> {
   const success = await files_mkdir(dirPath); // Use the new doer function
   if (success) {
@@ -63,6 +94,11 @@ async function mkdir(dirPath: string): Promise<void> {
   }
 }
 
+/**
+ * Creates an empty file.
+ *
+ * @param filePath - The path of the file to create.
+ */
 async function touch(filePath: string): Promise<void> {
   const success = await files_touch(filePath); // Use the new doer function
   if (success) {
@@ -72,6 +108,11 @@ async function touch(filePath: string): Promise<void> {
   }
 }
 
+/**
+ * Changes the current working directory.
+ *
+ * @param path - The path to change to.
+ */
 async function cd(path?: string): Promise<void> {
   if (!path) {
     await pwd();
@@ -81,11 +122,19 @@ async function cd(path?: string): Promise<void> {
   await pwd();
 }
 
+/**
+ * Prints the current working directory.
+ */
 async function pwd(): Promise<void> {
   const current = await chrisContext.current_get(Context.ChRISfolder);
   console.log(current || "/");
 }
 
+/**
+ * Sets up the 'chefs' command group in Commander.
+ *
+ * @param program - The Commander program instance.
+ */
 export function chefsCommand_setup(program: Command): void {
   const chefsCommand = program
     .command("chefs")

@@ -1,3 +1,11 @@
+/**
+ * @file Docker utility functions.
+ *
+ * This module provides helper functions for interacting with the Docker CLI,
+ * such as checking availability and running commands.
+ *
+ * @module
+ */
 import { exec } from "child_process";
 
 /**

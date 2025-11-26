@@ -1,3 +1,10 @@
+/**
+ * @file User Interface Utilities.
+ *
+ * This module provides helper functions for CLI interactions, such as prompts.
+ *
+ * @module
+ */
 import * as readline from "readline";
 
 /**
