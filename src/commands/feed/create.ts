@@ -1,15 +1,26 @@
+/**
+ * @file Implements the logic for creating new ChRIS feeds.
+ *
+ * This module provides functionality to create a new feed
+ * from a set of directories and parameters.
+ *
+ * @module
+ */
 import { SimpleRecord, dictionary_fromCLI, ChRISObjectParams } from "@fnndsc/cumin";
-import { feed_create } from "@fnndsc/salsa";
+import { feed_create as salsaFeed_create } from "@fnndsc/salsa";
 import { CLIoptions } from "../../utils/cli.js";
 
 /**
- * Core logic for 'feed create'.
- * Handles parameter parsing and calls salsa.feed_create.
+ * Creates a new ChRIS feed.
  *
- * @param options - CLI options including params and dirs.
- * @returns Promise resolving to SimpleRecord of created feed, or null.
+ * Parses CLI options to extract feed parameters and input directories,
+ * then invokes the creation process.
+ *
+ * @param options - CLI options including `params` (string) and `dirs` (string or array).
+ * @returns A Promise resolving to a `SimpleRecord` representing the created feed, or `null` on failure.
+ * @throws {Error} If feed parameters cannot be parsed or if directories are missing.
  */
-export async function feed_doCreate(options: CLIoptions): Promise<SimpleRecord | null> {
+export async function feed_create(options: CLIoptions): Promise<SimpleRecord | null> {
   const params = options.params;
   const dirs = options.dirs; // Expects a comma-separated string for directories
 
@@ -29,5 +40,5 @@ export async function feed_doCreate(options: CLIoptions): Promise<SimpleRecord |
     throw new Error("Directories for feed creation are required (e.g., --dirs '/some/path').");
   }
 
-  return await feed_create(dirsArray, feedParams);
+  return await salsaFeed_create(dirsArray, feedParams);
 }

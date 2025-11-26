@@ -1,42 +1,49 @@
-import { feeds_search, feeds_doDelete } from '../../../src/commands/feeds/delete';
+import { feeds_searchByTerm, feed_deleteById } from '../../../src/commands/feeds/delete';
 import * as salsa from '@fnndsc/salsa';
-import { FilteredResourceData } from '@fnndsc/cumin';
+import * as cliUtils from '../../../src/utils/cli'; // Import cliUtils for mocking
 
 jest.mock('@fnndsc/salsa');
+jest.mock('../../../src/utils/cli', () => ({
+  ...jest.requireActual('../../../src/utils/cli'), // Keep actual implementations for other cliUtils functions
+  options_toParams: jest.fn(), // Mock options_toParams
+}));
 
 describe('commands/feeds/delete', () => {
-  describe('feeds_search', () => {
-    it('should call salsa.feeds_list and return items', async () => {
-      const mockData: FilteredResourceData = {
-        tableData: [{ id: 1, name: 'feed-test' }],
-        selectedFields: ['id', 'name']
-      };
+  beforeEach(() => {
+    jest.clearAllMocks();
+    // Mock options_toParams to return an object that correctly includes the search term
+    (cliUtils.options_toParams as jest.Mock).mockImplementation((options) => {
+      const params = { limit: 20, offset: 0 };
+      if (options.search) {
+        Object.assign(params, { search: options.search });
+      }
+      return params;
+    });
+  });
+
+  describe('feeds_searchByTerm', () => {
+    it('should call salsa.feeds_list with search params', async () => {
+      const mockData = { tableData: [{ id: 1, name: 'f1' }] };
       (salsa.feeds_list as jest.Mock).mockResolvedValue(mockData);
 
-      const searchable = 'name:test';
-      const result = await feeds_search(searchable);
+      const result = await feeds_searchByTerm('term');
 
-      expect(salsa.feeds_list).toHaveBeenCalledWith(expect.objectContaining({
-        name: 'test'
-      }));
+      expect(cliUtils.options_toParams).toHaveBeenCalledWith({ search: 'term' });
+      expect(salsa.feeds_list).toHaveBeenCalledWith(expect.objectContaining({ search: 'term' }));
       expect(result).toEqual(mockData.tableData);
     });
 
-    it('should return empty array if salsa returns null', async () => {
+    it('should return empty array if no results', async () => {
       (salsa.feeds_list as jest.Mock).mockResolvedValue(null);
-
-      const result = await feeds_search('name:none');
-
+      const result = await feeds_searchByTerm('term');
       expect(result).toEqual([]);
     });
   });
 
-  describe('feeds_doDelete', () => {
-    it('should call salsa.feed_delete with id', async () => {
+  describe('feed_deleteById', () => {
+    it('should call salsa.feed_delete', async () => {
       (salsa.feed_delete as jest.Mock).mockResolvedValue(true);
-
-      const result = await feeds_doDelete(123);
-
+      const result = await feed_deleteById(123);
       expect(salsa.feed_delete).toHaveBeenCalledWith(123);
       expect(result).toBe(true);
     });

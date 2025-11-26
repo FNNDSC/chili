@@ -1,4 +1,4 @@
-import { files_doList } from '../../../src/commands/files/list';
+import { files_fetchList } from '../../../src/commands/files/list';
 import * as salsa from '@fnndsc/salsa';
 import * as cumin from '@fnndsc/cumin'; // Still import cumin types if needed
 import * as cliUtils from '../../../src/utils/cli'; // Import cliUtils to mock options_toParams
@@ -26,7 +26,7 @@ describe('commands/files/list', () => {
     (salsa.files_list as jest.Mock).mockResolvedValue(mockData);
 
     const options = { page: '10', search: 'name:test' };
-    const result = await files_doList(options);
+    const result = await files_fetchList(options);
 
     expect(cliUtils.options_toParams).toHaveBeenCalledWith(options);
     expect(salsa.files_list).toHaveBeenCalledWith(expect.objectContaining({
@@ -46,7 +46,7 @@ describe('commands/files/list', () => {
     const options = { page: '5' };
     const assetName = 'dirs';
     const path = '/some/path';
-    const result = await files_doList(options, assetName, path);
+    const result = await files_fetchList(options, assetName, path);
 
     expect(cliUtils.options_toParams).toHaveBeenCalledWith(options); // Ensure it uses the local cliUtils mock
     expect(salsa.files_list).toHaveBeenCalledWith(expect.objectContaining({ limit: 5 }), assetName, path);
@@ -57,7 +57,7 @@ describe('commands/files/list', () => {
     (salsa.files_list as jest.Mock).mockResolvedValue(null);
 
     const options = {};
-    const result = await files_doList(options);
+    const result = await files_fetchList(options);
 
     expect(result).toBeNull();
   });

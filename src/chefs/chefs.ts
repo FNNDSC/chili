@@ -1,11 +1,9 @@
 import { Command } from "commander";
 import { chrisContext, Context } from "@fnndsc/cumin";
 import chalk from "chalk";
-import { files_ls, LsOptions, ResourceItem } from '../commands/fs/ls.js';
-import { plugin_doRun } from '../commands/plugin/run.js';
-import { feed_doCreate } from '../commands/feed/create.js';
-import { files_doMkdir } from '../commands/fs/mkdir.js';
-import { files_doTouch } from '../commands/fs/touch.js';
+import { files_list, LsOptions, ResourceItem } from '../commands/fs/ls.js';
+import { files_mkdir } from '../commands/fs/mkdir.js';
+import { files_touch } from '../commands/fs/touch.js';
 
 function item_format(item: ResourceItem): string {
   switch (item.type) {
@@ -24,7 +22,7 @@ function visibleLength_get(str: string): number {
 }
 
 async function ls(options: LsOptions, pathStr: string = ""): Promise<void> {
-  const items: ResourceItem[] = await files_ls(options, pathStr); // Call the core logic
+  const items: ResourceItem[] = await files_list(options, pathStr); // Call the core logic
 
   if (items.length === 0) {
       return; 
@@ -57,7 +55,7 @@ async function ls(options: LsOptions, pathStr: string = ""): Promise<void> {
 }
 
 async function mkdir(dirPath: string): Promise<void> {
-  const success = await files_doMkdir(dirPath); // Use the new doer function
+  const success = await files_mkdir(dirPath); // Use the new doer function
   if (success) {
     console.log(`Created directory: ${dirPath}`);
   } else {
@@ -66,7 +64,7 @@ async function mkdir(dirPath: string): Promise<void> {
 }
 
 async function touch(filePath: string): Promise<void> {
-  const success = await files_doTouch(filePath); // Use the new doer function
+  const success = await files_touch(filePath); // Use the new doer function
   if (success) {
     console.log(`Created ${filePath}`);
   } else {

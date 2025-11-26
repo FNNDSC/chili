@@ -1,10 +1,18 @@
-import { plugins_overview } from "@fnndsc/salsa";
+/**
+ * @file Implements the logic for displaying a system overview of ChRIS plugins.
+ *
+ * This module provides functionality to print a summary or overview
+ * of the plugins available in the ChRIS system.
+ *
+ * @module
+ */
+import { plugins_overview as salsaPlugins_overview } from "@fnndsc/salsa";
 
 /**
- * Core logic for 'plugins overview'.
+ * Displays an overview of registered plugins.
  *
- * @returns Promise resolving to void.
+ * @returns A Promise resolving to `void`.
  */
-export async function plugins_doOverview(): Promise<void> {
-  return await plugins_overview();
+export async function pluginsOverview_display(): Promise<void> {
+  return await salsaPlugins_overview();
 }

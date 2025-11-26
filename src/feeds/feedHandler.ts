@@ -1,3 +1,11 @@
+/**
+ * @file Manages command groups and member operations for ChRIS feeds.
+ *
+ * This module defines the `FeedGroupHandler` and `FeedMemberHandler` classes,
+ * which orchestrate CLI commands for lists of feeds and individual feed operations.
+ *
+ * @module
+ */
 import { Command } from "commander";
 import { BaseGroupHandler } from "../handlers/baseGroupHandler.js";
 import { CLIoptions } from "../utils/cli.js";
@@ -5,12 +13,13 @@ import { SimpleRecord, FilteredResourceData, errorStack } from "@fnndsc/cumin";
 import { table_display } from "../screen/screen.js";
 import { FeedController } from "../controllers/feedController.js";
 import chalk from "chalk";
-import { feeds_doList } from "../commands/feeds/list.js";
-import { feeds_fieldsGet } from "../commands/feeds/fields.js";
-import { feeds_doShare } from "../commands/feeds/share.js"; // Import share command logic
-import { FeedShareOptions } from "@fnndsc/salsa"; // Import FeedShareOptions directly from salsa
-import { feeds_search, feeds_doDelete } from "../commands/feeds/delete.js"; // Import delete command logic
-import { prompt_confirm } from "../utils/ui.js"; // Import prompt_confirm
+import { feeds_fetchList } from "../commands/feeds/list.js";
+import { feedFields_fetch } from "../commands/feeds/fields.js";
+import { feed_shareById } from "../commands/feeds/share.js";
+import { FeedShareOptions } from "@fnndsc/salsa";
+import { feeds_searchByTerm, feed_deleteById } from "../commands/feeds/delete.js";
+import { prompt_confirm } from "../utils/ui.js";
+import { feed_create } from "../commands/feed/create.js";
 
 /**
  * Handles commands related to groups of ChRIS feeds.
@@ -60,7 +69,7 @@ export class FeedGroupHandler {
    */
   async feeds_list(options: CLIoptions): Promise<void> {
     try {
-      const results = await feeds_doList(options);
+      const results = await feeds_fetchList(options);
 
       if (!results) {
         console.error(
@@ -89,7 +98,7 @@ export class FeedGroupHandler {
    */
   async feeds_fields(): Promise<void> {
     try {
-      const fields = await feeds_fieldsGet();
+      const fields = await feedFields_fetch();
       if (fields && fields.length > 0) {
         table_display(fields, ["fields"]);
       } else {
@@ -100,6 +109,12 @@ export class FeedGroupHandler {
     }
   }
 
+  /**
+   * Shares feeds matching a search term.
+   * 
+   * @param searchable - The search term to find feeds.
+   * @param options - Sharing options (e.g. is_public).
+   */
   async feeds_share(searchable: string, options: CLIoptions): Promise<void> {
     const searchParts = searchable.split("++").map((part) => part.trim());
     for (const searchPart of searchParts) {
@@ -111,8 +126,8 @@ export class FeedGroupHandler {
 
       for (const feedId of feedIds) {
         console.log(`Sharing feed ID: ${feedId}...`);
-        const shareOptions: FeedShareOptions = { is_public: options.is_public === true }; // Map CLIoption to FeedShareOptions
-        const success = await feeds_doShare(feedId, shareOptions);
+        const shareOptions: FeedShareOptions = { is_public: options.is_public === true };
+        const success = await feed_shareById(feedId, shareOptions);
         if (success) {
           console.log(`Feed ID ${feedId} shared successfully.`);
         } else {
@@ -130,7 +145,7 @@ export class FeedGroupHandler {
   async feeds_delete(searchable: string, options: CLIoptions): Promise<void> {
     const searchParts = searchable.split("++").map((part) => part.trim());
     for (const searchPart of searchParts) {
-      const items = await feeds_search(searchPart);
+      const items = await feeds_searchByTerm(searchPart);
       if (items.length === 0) {
         console.log(`No feeds found matching: ${searchPart}`);
         continue;
@@ -144,7 +159,7 @@ export class FeedGroupHandler {
            if (!confirmed) continue;
         }
 
-        const success = await feeds_doDelete(item.id);
+        const success = await feed_deleteById(item.id);
         if (success) {
             console.log(`Deleted feed ${item.id}`);
         } else {
@@ -211,8 +226,6 @@ export class FeedGroupHandler {
   }
 }
 
-import { feed_doCreate } from "../commands/feed/create.js";
-
 /**
  * Handles commands related to individual ChRIS feeds.
  */
@@ -258,9 +271,10 @@ export class FeedMemberHandler {
     let feedInfo: SimpleRecord | null;
 
     try {
-      feedInfo = await feed_doCreate(options);
-    } catch (error: any) { // Catch the error thrown by feed_create_do
-      console.error(error.message); // Log the specific error message
+      feedInfo = await feed_create(options);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.error(message); // Log the specific error message
       feedInfo = null;
     }
 

@@ -1,6 +1,15 @@
+/**
+ * @file Implements the logic for adding (registering) new ChRIS plugins.
+ *
+ * This module orchestrates the process of pulling a Docker image, extracting
+ * its plugin representation (JSON), inferring missing metadata, and registering
+ * it with the ChRIS CUBE backend.
+ *
+ * @module
+ */
 import { CLIoptions } from "../../utils/cli.js";
-import { check_docker_availability, run_command_get_stdout } from "../../utils/docker.js";
-import { plugin_register } from "@fnndsc/salsa";
+import { docker_checkAvailability, shellCommand_run } from "../../utils/docker.js";
+import { plugin_register as salsaPlugin_register } from "@fnndsc/salsa";
 import path from "path";
 
 /**
@@ -17,12 +26,12 @@ interface PluginInfo {
 /**
  * Orchestrates the addition of a new plugin: pulls Docker image, extracts metadata, and registers with ChRIS.
  *
- * @param image - The Docker image of the plugin.
- * @param options - CLI options including public_repo and compute environments.
- * @returns A Promise resolving to true on success, false on failure.
+ * @param image - The Docker image tag of the plugin to add.
+ * @param options - CLI options, which may include `public_repo` and `compute` environments.
+ * @returns A Promise resolving to `true` on successful registration, `false` otherwise.
  */
-export async function plugins_add(image: string, options: CLIoptions): Promise<boolean> {
-  if (!await check_docker_availability()) {
+export async function plugin_add(image: string, options: CLIoptions): Promise<boolean> {
+  if (!await docker_checkAvailability()) {
     return false;
   }
 
@@ -31,7 +40,7 @@ export async function plugins_add(image: string, options: CLIoptions): Promise<b
   // 1. Docker Pull
   console.log(`Pulling Docker image: ${image}...`);
   // Suppress verbose output of docker pull for cleaner CLI
-  const pullResult: string | null = await run_command_get_stdout(`docker pull ${image} --quiet`);
+  const pullResult: string | null = await shellCommand_run(`docker pull ${image} --quiet`);
   if (pullResult === null) {
     console.error(`Failed to pull Docker image: ${image}`);
     return false;
@@ -45,12 +54,12 @@ export async function plugins_add(image: string, options: CLIoptions): Promise<b
   const commandOldChrisApp: string = `docker run --rm ${image} --json`;
 
   // Try chris_plugin_info first
-  pluginJsonString = await run_command_get_stdout(commandChrisPluginInfo);
+  pluginJsonString = await shellCommand_run(commandChrisPluginInfo);
 
   if (pluginJsonString === null || pluginJsonString.trim() === "") {
     // If chris_plugin_info failed or returned empty, try --json
     console.log("chris_plugin_info failed or returned empty, trying --json...");
-    pluginJsonString = await run_command_get_stdout(commandOldChrisApp);
+    pluginJsonString = await shellCommand_run(commandOldChrisApp);
   }
 
   if (pluginJsonString === null || pluginJsonString.trim() === "") {
@@ -92,7 +101,7 @@ export async function plugins_add(image: string, options: CLIoptions): Promise<b
   // 4. Register with Salsa
   console.log("Registering plugin with ChRIS CUBE...");
   const computeResources: string[] = options.compute ? options.compute.split(',') : [];
-  const registeredPlugin = await plugin_register(pluginData, computeResources);
+  const registeredPlugin = await salsaPlugin_register(pluginData, computeResources);
 
   if (registeredPlugin) {
     console.log(`Plugin '${registeredPlugin.name}' (ID: ${registeredPlugin.id}) added successfully.`);

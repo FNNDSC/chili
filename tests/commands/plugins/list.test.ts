@@ -1,4 +1,4 @@
-import { plugins_doList } from '../../../src/commands/plugins/list';
+import { plugins_fetchList } from '../../../src/commands/plugins/list';
 import * as salsa from '@fnndsc/salsa';
 import { FilteredResourceData } from '@fnndsc/cumin';
 
@@ -17,7 +17,7 @@ describe('commands/plugins/list', () => {
     (salsa.plugins_list as jest.Mock).mockResolvedValue(mockData);
 
     const options = { page: '5', search: 'name:test' };
-    const result = await plugins_doList(options);
+    const result = await plugins_fetchList(options);
 
     expect(salsa.plugins_list).toHaveBeenCalledWith(expect.objectContaining({
       limit: 5,
@@ -31,7 +31,7 @@ describe('commands/plugins/list', () => {
     (salsa.plugins_list as jest.Mock).mockResolvedValue(null);
 
     const options = {};
-    const result = await plugins_doList(options);
+    const result = await plugins_fetchList(options);
 
     expect(result).toBeNull();
   });

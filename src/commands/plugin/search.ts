@@ -1,11 +1,19 @@
-import { plugins_searchableToIDs } from "@fnndsc/salsa";
+/**
+ * @file Implements the logic for resolving plugin identifiers to IDs.
+ *
+ * This module provides functionality to search for plugins and retrieve
+ * their IDs, often used as a precursor to other operations like `run` or `readme`.
+ *
+ * @module
+ */
+import { plugins_searchableToIDs as salsaPlugins_searchableToIDs } from "@fnndsc/salsa";
 
 /**
- * Core logic for 'plugin search'.
+ * Resolves a search term (name or ID) to a list of matching plugin IDs.
  *
- * @param searchable - The search string.
- * @returns Promise resolving to array of IDs or null.
+ * @param searchable - The search string (e.g., plugin name or "id:123").
+ * @returns A Promise resolving to an array of plugin ID strings, or `null` if none found.
  */
-export async function plugin_search(searchable: string): Promise<string[] | null> {
-  return await plugins_searchableToIDs(searchable);
+export async function pluginIds_resolve(searchable: string): Promise<string[] | null> {
+  return await salsaPlugins_searchableToIDs(searchable);
 }

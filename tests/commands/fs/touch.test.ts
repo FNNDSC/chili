@@ -1,15 +1,13 @@
-import { files_doTouch } from '../../../src/commands/fs/touch';
-import * as salsa from '@fnndsc/salsa';
+import { files_touch } from '../../../src/commands/fs/touch';
+import { files_touch as salsaFiles_touch } from '@fnndsc/salsa';
 
 jest.mock('@fnndsc/salsa');
 
-describe('commands/fs/touch', () => {
-  it('should call salsa.files_touch', async () => {
-    (salsa.files_touch as jest.Mock).mockResolvedValue(true);
-    
-    const result = await files_doTouch('/path/file.txt');
-
-    expect(salsa.files_touch).toHaveBeenCalledWith('/path/file.txt');
+describe('fs touch command', () => {
+  it('should call salsa files_touch', async () => {
+    (salsaFiles_touch as jest.Mock).mockResolvedValue(true);
+    const result = await files_touch('/some/path');
+    expect(salsaFiles_touch).toHaveBeenCalledWith('/some/path');
     expect(result).toBe(true);
   });
 });

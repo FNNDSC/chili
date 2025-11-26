@@ -67,8 +67,8 @@ describe('plugin group commands', () => {
     jest.clearAllMocks();
   });
 
-  it('add command should call plugins_add', async () => {
-    const mockAddDo = jest.spyOn(pluginsAddCmd, 'plugins_add');
+  it('add command should call plugin_add', async () => {
+    const mockAddDo = jest.spyOn(pluginsAddCmd, 'plugin_add');
     mockAddDo.mockResolvedValue(true);
 
     await program.parseAsync([
@@ -87,8 +87,8 @@ describe('plugin group commands', () => {
     }));
   });
 
-  it('list command should call plugins_doList', async () => {
-    const mockListDo = jest.spyOn(pluginsListCmd, 'plugins_doList');
+  it('list command should call plugins_fetchList', async () => {
+    const mockListDo = jest.spyOn(pluginsListCmd, 'plugins_fetchList');
     // Mock return value structure if needed by the handler's display logic
     mockListDo.mockResolvedValue({ tableData: [], selectedFields: [] });
 

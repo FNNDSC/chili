@@ -2,8 +2,20 @@
   "name": "@fnndsc/chili",
   "version": "1.0.1",
   "description": "The ChRIS Interactive Line Agent -- a nodejs CLI REPL for ChRIS",
-  "type": "module",
   "main": "dist/index.js",
+  "type": "module",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/types/index.d.ts",
+      "require": "./dist/index.js"
+    },
+    "./*": {
+      "import": "./dist/*",
+      "types": "./dist/types/*",
+      "require": "./dist/*"
+    }
+  },
   "bin": {
     "chili": "./dist/index.js"
   },

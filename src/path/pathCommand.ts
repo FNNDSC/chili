@@ -15,7 +15,6 @@ import fs from "fs";
 import path from "path";
 import cliProgress from "cli-progress";
 import { table_display, border_draw, TableOptions } from "../screen/screen.js";
-import { FileGroupHandler } from "../filesystem/fileGroupHandler.js";
 import { options_toParams } from "../utils/cli.js";
 import archy from "archy";
 import open from "open";

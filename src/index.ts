@@ -18,7 +18,7 @@ import { pathCommand_setup } from "./path/pathCommand.js";
 import { fileBrowserCommand_setup } from "./filesystem/filesystemHandler.js";
 import { manCommand_setup } from "./man/man.js";
 import { chefsCommand_setup } from "./chefs/chefs.js";
-import { chrisConnection, chrisConnection_init, NodeStorageProvider } from "@fnndsc/cumin";
+import { chrisConnection, chrisConnection_init, NodeStorageProvider, errorStack_getAllOfType } from "@fnndsc/cumin";
 import { FileGroupHandler } from "./filesystem/fileGroupHandler.js";
 import { screen, table_display } from "./screen/screen.js";
 
@@ -127,7 +127,18 @@ async function handlers_initialize() {
     );
     dirsGroupHandler.fileGroupCommand_setup(program);
   } catch (e) {
-    console.log("Note: Not connected to ChRIS. File group commands (files, dirs, links) are unavailable.");
+    const err = e instanceof Error ? e.message : String(e);
+    const errors = errorStack_getAllOfType("error");
+    const warnings = errorStack_getAllOfType("warning");
+    console.log(`Note: File group commands (files, dirs, links) are unavailable. Reason: ${err}`);
+    if (errors.length > 0) {
+        console.log("Errors:");
+        errors.forEach(msg => console.log(`  - ${msg}`));
+    }
+    if (warnings.length > 0) {
+        console.log("Warnings:");
+        warnings.forEach(msg => console.log(`  - ${msg}`));
+    }
   }
 
   try {
@@ -143,7 +154,18 @@ async function handlers_initialize() {
       await PluginContextGroupHandler.handler_create("parametersofplugin");
     pluginParametersHandler.pluginContextGroupCommand_setup(program);
   } catch (e) {
-    console.log("Note: Not connected to ChRIS. Plugin context commands are unavailable.");
+    const err = e instanceof Error ? e.message : String(e);
+    const errors = errorStack_getAllOfType("error");
+    const warnings = errorStack_getAllOfType("warning");
+    console.log(`Note: Plugin context commands are unavailable. Reason: ${err}`);
+    if (errors.length > 0) {
+        console.log("Errors:");
+        errors.forEach(msg => console.log(`  - ${msg}`));
+    }
+    if (warnings.length > 0) {
+        console.log("Warnings:");
+        warnings.forEach(msg => console.log(`  - ${msg}`));
+    }
   }
 
   commandCompletion_setup();

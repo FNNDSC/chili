@@ -1,18 +1,26 @@
+/**
+ * @file Manages command groups and member operations for ChRIS plugins.
+ *
+ * This module defines the `PluginGroupHandler` and `PluginMemberHandler` classes,
+ * which orchestrate CLI commands for lists of plugins and individual plugin operations.
+ *
+ * @module
+ */
 import { Command } from "commander";
 import { BaseGroupHandler } from "../handlers/baseGroupHandler.js";
-import { CLIoptions } from "../utils/cli";
-import { screen, table_display } from "../screen/screen.js";
+import { CLIoptions } from "../utils/cli.js";
+import { table_display } from "../screen/screen.js";
 import { PluginController } from "../controllers/pluginController.js";
 import { Dictionary, errorStack, FilteredResourceData } from "@fnndsc/cumin";
-import { plugins_doList } from "../commands/plugins/list.js";
-import { plugins_fieldsGet } from "../commands/plugins/fields.js";
-import { plugins_search, plugins_doDelete } from "../commands/plugins/delete.js";
+import { plugins_fetchList } from "../commands/plugins/list.js";
+import { pluginFields_fetch } from "../commands/plugins/fields.js";
+import { plugins_searchByTerm, plugin_deleteById } from "../commands/plugins/delete.js";
 import { prompt_confirm } from "../utils/ui.js";
-import { plugins_add } from "../commands/plugins/add.js";
-import { plugins_doOverview } from "../commands/plugins/overview.js";
-import { plugin_doReadme } from "../commands/plugin/readme.js";
-import { plugin_doRun } from "../commands/plugin/run.js";
-import { plugin_search } from "../commands/plugin/search.js";
+import { plugin_add } from "../commands/plugins/add.js";
+import { pluginsOverview_display } from "../commands/plugins/overview.js";
+import { pluginReadme_fetch } from "../commands/plugin/readme.js";
+import { plugin_execute } from "../commands/plugin/run.js";
+import { pluginIds_resolve } from "../commands/plugin/search.js";
 
 /**
  * Handles commands related to groups of ChRIS plugins.
@@ -30,8 +38,11 @@ export class PluginGroupHandler {
     );
   }
 
+  /**
+   * Displays an overview of the plugin system.
+   */
   async plugins_overview(): Promise<void> {
-    await plugins_doOverview();
+    await pluginsOverview_display();
   }
 
   /**
@@ -66,7 +77,7 @@ export class PluginGroupHandler {
    */
   async plugins_list(options: CLIoptions): Promise<void> {
     try {
-      const results = await plugins_doList(options);
+      const results = await plugins_fetchList(options);
 
       if (!results) {
         console.error(
@@ -95,7 +106,7 @@ export class PluginGroupHandler {
    */
   async plugins_fields(): Promise<void> {
     try {
-      const fields = await plugins_fieldsGet();
+      const fields = await pluginFields_fetch();
       if (fields && fields.length > 0) {
         table_display(fields, ["fields"]);
       } else {
@@ -112,7 +123,7 @@ export class PluginGroupHandler {
   async plugins_delete(searchable: string, options: CLIoptions): Promise<void> {
     const searchParts = searchable.split("++").map((part) => part.trim());
     for (const searchPart of searchParts) {
-      const items = await plugins_search(searchPart);
+      const items = await plugins_searchByTerm(searchPart);
       if (items.length === 0) {
         console.log(`No plugins found matching: ${searchPart}`);
         continue;
@@ -127,7 +138,7 @@ export class PluginGroupHandler {
            if (!confirmed) continue;
         }
 
-        const success = await plugins_doDelete(item.id);
+        const success = await plugin_deleteById(item.id);
         if (success) {
             console.log(`Deleted plugin ${item.id}`);
         } else {
@@ -143,7 +154,7 @@ export class PluginGroupHandler {
    * @param options - CLI options including public_repo and compute environments.
    */
   async plugins_add(image: string, options: CLIoptions): Promise<void> {
-    await plugins_add(image, options);
+    await plugin_add(image, options);
   }
 
   /**
@@ -229,10 +240,13 @@ export class PluginMemberHandler {
     this.controller = PluginController.controller_create();
   }
 
+  /**
+   * Fetches and displays the README of a specific plugin.
+   */
   async plugin_readme(pluginId: string): Promise<void> {
     try {
       console.log(`Fetching readme for plugin with ID: ${pluginId}`);
-      const content = await plugin_doReadme(pluginId);
+      const content = await pluginReadme_fetch(pluginId);
       if (content) {
         console.log(content);
       } else {
@@ -247,9 +261,12 @@ export class PluginMemberHandler {
     }
   }
 
-  async plugin_run(searchable: string, params: string): Promise<Number | null> {
+  /**
+   * Runs a plugin instance.
+   */
+  async plugin_run(searchable: string, params: string): Promise<number | null> {
     try {
-      const instance: Dictionary | null = await plugin_doRun(searchable, params);
+      const instance: Dictionary | null = await plugin_execute(searchable, params);
       if (!instance) {
         console.log(errorStack.messagesOfType_search("error", "plugin"));
         return null;
@@ -257,14 +274,18 @@ export class PluginMemberHandler {
 
       table_display(Object.entries(instance), ["Plugin Parameter", "Value"]);
       return instance.id as number;
-    } catch (e: any) {
-      console.error(e.message);
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : String(e);
+      console.error(message);
       return null;
     }
   }
 
+  /**
+   * Resolves a search term to plugin IDs.
+   */
   async plugin_searchableToIDs(searchable: string): Promise<string[] | null> {
-    const hits = await plugin_search(searchable);
+    const hits = await pluginIds_resolve(searchable);
     if (!hits) {
       return null;
     }

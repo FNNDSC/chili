@@ -5,7 +5,7 @@ import { exec } from "child_process";
  * @param command - The command string to execute.
  * @returns A Promise that resolves with { stdout, stderr }.
  */
-export async function exec_promise(command: string): Promise<{ stdout: string; stderr: string }> {
+export async function childProcess_exec(command: string): Promise<{ stdout: string; stderr: string }> {
   return new Promise((resolve, reject) => {
     exec(command, (error, stdout, stderr) => {
       if (error) {
@@ -22,9 +22,9 @@ export async function exec_promise(command: string): Promise<{ stdout: string; s
  * @param command - The command to execute.
  * @returns The stdout of the command, or null if an error occurred.
  */
-export async function run_command_get_stdout(command: string): Promise<string | null> {
+export async function shellCommand_run(command: string): Promise<string | null> {
   try {
-    const { stdout, stderr } = await exec_promise(command);
+    const { stdout, stderr } = await childProcess_exec(command);
     if (stderr) {
       // console.warn(`Command stderr: ${stderr.trim()}`); // Log stderr as warning, not necessarily an error
     }
@@ -40,9 +40,9 @@ export async function run_command_get_stdout(command: string): Promise<string | 
  * Checks if Docker is installed and running.
  * @returns True if Docker is available, false otherwise.
  */
-export async function check_docker_availability(): Promise<boolean> {
+export async function docker_checkAvailability(): Promise<boolean> {
   // Use a simple docker command to check availability
-  const result = await run_command_get_stdout("docker info > /dev/null 2>&1 && echo OK");
+  const result = await shellCommand_run("docker info > /dev/null 2>&1 && echo OK");
   if (result === "OK") {
     return true;
   }

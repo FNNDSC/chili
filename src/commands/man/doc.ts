@@ -1,3 +1,11 @@
+/**
+ * @file Implements the logic for displaying documentation topics.
+ *
+ * This module provides functionality to render and display documentation
+ * pages either in the terminal or a browser.
+ *
+ * @module
+ */
 import fs from "fs";
 import path from "path";
 import { projectDir_get, browser_open, asciidoc_render } from "../../man/renderer.js";
@@ -9,7 +17,13 @@ export interface ManPageOptions {
   width?: number;
 }
 
-export async function manpage_handle(options: ManPageOptions): Promise<void> {
+/**
+ * Displays a documentation page for a specific topic.
+ *
+ * @param options - Options defining the topic, output format (browser vs console), and style.
+ * @returns A Promise resolving to `void`.
+ */
+export async function manPage_display(options: ManPageOptions): Promise<void> {
   const docDir: string = path.join(projectDir_get(), "doc");
   const docPath: string = path.join(docDir, `${options.topic}.adoc`);
 

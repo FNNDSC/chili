@@ -5,8 +5,8 @@ import { CLIoptions } from "../utils/cli.js";
 import {
   files_getGroup,
   files_getSingle,
-  files_share as salsa_files_share,
-  files_view as salsa_files_view,
+  files_share as salsaFiles_share,
+  files_view as salsaFiles_view,
   FileShareOptions
 } from "@fnndsc/salsa";
 
@@ -89,7 +89,7 @@ export class FileController extends BaseController {
       return;
     }
     const shareOptions: FileShareOptions = { ...options }; // Pass all CLI options as share options for now
-    await salsa_files_share(fileId, shareOptions);
+    await salsaFiles_share(fileId, shareOptions);
   }
 
   /**
@@ -104,7 +104,7 @@ export class FileController extends BaseController {
       console.error("Error: fileId is required for viewing.");
       return;
     }
-    const content = await salsa_files_view(fileId);
+    const content = await salsaFiles_view(fileId);
     if (content) {
         console.log(content.toString());
     }

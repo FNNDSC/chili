@@ -6,8 +6,8 @@ import {
 import { BaseController } from "./baseController.js";
 import { CLIoptions } from "../utils/cli.js";
 import {
-  plugin_run as salsa_plugin_run,
-  plugins_searchableToIDs as salsa_plugins_searchableToIDs,
+  plugin_run as salsaPlugin_run,
+  plugins_searchableToIDs as salsaPlugins_searchableToIDs,
 } from "@fnndsc/salsa";
 
 /**
@@ -64,7 +64,7 @@ export class PluginController extends BaseController {
       console.error("Error parsing plugin parameters:", e);
       return null;
     }
-    return await salsa_plugin_run(searchable, parsedParams);
+    return await salsaPlugin_run(searchable, parsedParams);
   }
 
   /**
@@ -74,6 +74,6 @@ export class PluginController extends BaseController {
    * @returns A Promise resolving to an array of IDs or null.
    */
   async plugin_searchableToIDs(searchable: string): Promise<string[] | null> {
-    return await salsa_plugins_searchableToIDs(searchable);
+    return await salsaPlugins_searchableToIDs(searchable);
   }
 }

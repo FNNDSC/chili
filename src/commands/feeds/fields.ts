@@ -1,10 +1,18 @@
-import { feeds_fields_get } from "@fnndsc/salsa";
+/**
+ * @file Implements the logic for retrieving available fields for ChRIS feeds.
+ *
+ * This module provides functionality to fetch the list of valid fields
+ * that can be displayed or queried for feeds.
+ *
+ * @module
+ */
+import { feedFields_get as salsaFeedFields_get } from "@fnndsc/salsa";
 
 /**
- * Core logic for 'feeds fieldslist'.
+ * Fetches the list of available fields for feeds.
  *
- * @returns Promise resolving to string[] of fields or null.
+ * @returns A Promise resolving to an array of field names, or `null` if retrieval fails.
  */
-export async function feeds_fieldsGet(): Promise<string[] | null> {
-  return await feeds_fields_get();
+export async function feedFields_fetch(): Promise<string[] | null> {
+  return await salsaFeedFields_get();
 }

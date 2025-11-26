@@ -1,6 +1,14 @@
+/**
+ * @file Implements the setup for manual/documentation CLI commands.
+ *
+ * This module provides the `manCommand_setup` function which configures
+ * the `man` command group in the main CLI program.
+ *
+ * @module
+ */
 import { Command } from "commander";
 import { topics_list } from "../commands/man/topics.js";
-import { manpage_handle, ManPageOptions } from "../commands/man/doc.js";
+import { manPage_display, ManPageOptions } from "../commands/man/doc.js";
 
 /**
  * Sets up the 'man' command for displaying ChILI manual and help pages.
@@ -20,7 +28,7 @@ export function manCommand_setup(program: Command): void {
     .option("--width <N>", "Number of columns in the text response", parseInt)
     .action(async (topic, options: ManPageOptions) => {
       options.topic = topic;
-      await manpage_handle(options);
+      await manPage_display(options);
     });
 
   manCommand

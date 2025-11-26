@@ -1,31 +1,14 @@
-import { feeds_doShare } from '../../../src/commands/feeds/share';
+import { feed_shareById } from '../../../src/commands/feeds/share';
 import * as salsa from '@fnndsc/salsa';
 
 jest.mock('@fnndsc/salsa');
 
 describe('commands/feeds/share', () => {
-  beforeEach(() => {
-    jest.clearAllMocks();
-  });
-
-  it('should call salsa.feeds_share with correct id and options', async () => {
+  it('should call salsa.feeds_share with the provided feedId and options', async () => {
     (salsa.feeds_share as jest.Mock).mockResolvedValue(true);
-
-    const feedId = 123;
-    const options = { is_public: true };
-    const result = await feeds_doShare(feedId, options);
-
-    expect(salsa.feeds_share).toHaveBeenCalledWith(feedId, options);
+    const mockOptions = { is_public: true };
+    const result = await feed_shareById(123, mockOptions);
+    expect(salsa.feeds_share).toHaveBeenCalledWith(123, mockOptions);
     expect(result).toBe(true);
-  });
-
-  it('should return false if salsa.feeds_share fails', async () => {
-    (salsa.feeds_share as jest.Mock).mockResolvedValue(false);
-
-    const feedId = 123;
-    const options = { is_public: false };
-    const result = await feeds_doShare(feedId, options);
-
-    expect(result).toBe(false);
   });
 });

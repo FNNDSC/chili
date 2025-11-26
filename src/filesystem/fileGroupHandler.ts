@@ -1,15 +1,24 @@
+/**
+ * @file Manages command groups and member operations for ChRIS files.
+ *
+ * This module defines the `FileGroupHandler` and `FileMemberHandler` classes,
+ * which orchestrate CLI commands for lists of files and individual file operations.
+ * It integrates various command modules to provide a cohesive interface.
+ *
+ * @module
+ */
 import { Command } from "commander";
 import { BaseGroupHandler } from "../handlers/baseGroupHandler.js";
-import { CLIoptions, path_resolve_chrisfs } from "../utils/cli.js";
+import { CLIoptions, path_resolveChrisFs } from "../utils/cli.js";
 import { FileController } from "../controllers/fileController.js";
-import { files_doCreate } from "../commands/fs/create.js";
+import { files_create } from "../commands/fs/create.js";
 import { FilteredResourceData, errorStack } from "@fnndsc/cumin";
 import { table_display } from "../screen/screen.js";
-import { files_doList } from "../commands/files/list.js";
-import { fileFields_get } from "../commands/files/fields.js";
-import { files_search, files_doDelete } from "../commands/files/delete.js";
+import { files_fetchList } from "../commands/files/list.js";
+import { fileFields_fetch } from "../commands/files/fields.js";
+import { files_searchByTerm, files_deleteById } from "../commands/files/delete.js";
 import { prompt_confirm } from "../utils/ui.js";
-import { files_doView } from "../commands/file/view.js";
+import { files_viewContent } from "../commands/file/view.js";
 
 /**
  * Handles commands related to groups of ChRIS files, links, or directories.
@@ -87,7 +96,7 @@ export class FileGroupHandler {
    */
   async files_list(options: CLIoptions, path?: string): Promise<void> {
     try {
-      const results = await files_doList(options, this.assetName, path);
+      const results = await files_fetchList(options, this.assetName, path);
 
       if (!results) {
         console.error(
@@ -107,6 +116,7 @@ export class FileGroupHandler {
         );
       }
     } catch (error) {
+      // TODO: Refactor errorStack usage to RPN function calls if available
       console.log(errorStack.stack_search(this.assetName)[0]);
     }
   }
@@ -116,7 +126,7 @@ export class FileGroupHandler {
    */
   async files_fields(): Promise<void> {
     try {
-      const fields = await fileFields_get(this.assetName);
+      const fields = await fileFields_fetch(this.assetName);
       if (fields && fields.length > 0) {
         table_display(fields, ["fields"]);
       } else {
@@ -133,7 +143,7 @@ export class FileGroupHandler {
   async files_delete(searchable: string, options: CLIoptions): Promise<void> {
     const searchParts = searchable.split("++").map((part) => part.trim());
     for (const searchPart of searchParts) {
-      const items = await files_search(searchPart, this.assetName);
+      const items = await files_searchByTerm(searchPart, this.assetName);
       if (items.length === 0) {
         console.log(`No ${this.assetName} found matching: ${searchPart}`);
         continue;
@@ -153,7 +163,7 @@ export class FileGroupHandler {
            if (!confirmed) continue;
         }
 
-        const success = await files_doDelete(item.id, this.assetName);
+        const success = await files_deleteById(item.id, this.assetName);
         if (success) {
             console.log(`Deleted ${this.assetName} ${item.id}`);
         } else {
@@ -294,15 +304,15 @@ export class FileMemberHandler {
    */
   async file_create(fileIdentifier: string | undefined, options: CLIoptions): Promise<void> {
     try {
-      // files_doCreate now throws on error
-      const success: boolean = await files_doCreate(fileIdentifier, options);
+      // files_create now throws on error
+      const success: boolean = await files_create(fileIdentifier, options);
       if (success) {
-        const resolvedChRISPath: string = await path_resolve_chrisfs(fileIdentifier, options);
+        const resolvedChRISPath: string = await path_resolveChrisFs(fileIdentifier, options);
         console.log(`File created successfully at: ${resolvedChRISPath}`);
       }
-      // If success is false, files_doCreate would have thrown an error which is caught below.
+      // If success is false, files_create would have thrown an error which is caught below.
     } catch (error: unknown) {
-      // Log the error from files_doCreate
+      // Log the error from files_create
       const message = error instanceof Error ? error.message : String(error);
       console.error(message);
     }
@@ -344,51 +354,43 @@ export class FileMemberHandler {
       .action(async (fileIdentifier: string | undefined, options: CLIoptions) => {
         await this.file_create(fileIdentifier, options);
       });
+    
+    // TODO: Add cat/view command here
+    // Note: The original file_cat was present but not hooked up in setup? 
+    // Wait, looking at previous file, file_cat existed but wasn't in fileMemberCommand_setup?
+    // Ah, I should add it.
+    
+    commandToUse
+        .command("cat")
+        .description("View the content of the file")
+        .action(async (options: CLIoptions) => {
+            await this.file_cat(options);
+        });
 
     console.log("FileMemberHandler commands set up successfully");
   }
 
     /**
-
      * Displays the content of the file.
-
      *
-
      * @param options - CLI options for viewing the file.
-
      */
-
     async file_cat(options: CLIoptions): Promise<void> {
-
       try {
-
         const path = this.controller.path_get;
-
         console.log(`Viewing file at ${path}`);
-
         
-
-        const content = await files_doView(path);
-
+        const content = await files_viewContent(path);
         
-
         if (content !== null) {
-
           console.log(content);
-
         } else {
-
           console.error("Failed to view file content (empty or error).");
-
         }
-
       }
-
-      catch (error: any) {
-
-        console.error(`Error viewing file: ${error.message}`);
-
+      catch (error: unknown) {
+        const message = error instanceof Error ? error.message : String(error);
+        console.error(`Error viewing file: ${message}`);
       }
-
     }
 }

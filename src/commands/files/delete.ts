@@ -1,4 +1,12 @@
-import { files_list, files_delete } from "@fnndsc/salsa";
+/**
+ * @file Implements the logic for searching and deleting ChRIS file resources.
+ *
+ * This module provides functionality to search for files by term and delete them
+ * by ID, utilizing the `@fnndsc/salsa` library.
+ *
+ * @module
+ */
+import { files_list as salsaFiles_list, files_delete as salsaFiles_delete } from "@fnndsc/salsa";
 import { FilteredResourceData } from "@fnndsc/cumin";
 import { CLIoptions, options_toParams } from "../../utils/cli.js";
 
@@ -7,12 +15,12 @@ import { CLIoptions, options_toParams } from "../../utils/cli.js";
  *
  * @param searchable - The search string.
  * @param assetName - The asset name ('files', 'links', 'dirs').
- * @returns A Promise resolving to an array of file items.
+ * @returns A Promise resolving to an array of file items (table data).
  */
-export async function files_search(searchable: string, assetName: string): Promise<any[]> {
+export async function files_searchByTerm(searchable: string, assetName: string): Promise<Record<string, any>[]> {
   const options: CLIoptions = { search: searchable };
-  const params = options_toParams(options);
-  const results: FilteredResourceData | null = await files_list(params, assetName);
+  const params: Record<string, string | number | boolean> = options_toParams(options);
+  const results: FilteredResourceData | null = await salsaFiles_list(params, assetName);
 
   if (!results || !results.tableData) {
     return [];
@@ -21,12 +29,12 @@ export async function files_search(searchable: string, assetName: string): Promi
 }
 
 /**
- * Deletes a file by ID.
+ * Deletes a file resource by its ID.
  *
- * @param id - The file ID.
- * @param assetName - The asset name.
- * @returns A Promise resolving to true on success.
+ * @param id - The ID of the file/resource to delete.
+ * @param assetName - The asset name ('files', 'links', 'dirs').
+ * @returns A Promise resolving to `true` on success, `false` otherwise.
  */
-export async function files_doDelete(id: number, assetName: string): Promise<boolean> {
-  return await files_delete(id, assetName);
+export async function files_deleteById(id: number, assetName: string): Promise<boolean> {
+  return await salsaFiles_delete(id, assetName);
 }

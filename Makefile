@@ -56,7 +56,8 @@ shop-cumin:
 		echo "🛒 Shopping for cumin..."; \
 		git clone $(CUMIN_REPO) $(CUMIN_DIR); \
 	else \
-		echo "✅ Cumin is already in the pantry."; \
+		echo "🔄 Updating cumin..."; \
+		(cd $(CUMIN_DIR) && git pull) || echo "⚠️ Failed to update cumin. Please resolve manually."; \
 	fi
 
 shop-salsa:
@@ -64,7 +65,8 @@ shop-salsa:
 		echo "🛒 Shopping for salsa..."; \
 		git clone $(SALSA_REPO) $(SALSA_DIR); \
 	else \
-		echo "✅ Salsa is already in the pantry."; \
+		echo "🔄 Updating salsa..."; \
+		(cd $(SALSA_DIR) && git pull) || echo "⚠️ Failed to update salsa. Please resolve manually."; \
 	fi
 
 # --- Prep (Install Dependencies) ---
@@ -128,8 +130,18 @@ serve:
 
 scrub:
 	@echo "🧽 Scrubbing the kitchen..."
-	cd $(CUMIN_DIR) && rm -rf dist types node_modules package-lock.json
-	cd $(SALSA_DIR) && rm -rf dist types node_modules package-lock.json
+	@if [ -d "$(CUMIN_DIR)" ]; then \
+		echo "  - Scrubbing cumin..."; \
+		cd $(CUMIN_DIR) && rm -rf dist types node_modules package-lock.json; \
+	else \
+		echo "  - Cumin dir not found, skipping scrub."; \
+	fi
+	@if [ -d "$(SALSA_DIR)" ]; then \
+		echo "  - Scrubbing salsa..."; \
+		cd $(SALSA_DIR) && rm -rf dist types node_modules package-lock.json; \
+	else \
+		echo "  - Salsa dir not found, skipping scrub."; \
+	fi
 	cd $(CHILI_DIR) && rm -rf dist types node_modules package-lock.json
 	@echo "✨ Kitchen is clean."
 

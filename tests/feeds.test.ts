@@ -17,7 +17,7 @@ describe('feed create command', () => {
     jest.clearAllMocks();
   });
 
-  it('should call feed_create_do with correct options', async () => {
+  it('should call feed_create with correct options', async () => {
     const mockFeedInfo: SimpleRecord = {
       pluginInstance: { data: { id: 100 } },
       id: 200,
@@ -25,7 +25,7 @@ describe('feed create command', () => {
       owner_username: 'testuser',
       // Mock other necessary properties if SimpleRecord expects them
     };
-    const mockFeedCreateDo = jest.spyOn(feedCreateCmd, 'feed_doCreate');
+    const mockFeedCreateDo = jest.spyOn(feedCreateCmd, 'feed_create');
     mockFeedCreateDo.mockResolvedValue(mockFeedInfo);
 
     const dirs = '/path/to/data';

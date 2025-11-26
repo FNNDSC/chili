@@ -40,7 +40,7 @@ export function options_toParams(
  * @param options - CLI options including optional `path` (base directory) and `name` (explicit filename).
  * @returns The fully resolved absolute ChRIS path.
  */
-export async function path_resolve_chrisfs(
+export async function path_resolveChrisFs(
   fileIdentifier: string | undefined,
   options: { path?: string; name?: string }
 ): Promise<string> {
@@ -72,6 +72,6 @@ export async function path_resolve_chrisfs(
     throw new Error("Cannot resolve file path: no filename or path fragment provided.");
   }
 
-  const resolvedPath = path.join(baseDir, pathFragment);
+  const resolvedPath = path.posix.join(baseDir, pathFragment);
   return resolvedPath.replace(/\/\//g, '/'); // Final normalization
 }
