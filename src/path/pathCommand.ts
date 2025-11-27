@@ -976,7 +976,7 @@ async function upload_handle(options: TransferCLI): Promise<boolean> { // Rename
  * @param bytes - The number of bytes.
  * @returns A formatted string (e.g., "1.23 MB").
  */
-function bytes_format(bytes: number): string {
+export function bytes_format(bytes: number): string {
   if (bytes === 0) return "0 B";
   const k = 1024;
   const sizes = ["B", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"];

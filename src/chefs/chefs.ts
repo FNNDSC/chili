@@ -12,6 +12,8 @@ import chalk from "chalk";
 import { files_list, LsOptions, ResourceItem } from '../commands/fs/ls.js';
 import { files_mkdir } from '../commands/fs/mkdir.js';
 import { files_touch } from '../commands/fs/touch.js';
+import { files_content } from '@fnndsc/salsa';
+import { path_resolveChrisFs } from '../utils/cli.js';
 
 /**
  * Formats a resource item for display (color coding).
@@ -131,6 +133,21 @@ async function pwd(): Promise<void> {
 }
 
 /**
+ * Displays file content.
+ *
+ * @param filePath - The path of the file to read.
+ */
+async function cat(filePath: string): Promise<void> {
+  const resolved = await path_resolveChrisFs(filePath, {});
+  const content = await files_content(resolved);
+  if (content !== null) {
+    console.log(content);
+  } else {
+    console.error(`File not found or empty: ${filePath}`);
+  }
+}
+
+/**
  * Sets up the 'chefs' command group in Commander.
  *
  * @param program - The Commander program instance.
@@ -145,6 +162,13 @@ export function chefsCommand_setup(program: Command): void {
     .description("List filesystem elements (files, dirs, links)")
     .action(async (path, options) => {
       await ls(options, path || "");
+    });
+
+  chefsCommand
+    .command("cat <path>")
+    .description("Display file content")
+    .action(async (path) => {
+      await cat(path);
     });
 
   chefsCommand
