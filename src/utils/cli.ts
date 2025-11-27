@@ -11,6 +11,7 @@ export interface CLIoptions {
   fromFile?: string; // New option for file create
   path?: string; // New option for explicit base path
   name?: string; // New option for explicit filename
+  all?: boolean; // New option for listing all items
   [key: string]: any;
 }
 

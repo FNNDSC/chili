@@ -172,6 +172,7 @@ export class PluginGroupHandler {
       .command("list")
       .description(`list ${this.assetName}`)
       .option("-p, --page <size>", "Page size (default 20)")
+      .option("-a, --all", "List all plugins (disable pagination)")
       .option(
         "-f, --fields <fields>",
         `comma-separated list of ${this.assetName} fields to display`

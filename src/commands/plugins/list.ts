@@ -6,7 +6,10 @@
  *
  * @module
  */
-import { plugins_list as salsaPlugins_list } from "@fnndsc/salsa";
+import { 
+  plugins_list as salsaPlugins_list,
+  plugins_listAll as salsaPlugins_listAll 
+} from "@fnndsc/salsa";
 import { FilteredResourceData } from "@fnndsc/cumin";
 import { CLIoptions, options_toParams } from "../../utils/cli.js";
 
@@ -18,5 +21,12 @@ import { CLIoptions, options_toParams } from "../../utils/cli.js";
  */
 export async function plugins_fetchList(options: CLIoptions): Promise<FilteredResourceData | null> {
   const params: Record<string, string | number | boolean> = options_toParams(options);
+  
+  if (options.all) {
+    // If 'all' is requested, use listAll which handles pagination internally.
+    // We cast params to any because listAll expects ListOptions but options_toParams returns Record
+    return await salsaPlugins_listAll(params as any);
+  }
+  
   return await salsaPlugins_list(params);
 }
