@@ -12,21 +12,27 @@ import {
 } from "@fnndsc/salsa";
 import { FilteredResourceData } from "@fnndsc/cumin";
 import { CLIoptions, options_toParams } from "../../utils/cli.js";
+import { Plugin } from "../../models/plugin.js";
 
 /**
  * Fetches a list of ChRIS plugins based on options.
  *
  * @param options - CLI options containing filtering/pagination parameters.
- * @returns A Promise resolving to `FilteredResourceData` or `null`.
+ * @returns A Promise resolving to an array of Plugin objects.
  */
-export async function plugins_fetchList(options: CLIoptions): Promise<FilteredResourceData | null> {
+export async function plugins_fetchList(options: CLIoptions): Promise<Plugin[]> {
   const params: Record<string, string | number | boolean> = options_toParams(options);
   
+  let result: FilteredResourceData | null;
+
   if (options.all) {
-    // If 'all' is requested, use listAll which handles pagination internally.
-    // We cast params to any because listAll expects ListOptions but options_toParams returns Record
-    return await salsaPlugins_listAll(params as any);
+    result = await salsaPlugins_listAll(params as any);
+  } else {
+    result = await salsaPlugins_list(params);
   }
-  
-  return await salsaPlugins_list(params);
+
+  if (result && result.tableData) {
+    return result.tableData as unknown as Plugin[];
+  }
+  return [];
 }

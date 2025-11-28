@@ -8,40 +8,15 @@
  */
 import { Command } from "commander";
 import { chrisContext, Context } from "@fnndsc/cumin";
-import chalk from "chalk";
-import { files_list, LsOptions, ResourceItem } from '../commands/fs/ls.js';
+import { files_list, LsOptions } from '../commands/fs/ls.js';
+import { ListingItem } from '../models/listing.js';
+import { renderGrid, renderLong } from '../views/ls.js';
 import { files_mkdir } from '../commands/fs/mkdir.js';
 import { files_touch } from '../commands/fs/touch.js';
-import { files_content } from '@fnndsc/salsa';
+import { files_upload } from '../commands/fs/upload.js';
+import { files_cat } from '../commands/fs/cat.js';
+import { renderMkdir, renderTouch, renderUpload, renderCat } from '../views/fs.js';
 import { path_resolveChrisFs } from '../utils/cli.js';
-
-/**
- * Formats a resource item for display (color coding).
- *
- * @param item - The resource item to format.
- * @returns The formatted name string.
- */
-function item_format(item: ResourceItem): string {
-  switch (item.type) {
-    case 'dir':
-      return chalk.blue.bold(item.name);
-    case 'link':
-      return chalk.cyan(item.name);
-    case 'file':
-    default:
-      return item.name;
-  }
-}
-
-/**
- * Calculates the visible length of a string, stripping ANSI codes.
- *
- * @param str - The string to measure.
- * @returns The visible length.
- */
-function visibleLength_get(str: string): number {
-  return str.replace(/\u001b\[[0-9;]*m/g, "").length;
-}
 
 /**
  * Lists directory contents.
@@ -50,36 +25,17 @@ function visibleLength_get(str: string): number {
  * @param pathStr - The path to list.
  */
 async function ls(options: LsOptions, pathStr: string = ""): Promise<void> {
-  const items: ResourceItem[] = await files_list(options, pathStr); // Call the core logic
+  const items: ListingItem[] = await files_list(options, pathStr); // Call the core logic
 
   if (items.length === 0) {
       return; 
   }
 
-  const formattedItems = items.map(item_format);
-  
-  const termWidth = process.stdout.columns || 80;
-  const padding = 2; 
-  
-  const maxLen = Math.max(...items.map(i => i.name.length));
-  const colWidth = maxLen + padding;
-  
-  const cols = Math.max(1, Math.floor(termWidth / colWidth));
-  
-  let output = "";
-  for (let i = 0; i < formattedItems.length; i++) {
-    const item = formattedItems[i];
-    const visibleLen = visibleLength_get(item);
-    const padLen = colWidth - visibleLen;
-    
-    output += item + " ".repeat(padLen);
-    
-    if ((i + 1) % cols === 0) {
-      output += "\n";
-    }
+  if (options.long) {
+    console.log(renderLong(items, { human: !!options.human }));
+  } else {
+    console.log(renderGrid(items));
   }
-  
-  console.log(output);
 }
 
 /**
@@ -88,12 +44,8 @@ async function ls(options: LsOptions, pathStr: string = ""): Promise<void> {
  * @param dirPath - The path of the directory to create.
  */
 async function mkdir(dirPath: string): Promise<void> {
-  const success = await files_mkdir(dirPath); // Use the new doer function
-  if (success) {
-    console.log(`Created directory: ${dirPath}`);
-  } else {
-    console.error(`Failed to create directory: ${dirPath}`);
-  }
+  const success: boolean = await files_mkdir(dirPath);
+  console.log(renderMkdir(dirPath, success));
 }
 
 /**
@@ -102,12 +54,20 @@ async function mkdir(dirPath: string): Promise<void> {
  * @param filePath - The path of the file to create.
  */
 async function touch(filePath: string): Promise<void> {
-  const success = await files_touch(filePath); // Use the new doer function
-  if (success) {
-    console.log(`Created ${filePath}`);
-  } else {
-    console.error(`Failed to touch ${filePath}`);
-  }
+  const success: boolean = await files_touch(filePath);
+  console.log(renderTouch(filePath, success));
+}
+
+/**
+ * Uploads a local file or directory to ChRIS.
+ * 
+ * @param localPath - Local path.
+ * @param remotePath - Remote ChRIS path.
+ */
+async function upload(localPath: string, remotePath: string): Promise<void> {
+  console.log(`Uploading ${localPath} to ${remotePath}...`);
+  const success: boolean = await files_upload(localPath, remotePath);
+  console.log(renderUpload(localPath, remotePath, success));
 }
 
 /**
@@ -128,7 +88,7 @@ async function cd(path?: string): Promise<void> {
  * Prints the current working directory.
  */
 async function pwd(): Promise<void> {
-  const current = await chrisContext.current_get(Context.ChRISfolder);
+  const current: string | null = await chrisContext.current_get(Context.ChRISfolder);
   console.log(current || "/");
 }
 
@@ -138,13 +98,8 @@ async function pwd(): Promise<void> {
  * @param filePath - The path of the file to read.
  */
 async function cat(filePath: string): Promise<void> {
-  const resolved = await path_resolveChrisFs(filePath, {});
-  const content = await files_content(resolved);
-  if (content !== null) {
-    console.log(content);
-  } else {
-    console.error(`File not found or empty: ${filePath}`);
-  }
+  const content: string | null = await files_cat(filePath);
+  console.log(renderCat(content, filePath));
 }
 
 /**
@@ -160,35 +115,44 @@ export function chefsCommand_setup(program: Command): void {
   chefsCommand
     .command("ls [path]")
     .description("List filesystem elements (files, dirs, links)")
-    .action(async (path, options) => {
+    .option("-l, --long", "Long listing format")
+    .option("-h, --human", "Human readable sizes")
+    .action(async (path: string | undefined, options: LsOptions) => {
       await ls(options, path || "");
     });
 
   chefsCommand
     .command("cat <path>")
     .description("Display file content")
-    .action(async (path) => {
+    .action(async (path: string) => {
       await cat(path);
     });
 
   chefsCommand
     .command("mkdir <path>")
     .description("Create a new folder")
-    .action(async (path) => {
+    .action(async (path: string) => {
       await mkdir(path);
     });
 
   chefsCommand
     .command("touch <path>")
     .description("Create an empty file")
-    .action(async (path) => {
+    .action(async (path: string) => {
       await touch(path);
+    });
+
+  chefsCommand
+    .command("upload <local> <remote>")
+    .description("Upload a local file or directory to ChRIS")
+    .action(async (local: string, remote: string) => {
+      await upload(local, remote);
     });
 
   chefsCommand
     .command("cd [path]")
     .description("Change current working directory")
-    .action(async (path) => {
+    .action(async (path: string | undefined) => {
       await cd(path);
     });
 

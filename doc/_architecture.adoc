@@ -2,17 +2,13 @@
 
 == Introduction
 
-The ChUI (ChRIS User Interface) codebase, encompassing `chili`, `salsa`, and `cumin`, has been refactored into a layered architecture. The primary goal of this redesign is to decouple the business logic from the presentation layer, enabling the core logic to be reused across multiple frontends.
-
-The immediate drivers for this change were:
-1.  To support the creation of the `chell` interactive shell.
-2.  To improve modularity, testability, and maintainability of the `chili` CLI.
+The ChUI (ChRIS User Interface) codebase, encompassing `chili`, `salsa`, and `cumin`, follows a strict layered "Sandwich" architecture. This design decouples business logic from presentation, enabling the core functionality to be consumed by multiple frontends—specifically the `chili` CLI and the `chell` interactive shell.
 
 == Core Principles
 
-. **Separation of Concerns:** Each layer has a distinct and well-defined responsibility.
-. **Modularity and Reusability:** The core business logic is packaged as a standalone library (`salsa`) that any application can consume.
-. **Explicit over Implicit:** Each resource's functionality is implemented explicitly to avoid the fragile, generic handlers of the previous design.
+. **Single Source of Truth:** `chili` commands serve as the definitive implementation for app-level logic.
+. **Separation of Concerns:** Logic (`salsa`), Control (`chili commands`), and Presentation (`chili views`) are distinct.
+. **Pervasive Typing:** Data exchange between layers is governed by strict TypeScript interfaces (Models).
 
 == The Layered "Sandwich" Model
 
@@ -22,34 +18,31 @@ The architecture is composed of three primary layers:
 |===
 | Layer | Responsibility
 
-| *`chili`* (Presentation)
-| The user-facing application, in this case, the command-line interface. It is responsible for parsing user input, calling the business logic layer, and formatting the returned data for display on the console.
+| *`chili`* (Controller & View)
+| The top layer is split into sub-layers:
+  * **Commands (`commands/`)**: Headless controllers that call `salsa` and return strictly typed **Models**. They are UI-agnostic and consumable by `chell`.
+  * **Views (`views/`)**: Pure functions that accept Models and return formatted strings/tables.
+  * **Handlers (`handlers/` & `chefs/`)**: The CLI entry points. They parse arguments, invoke Commands, and pass the results to Views.
+  * **Models (`models/`)**: TypeScript interfaces (`src/models/`) defining the data structures exchanged between layers.
 
 | *`salsa`* (Business Logic)
-| The core, reusable library of commands. It contains the "how" for every action (e.g., how to list feeds, how to delete a plugin). This layer is *UI-agnostic*—it returns pure data (objects, arrays, booleans) and knows nothing about the CLI, tables, or colors.
+| The core, reusable library of "Intents". It contains the "how" for every action (e.g., `feed_create`, `files_uploadPath`). This layer wraps `cumin` and returns raw data or success status.
 
-| *`cumin`* (State & API)
-| The lowest-level library that manages state and direct communication with the _ChRIS_ API. It handles authentication, token management, and wrapping `chrisapi` calls.
+| *`cumin`* (Infrastructure)
+| The lowest-level library that manages state, connectivity, and raw I/O. It provides `IStorageProvider` abstractions for filesystem access (Node vs Browser) and `ChrisIO` for recursive operations.
 |===
 
-A typical data flow for `chili files list` looks like this:
+== Data Flow Example: `ls`
 
-....
-1. A user runs the command.
-2. `chili`'s main `index.ts` and `commander.js` setup parse the command.
-3. The corresponding `Handler` (e.g., `FileGroupHandler`) is invoked.
-4. The handler calls the specific command wrapper (e.g., `files_list_do` from `chili/src/commands/files/list.ts`).
-5. The command wrapper calls the pure business logic function in the `salsa` library (e.g., `salsa.files_list`).
-6. `salsa` uses helpers from `cumin` to interact with the _ChRIS_ API.
-7. Data is returned up the chain. `FileGroupHandler` receives the pure data and renders it in a table for the user.
-....
+When a user runs `ls` (in CLI or Shell):
 
-== Justification for Apparent Repetition
+1.  **CLI/Shell**: Calls `chili/commands/fs/ls.ts`.
+2.  **Command**: Calls `salsa/files/index.ts` (`files_listAll`).
+3.  **Salsa**: Calls `cumin` to fetch data from CUBE.
+4.  **Salsa**: Returns raw data to Command.
+5.  **Command**: Maps raw data to `ListingItem[]` Model. Returns Model.
+6.  **CLI/Shell**: Passes `ListingItem[]` to `chili/views/ls.ts` (`renderGrid` or `renderLong`).
+7.  **View**: Returns formatted string.
+8.  **CLI/Shell**: Prints string to stdout.
 
-The new model defines functions like `plugins_list`, `feeds_list`, and `files_list` separately within `salsa`. While this appears repetitive, it is a deliberate design choice.
-
-The previous architecture used a single generic handler that implicitly assumed all resources behaved identically. This was brittle and difficult to maintain. The new explicit approach provides:
-
-* **Decoupling:** The logic for a `feed` is now completely independent of the logic for a `plugin`. A change to one will not accidentally break the other.
-* **Clarity:** A developer can look at `salsa/src/feeds/index.ts` and immediately understand how feed operations are implemented, without needing to decipher a complex, generic handler.
-* **True Reusability:** By separating the core logic into `salsa`, we create a truly reusable library that the `chell` shell and other future tools can depend on, which was the primary goal of this refactoring effort.
+This ensures `chell` and `chili` behave identically.

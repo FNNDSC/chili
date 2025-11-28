@@ -7,87 +7,69 @@
  *
  * @module
  */
-import { files_getGroup } from "@fnndsc/salsa";
-import { FilteredResourceData, ListOptions, params_fromOptions } from "@fnndsc/cumin";
+import { files_listAll } from "@fnndsc/salsa";
 import { path_resolveChrisFs } from "../../utils/cli.js";
+import { ListingItem } from "../../models/listing.js";
+import { ChrisFileOrDirRaw } from "../../models/resource.js";
 
 export interface LsOptions {
   path?: string;
   [key: string]: string | undefined;
 }
 
-export interface ResourceItem {
-  name: string;
-  type: 'dir' | 'file' | 'link';
-}
-
-/**
- * Fetches resources from a specified group (dirs, files, or links) and pushes
- * them into a list of `ResourceItem`s.
- *
- * This helper function abstracts the logic for retrieving resource data
- * using `files_getGroup` and processing it into a standardized format.
- *
- * @param assetName - The type of asset to fetch ('dirs', 'files', or 'links').
- * @param path - The path within the ChRIS file system to fetch resources from.
- * @param items - The array to which the fetched `ResourceItem`s will be pushed.
- * @returns A Promise that resolves once the resources have been fetched and processed.
- */
-async function resourceItems_fetchAndPush(
-  assetName: 'dirs' | 'files' | 'links',
-  path: string,
-  items: ResourceItem[]
-): Promise<void> {
-  const group = await files_getGroup(assetName, path);
-  if (group) {
-    const params: ListOptions = params_fromOptions({ limit: 100, offset: 0 }); // Hardcoded limit for ls, can be an option
-    
-    // Explicitly type the expected structure of tableData items
-    interface TableDataItem {
-      fname?: string;
-      path?: string;
-      [key: string]: any; // Allow for other properties
-    }
-
-    const results: FilteredResourceData | null = await group.asset.resources_listAndFilterByOptions(params);
-    if (results && results.tableData) {
-       results.tableData.forEach((item: TableDataItem) => {
-           let name: string = item.fname || item.path || "";
-           if (name.includes('/')) {
-               name = name.split('/').pop() || name;
-           }
-           
-           let type: 'dir' | 'file' | 'link' = 'file';
-           if (assetName === 'dirs') {
-             type = 'dir';
-           } else if (assetName === 'links') {
-             type = 'link';
-           }
-           
-           items.push({ name, type });
-       });
-    }
-  }
-}
-
 /**
  * Core logic for the 'ls' command, returning structured data.
- * This function does not perform any console output.
  *
  * @param options - Options for the ls command, including path.
  * @param pathStr - The path to list. Defaults to an empty string if not provided.
- * @returns A Promise resolving to an array of ResourceItem, representing the listed files, directories, and links.
+ * @returns A Promise resolving to an array of ListingItem.
  */
-export async function files_list(options: LsOptions, pathStr: string = ""): Promise<ResourceItem[]> {
-  const items: ResourceItem[] = [];
-  const resolvedPath = await path_resolveChrisFs(pathStr, {});
+export async function files_list(options: LsOptions, pathStr: string = ""): Promise<ListingItem[]> {
+  const items: ListingItem[] = [];
   
-  await Promise.all([
-      resourceItems_fetchAndPush('dirs', resolvedPath, items),
-      resourceItems_fetchAndPush('files', resolvedPath, items),
-      resourceItems_fetchAndPush('links', resolvedPath, items)
+  // Resolve path against ChRIS FS
+  // Note: If pathStr is invalid, this might throw, which is handled by caller
+  const resolvedPath: string = await path_resolveChrisFs(pathStr, {});
+
+  const fetchOpts: Record<string, string | number> = { limit: 100, offset: 0 }; // Starting options
+
+  // Fetch all resources in parallel
+  const [dirs, files, links] = await Promise.all([
+    files_listAll(fetchOpts, 'dirs', resolvedPath),
+    files_listAll(fetchOpts, 'files', resolvedPath),
+    files_listAll(fetchOpts, 'links', resolvedPath)
   ]);
 
-  items.sort((a: ResourceItem, b: ResourceItem) => a.name.localeCompare(b.name));
+  // Helper to map raw API objects to ListingItem
+  const mapToItem = (raw: ChrisFileOrDirRaw, type: 'dir' | 'file' | 'link'): ListingItem => {
+    // Extract name from fname or path
+    let name: string = raw.fname || raw.path || "";
+    if (name.includes('/')) {
+        name = name.split('/').pop() || name;
+    }
+
+    return {
+      name,
+      type,
+      size: raw.fsize || 0,
+      owner: raw.owner_username || 'unknown',
+      date: raw.creation_date || '',
+      target: raw.path // For links, path often points to target or is the link path itself
+    };
+  };
+
+  if (dirs && dirs.tableData) {
+    dirs.tableData.forEach((d: ChrisFileOrDirRaw) => items.push(mapToItem(d, 'dir')));
+  }
+  if (files && files.tableData) {
+    files.tableData.forEach((f: ChrisFileOrDirRaw) => items.push(mapToItem(f, 'file')));
+  }
+  if (links && links.tableData) {
+    links.tableData.forEach((l: ChrisFileOrDirRaw) => items.push(mapToItem(l, 'link')));
+  }
+
+  // Sort by name
+  items.sort((a: ListingItem, b: ListingItem) => a.name.localeCompare(b.name));
+  
   return items;
 }

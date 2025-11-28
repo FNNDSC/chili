@@ -11,7 +11,7 @@ import { BaseGroupHandler } from "../handlers/baseGroupHandler.js";
 import { CLIoptions } from "../utils/cli.js";
 import { table_display } from "../screen/screen.js";
 import { PluginController } from "../controllers/pluginController.js";
-import { Dictionary, errorStack, FilteredResourceData } from "@fnndsc/cumin";
+import { errorStack, FilteredResourceData } from "@fnndsc/cumin";
 import { plugins_fetchList } from "../commands/plugins/list.js";
 import { pluginFields_fetch } from "../commands/plugins/fields.js";
 import { plugins_searchByTerm, plugin_deleteById } from "../commands/plugins/delete.js";
@@ -21,6 +21,8 @@ import { pluginsOverview_display } from "../commands/plugins/overview.js";
 import { pluginReadme_fetch } from "../commands/plugin/readme.js";
 import { plugin_execute } from "../commands/plugin/run.js";
 import { pluginIds_resolve } from "../commands/plugin/search.js";
+import { renderPluginList, renderPluginRun } from "../views/plugin.js";
+import { Plugin, PluginInstance } from "../models/plugin.js";
 
 /**
  * Handles commands related to groups of ChRIS plugins.
@@ -46,58 +48,15 @@ export class PluginGroupHandler {
   }
 
   /**
-   * Removes duplicate column headers from FilteredResourceData results.
-   * Copied from BaseGroupHandler to support local listing logic.
-   */
-  private columns_removeDuplicates(
-    results: FilteredResourceData
-  ): FilteredResourceData {
-    const uniqueHeaders = Array.from(
-      new Set(results.selectedFields)
-    ) as string[];
-
-    const uniqueTableData = results.tableData.map((row) =>
-      uniqueHeaders.reduce<Record<string, any>>((acc, header) => {
-        if (typeof header === "string" && header in row) {
-          acc[header] = (row as Record<string, any>)[header];
-        }
-        return acc;
-      }, {})
-    );
-
-    return {
-      ...results,
-      selectedFields: uniqueHeaders,
-      tableData: uniqueTableData,
-    };
-  }
-
-  /**
    * Lists plugins using the new command logic.
    */
   async plugins_list(options: CLIoptions): Promise<void> {
     try {
-      const results = await plugins_fetchList(options);
-
-      if (!results) {
-        console.error(
-          `No ${this.assetName} resources found. Perhaps check your current context?`
-        );
-        return;
-      }
-
-      if (results.tableData.length === 0) {
-        console.log(`No ${this.assetName} found matching the criteria.`);
-      } else {
-        const uniqueResults = this.columns_removeDuplicates(results);
-        table_display(
-          uniqueResults.tableData,
-          uniqueResults.selectedFields,
-          { title: { title: this.assetName, justification: "center" } }
-        );
-      }
-    } catch (error) {
-      console.log(errorStack.stack_search(this.assetName)[0]);
+      const results: Plugin[] = await plugins_fetchList(options);
+      console.log(renderPluginList(results));
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : String(error);
+      console.error(msg);
     }
   }
 
@@ -112,7 +71,7 @@ export class PluginGroupHandler {
       } else {
         console.log(`No resource fields found for ${this.assetName}.`);
       }
-    } catch (error) {
+    } catch (error: unknown) {
       console.log(errorStack.stack_search(this.assetName)[0]);
     }
   }
@@ -267,14 +226,14 @@ export class PluginMemberHandler {
    */
   async plugin_run(searchable: string, params: string): Promise<number | null> {
     try {
-      const instance: Dictionary | null = await plugin_execute(searchable, params);
+      const instance: PluginInstance | null = await plugin_execute(searchable, params);
       if (!instance) {
         console.log(errorStack.messagesOfType_search("error", "plugin"));
         return null;
       }
 
-      table_display(Object.entries(instance), ["Plugin Parameter", "Value"]);
-      return instance.id as number;
+      console.log(renderPluginRun(instance));
+      return instance.id;
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : String(e);
       console.error(message);

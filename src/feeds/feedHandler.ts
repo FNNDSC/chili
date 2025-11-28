@@ -9,7 +9,7 @@
 import { Command } from "commander";
 import { BaseGroupHandler } from "../handlers/baseGroupHandler.js";
 import { CLIoptions } from "../utils/cli.js";
-import { SimpleRecord, FilteredResourceData, errorStack } from "@fnndsc/cumin";
+import { errorStack } from "@fnndsc/cumin";
 import { table_display } from "../screen/screen.js";
 import { FeedController } from "../controllers/feedController.js";
 import chalk from "chalk";
@@ -20,6 +20,9 @@ import { FeedShareOptions } from "@fnndsc/salsa";
 import { feeds_searchByTerm, feed_deleteById } from "../commands/feeds/delete.js";
 import { prompt_confirm } from "../utils/ui.js";
 import { feed_create } from "../commands/feed/create.js";
+import { renderFeedList, renderFeedCreate } from "../views/feed.js";
+import { Feed } from "../models/feed.js";
+import { FeedListResult } from "../commands/feeds/list.js";
 
 /**
  * Handles commands related to groups of ChRIS feeds.
@@ -38,58 +41,15 @@ export class FeedGroupHandler {
   }
 
   /**
-   * Removes duplicate column headers from FilteredResourceData results.
-   * Copied from BaseGroupHandler to support local listing logic.
-   */
-  private columns_removeDuplicates(
-    results: FilteredResourceData
-  ): FilteredResourceData {
-    const uniqueHeaders = Array.from(
-      new Set(results.selectedFields)
-    ) as string[];
-
-    const uniqueTableData = results.tableData.map((row) =>
-      uniqueHeaders.reduce<Record<string, any>>((acc, header) => {
-        if (typeof header === "string" && header in row) {
-          acc[header] = (row as Record<string, any>)[header];
-        }
-        return acc;
-      }, {})
-    );
-
-    return {
-      ...results,
-      selectedFields: uniqueHeaders,
-      tableData: uniqueTableData,
-    };
-  }
-
-  /**
    * Lists feeds using the new command logic.
    */
   async feeds_list(options: CLIoptions): Promise<void> {
     try {
-      const results = await feeds_fetchList(options);
-
-      if (!results) {
-        console.error(
-          `No ${this.assetName} resources found. Perhaps check your current context?`
-        );
-        return;
-      }
-
-      if (results.tableData.length === 0) {
-        console.log(`No ${this.assetName} found matching the criteria.`);
-      } else {
-        const uniqueResults = this.columns_removeDuplicates(results);
-        table_display(
-          uniqueResults.tableData,
-          uniqueResults.selectedFields,
-          { title: { title: this.assetName, justification: "center" } }
-        );
-      }
-    } catch (error) {
-      console.log(errorStack.stack_search(this.assetName)[0]);
+      const { feeds, selectedFields }: FeedListResult = await feeds_fetchList(options);
+      console.log(renderFeedList(feeds, selectedFields, { table: options.table, csv: options.csv }));
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : String(error);
+      console.error(chalk.red(`Error listing feeds: ${msg}`));
     }
   }
 
@@ -191,6 +151,8 @@ export class FeedGroupHandler {
         "-s, --search <searchTerms>",
         `search for ${this.assetName} using comma-separated key-value pairs`
       )
+      .option("--table", "Output in table format with headers")
+      .option("--csv", "Output in CSV format (overrides --table)")
       .action(async (options: CLIoptions) => {
         await this.feeds_list(options);
       });
@@ -216,9 +178,9 @@ export class FeedGroupHandler {
       });
 
     feedGroupCommand
-      .command("share <searchable>") // Add searchable argument
+      .command("share <searchable>") 
       .description("share a (group of) feed(s)")
-      .option("-i, --is_public", "Make the feed public or unpublic (default: public)") // is_public as a flag
+      .option("-i, --is_public", "Make the feed public or unpublic (default: public)") 
       .option("-f, --force", "force operation (do not ask for user confirmation)")
       .action(async (searchable: string, options: CLIoptions) => {
         await this.feeds_share(searchable, options);
@@ -239,48 +201,25 @@ export class FeedMemberHandler {
   }
 
   /**
-   * Reports the result of a feed creation operation.
-   *
-   * @param feedInfo - The SimpleRecord of the created feed, or null if creation failed.
-   */
-  private feed_reportCreation(feedInfo: SimpleRecord | null): void {
-    const headers: string[] = ["Property", "Value"];
-    let tableData: any[][];
-
-    if (!feedInfo) {
-      tableData = [["Status", chalk.red("A feed creation error occurred.")]];
-    } else {
-      tableData = [
-        ["Status", chalk.cyan("Success")],
-        ["Plugin ID", feedInfo.pluginInstance.data.id],
-        ["Feed ID", feedInfo.id],
-        ["Feed Name", feedInfo.name],
-        ["Owner", feedInfo.owner_username],
-      ];
-    }
-    table_display(tableData, headers);
-  }
-
-  /**
    * Creates a new ChRIS feed based on CLI options.
    *
    * @param options - CLI options for feed creation.
-   * @returns A Promise resolving to the SimpleRecord of the created feed, or null on failure.
+   * @returns A Promise resolving to the created Feed object, or null on failure.
    */
-  async feed_create(options: CLIoptions): Promise<SimpleRecord | null> {
-    let feedInfo: SimpleRecord | null;
-
+  async feed_create(options: CLIoptions): Promise<Feed | null> {
     try {
-      feedInfo = await feed_create(options);
+      const feed = await feed_create(options);
+      if (feed) {
+        console.log(renderFeedCreate(feed));
+        return feed;
+      }
+      console.error(chalk.red("Feed creation returned null result."));
+      return null;
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error);
-      console.error(message); // Log the specific error message
-      feedInfo = null;
+      console.error(chalk.red(`Error: ${message}`));
+      return null;
     }
-
-    this.feed_reportCreation(feedInfo);
-
-    return feedInfo;
   }
 
   /**

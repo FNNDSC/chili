@@ -12,12 +12,9 @@ import { connect_do as salsaConnect_do, ConnectOptions } from "@fnndsc/salsa";
  * Handles the login process.
  *
  * @param options - Connection options (url, username, password).
- * @returns A Promise resolving to `void`.
+ * @returns A Promise resolving to true on success, false on failure.
+ * @throws Error if connection fails unexpectedly.
  */
-export async function connect_login(options: ConnectOptions): Promise<void> {
-  try {
-    await salsaConnect_do(options);
-  } catch (error) {
-    console.error("Failed to connect:", error);
-  }
+export async function connect_login(options: ConnectOptions): Promise<boolean> {
+  return await salsaConnect_do(options);
 }

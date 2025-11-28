@@ -12,6 +12,8 @@ export interface CLIoptions {
   path?: string; // New option for explicit base path
   name?: string; // New option for explicit filename
   all?: boolean; // New option for listing all items
+  table?: boolean; // Added option for table format
+  csv?: boolean; // Added option for CSV format
   [key: string]: any;
 }
 
@@ -74,5 +76,5 @@ export async function path_resolveChrisFs(
   }
 
   const resolvedPath = path.posix.join(baseDir, pathFragment);
-  return resolvedPath.replace(/\/\//g, '/'); // Final normalization
+  return resolvedPath.replace(/\/\/\//g, '/'); // Final normalization
 }
