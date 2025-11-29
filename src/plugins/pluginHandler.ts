@@ -21,7 +21,7 @@ import { pluginsOverview_display } from "../commands/plugins/overview.js";
 import { pluginReadme_fetch } from "../commands/plugin/readme.js";
 import { plugin_execute } from "../commands/plugin/run.js";
 import { pluginIds_resolve } from "../commands/plugin/search.js";
-import { renderPluginList, renderPluginRun } from "../views/plugin.js";
+import { pluginList_render, pluginRun_render } from "../views/plugin.js";
 import { Plugin, PluginInstance } from "../models/plugin.js";
 
 /**
@@ -53,7 +53,7 @@ export class PluginGroupHandler {
   async plugins_list(options: CLIoptions): Promise<void> {
     try {
       const { plugins, selectedFields } = await plugins_fetchList(options);
-      console.log(renderPluginList(plugins, selectedFields, { table: options.table, csv: options.csv }));
+      console.log(pluginList_render(plugins, selectedFields, { table: options.table, csv: options.csv }));
     } catch (error: unknown) {
       const msg = error instanceof Error ? error.message : String(error);
       console.error(msg);
@@ -234,7 +234,7 @@ export class PluginMemberHandler {
         return null;
       }
 
-      console.log(renderPluginRun(instance));
+      console.log(pluginRun_render(instance));
       return instance.id;
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : String(e);

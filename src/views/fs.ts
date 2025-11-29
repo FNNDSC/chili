@@ -13,7 +13,7 @@ import chalk from 'chalk';
  * @param path - The path created.
  * @param success - Whether the operation succeeded.
  */
-export function renderMkdir(path: string, success: boolean): string {
+export function mkdir_render(path: string, success: boolean): string {
   if (success) {
     return chalk.green(`Created directory: ${path}`);
   } else {
@@ -26,7 +26,7 @@ export function renderMkdir(path: string, success: boolean): string {
  * @param path - The path created.
  * @param success - Whether the operation succeeded.
  */
-export function renderTouch(path: string, success: boolean): string {
+export function touch_render(path: string, success: boolean): string {
   if (success) {
     return chalk.green(`Created file: ${path}`);
   } else {
@@ -40,7 +40,7 @@ export function renderTouch(path: string, success: boolean): string {
  * @param remote - Remote path.
  * @param success - Whether the operation succeeded.
  */
-export function renderUpload(local: string, remote: string, success: boolean): string {
+export function upload_render(local: string, remote: string, success: boolean): string {
   if (success) {
     return chalk.green(`Successfully uploaded ${local}`);
   } else {
@@ -53,10 +53,23 @@ export function renderUpload(local: string, remote: string, success: boolean): s
  * @param content - The file content or null if not found/error.
  * @param path - The file path (for error message).
  */
-export function renderCat(content: string | null, path: string): string {
+export function cat_render(content: string | null, path: string): string {
   if (content !== null) {
     return content;
   } else {
     return chalk.red(`File not found or empty: ${path}`);
+  }
+}
+
+/**
+ * Renders the result of an rm operation.
+ * @param result - The result object from files_rm.
+ */
+export function rm_render(result: { success: boolean; path: string; type: 'file' | 'dir' | 'link' | null; error?: string }): string {
+  if (result.success) {
+    const typeStr: string = result.type || 'item';
+    return chalk.green(`Removed ${typeStr}: ${result.path}`);
+  } else {
+    return chalk.red(result.error || `Failed to remove: ${result.path}`);
   }
 }

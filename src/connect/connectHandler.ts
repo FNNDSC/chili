@@ -9,7 +9,7 @@
 import { Command } from "commander";
 import { connect_login } from "../commands/connect/login.js";
 import { connect_logout } from "../commands/connect/logout.js";
-import { renderLogin, renderLogout } from "../views/connect.js";
+import { login_render, logout_render } from "../views/connect.js";
 import { ConnectOptions } from "@fnndsc/salsa";
 import { CLIoptions } from "../utils/cli.js";
 import chalk from "chalk";
@@ -36,9 +36,9 @@ export function connectCommand_setup(program: Command): void {
       
       try {
         const success: boolean = await connect_login(connectOptions);
-        console.log(renderLogin(success, url, user));
+        console.log(login_render(success, url, user));
       } catch (error: unknown) {
-        console.log(renderLogin(false, url, user));
+        console.log(login_render(false, url, user));
         const msg = error instanceof Error ? error.message : String(error);
         console.error(chalk.red(`Error: ${msg}`));
       }
@@ -50,9 +50,9 @@ export function connectCommand_setup(program: Command): void {
     .action(async () => {
       try {
         await connect_logout();
-        console.log(renderLogout(true));
+        console.log(logout_render(true));
       } catch (error: unknown) {
-        console.log(renderLogout(false));
+        console.log(logout_render(false));
         const msg = error instanceof Error ? error.message : String(error);
         console.error(chalk.red(`Error: ${msg}`));
       }

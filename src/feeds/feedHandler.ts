@@ -20,7 +20,7 @@ import { FeedShareOptions } from "@fnndsc/salsa";
 import { feeds_searchByTerm, feed_deleteById } from "../commands/feeds/delete.js";
 import { prompt_confirm } from "../utils/ui.js";
 import { feed_create } from "../commands/feed/create.js";
-import { renderFeedList, renderFeedCreate } from "../views/feed.js";
+import { feedList_render, feedCreate_render } from "../views/feed.js";
 import { Feed } from "../models/feed.js";
 import { FeedListResult } from "../commands/feeds/list.js";
 
@@ -46,7 +46,7 @@ export class FeedGroupHandler {
   async feeds_list(options: CLIoptions): Promise<void> {
     try {
       const { feeds, selectedFields }: FeedListResult = await feeds_fetchList(options);
-      console.log(renderFeedList(feeds, selectedFields, { table: options.table, csv: options.csv }));
+      console.log(feedList_render(feeds, selectedFields, { table: options.table, csv: options.csv }));
     } catch (error: unknown) {
       const msg = error instanceof Error ? error.message : String(error);
       console.error(chalk.red(`Error listing feeds: ${msg}`));
@@ -210,7 +210,7 @@ export class FeedMemberHandler {
     try {
       const feed = await feed_create(options);
       if (feed) {
-        console.log(renderFeedCreate(feed));
+        console.log(feedCreate_render(feed));
         return feed;
       }
       console.error(chalk.red("Feed creation returned null result."));

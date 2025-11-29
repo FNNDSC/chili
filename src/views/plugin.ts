@@ -22,7 +22,7 @@ export interface OutputOptions {
  * @param instance - The created plugin instance.
  * @returns Formatted string.
  */
-export function renderPluginRun(instance: PluginInstance): string {
+export function pluginRun_render(instance: PluginInstance): string {
   return chalk.green(`Plugin started successfully.\nInstance ID: ${chalk.bold(instance.id)}\nStatus: ${instance.status}`);
 }
 
@@ -32,7 +32,7 @@ export function renderPluginRun(instance: PluginInstance): string {
  * @param selectedFields - The fields to display, in order.
  * @param options - Output options (e.g., table, csv).
  */
-export function renderPluginList(plugins: Plugin[], selectedFields: string[], options: OutputOptions = {}): string {
+export function pluginList_render(plugins: Plugin[], selectedFields: string[], options: OutputOptions = {}): string {
   if (plugins.length === 0) return chalk.gray("No plugins found.");
 
   // Define default fields if none are specified or if the fields are empty

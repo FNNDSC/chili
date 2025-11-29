@@ -14,7 +14,7 @@ import chalk from 'chalk';
  * @param user - The user logged in as.
  * @param token - The auth token received (optional, usually not displayed in full).
  */
-export function renderLogin(success: boolean, url: string, user: string, token?: string): string {
+export function login_render(success: boolean, url: string, user: string, token?: string): string {
   if (success) {
     return chalk.green(`Successfully connected to ${url} as ${user}.`);
   } else {
@@ -26,7 +26,7 @@ export function renderLogin(success: boolean, url: string, user: string, token?:
  * Renders the result of a logout attempt.
  * @param success - Whether the logout was successful.
  */
-export function renderLogout(success: boolean): string {
+export function logout_render(success: boolean): string {
   if (success) {
     return chalk.green('Logged out from ChRIS.');
   } else {

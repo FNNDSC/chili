@@ -22,7 +22,7 @@ export interface ViewOptions {
 /**
  * Formats bytes into human-readable string.
  */
-export function formatSize(bytes: number): string {
+export function size_format(bytes: number): string {
   if (bytes === 0) return '0 B';
   const k: number = 1024;
   const sizes: string[] = ['B', 'KB', 'MB', 'GB', 'TB'];
@@ -34,40 +34,40 @@ export function formatSize(bytes: number): string {
  * Formats a resource item name based on its type (color coding).
  * Uses color configuration from cumin.
  */
-function formatName(item: ListingItem): string {
+function name_format(item: ListingItem): string {
   return fileSystemItem_colorize(item.name, item.type);
 }
 
 /**
  * Calculates the visible length of a string, stripping ANSI codes.
  */
-function visibleLength(str: string): number {
+function string_lengthVisible(str: string): number {
   return str.replace(/\u001b\[[0-9;]*m/g, "").length;
 }
 
 /**
  * Renders the items in a multi-column grid format (standard `ls`).
  */
-export function renderGrid(items: ListingItem[]): string {
+export function grid_render(items: ListingItem[]): string {
   if (items.length === 0) return '';
 
   const formattedItems: string[] = items.map((item: ListingItem) => {
-    let str: string = formatName(item);
+    let str: string = name_format(item);
     if (item.version) str += chalk.dim(` (${item.version})`);
     return str;
   });
 
   const termWidth: number = process.stdout.columns || 80;
   const padding: number = 2;
-  
-  const maxLen: number = Math.max(...formattedItems.map(visibleLength));
+
+  const maxLen: number = Math.max(...formattedItems.map(string_lengthVisible));
   const colWidth: number = maxLen + padding;
   const cols: number = Math.max(1, Math.floor(termWidth / colWidth));
 
   let output: string = "";
   for (let i: number = 0; i < formattedItems.length; i++) {
     const item: string = formattedItems[i];
-    const visibleLen: number = visibleLength(item);
+    const visibleLen: number = string_lengthVisible(item);
     const padLen: number = colWidth - visibleLen;
     
     output += item + " ".repeat(padLen);
@@ -83,7 +83,7 @@ export function renderGrid(items: ListingItem[]): string {
 /**
  * Renders the items in a long list format (`ls -l`).
  */
-export function renderLong(items: ListingItem[], options: ViewOptions = {}): string {
+export function long_render(items: ListingItem[], options: ViewOptions = {}): string {
   if (items.length === 0) return '';
 
   return items.map((item: ListingItem) => {
@@ -100,7 +100,7 @@ export function renderLong(items: ListingItem[], options: ViewOptions = {}): str
     // Size
     let sizeStr: string = item.size.toString();
     if (options.human) {
-      sizeStr = formatSize(item.size);
+      sizeStr = size_format(item.size);
     }
     sizeStr = sizeStr.padEnd(8);
 
@@ -109,7 +109,7 @@ export function renderLong(items: ListingItem[], options: ViewOptions = {}): str
     const dateStr: string = item.date.replace('T', ' ').slice(0, 19);
 
     // Name
-    let nameStr: string = formatName(item);
+    let nameStr: string = name_format(item);
     if (item.version) nameStr += ` (${item.version})`;
 
     let line: string = `${typeChar} ${owner} ${sizeStr} ${dateStr} ${nameStr}`;
@@ -126,6 +126,6 @@ export function renderLong(items: ListingItem[], options: ViewOptions = {}): str
 /**
  * Renders the items as a JSON string.
  */
-export function renderJson(items: ListingItem[]): string {
+export function json_render(items: ListingItem[]): string {
   return JSON.stringify(items, null, 2);
 }

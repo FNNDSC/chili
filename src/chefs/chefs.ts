@@ -10,12 +10,13 @@ import { Command } from "commander";
 import { chrisContext, Context } from "@fnndsc/cumin";
 import { files_list, LsOptions } from '../commands/fs/ls.js';
 import { ListingItem } from '../models/listing.js';
-import { renderGrid, renderLong } from '../views/ls.js';
+import { grid_render, long_render } from '../views/ls.js';
 import { files_mkdir } from '../commands/fs/mkdir.js';
 import { files_touch } from '../commands/fs/touch.js';
 import { files_upload } from '../commands/fs/upload.js';
 import { files_cat } from '../commands/fs/cat.js';
-import { renderMkdir, renderTouch, renderUpload, renderCat } from '../views/fs.js';
+import { files_rm, RmOptions, RmResult } from '../commands/fs/rm.js';
+import { mkdir_render, touch_render, upload_render, cat_render, rm_render } from '../views/fs.js';
 import { path_resolveChrisFs } from '../utils/cli.js';
 
 /**
@@ -32,9 +33,9 @@ async function ls(options: LsOptions, pathStr: string = ""): Promise<void> {
   }
 
   if (options.long) {
-    console.log(renderLong(items, { human: !!options.human }));
+    console.log(long_render(items, { human: !!options.human }));
   } else {
-    console.log(renderGrid(items));
+    console.log(grid_render(items));
   }
 }
 
@@ -45,7 +46,7 @@ async function ls(options: LsOptions, pathStr: string = ""): Promise<void> {
  */
 async function mkdir(dirPath: string): Promise<void> {
   const success: boolean = await files_mkdir(dirPath);
-  console.log(renderMkdir(dirPath, success));
+  console.log(mkdir_render(dirPath, success));
 }
 
 /**
@@ -55,7 +56,7 @@ async function mkdir(dirPath: string): Promise<void> {
  */
 async function touch(filePath: string): Promise<void> {
   const success: boolean = await files_touch(filePath);
-  console.log(renderTouch(filePath, success));
+  console.log(touch_render(filePath, success));
 }
 
 /**
@@ -67,7 +68,7 @@ async function touch(filePath: string): Promise<void> {
 async function upload(localPath: string, remotePath: string): Promise<void> {
   console.log(`Uploading ${localPath} to ${remotePath}...`);
   const success: boolean = await files_upload(localPath, remotePath);
-  console.log(renderUpload(localPath, remotePath, success));
+  console.log(upload_render(localPath, remotePath, success));
 }
 
 /**
@@ -99,7 +100,18 @@ async function pwd(): Promise<void> {
  */
 async function cat(filePath: string): Promise<void> {
   const content: string | null = await files_cat(filePath);
-  console.log(renderCat(content, filePath));
+  console.log(cat_render(content, filePath));
+}
+
+/**
+ * Removes a file or directory.
+ *
+ * @param targetPath - The path to remove.
+ * @param options - Options including recursive flag.
+ */
+async function rm(targetPath: string, options: RmOptions): Promise<void> {
+  const result: RmResult = await files_rm(targetPath, options);
+  console.log(rm_render(result));
 }
 
 /**
@@ -161,5 +173,14 @@ export function chefsCommand_setup(program: Command): void {
     .description("Print working directory")
     .action(async () => {
       await pwd();
+    });
+
+  chefsCommand
+    .command("rm <path>")
+    .description("Remove a file or directory")
+    .option("-r, --recursive", "Remove directories and their contents recursively")
+    .option("-f, --force", "Force removal (ignore nonexistent files)")
+    .action(async (path: string, options: RmOptions) => {
+      await rm(path, options);
     });
 }

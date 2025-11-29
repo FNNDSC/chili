@@ -23,7 +23,7 @@ export interface OutputOptions {
  * @param selectedFields - The fields to display, in order.
  * @param options - Output options (e.g., table, csv).
  */
-export function renderFeedList(feeds: Feed[], selectedFields: string[], options: OutputOptions = {}): string {
+export function feedList_render(feeds: Feed[], selectedFields: string[], options: OutputOptions = {}): string {
   if (feeds.length === 0) return chalk.gray("No feeds found.");
   
   // Define default fields if none are specified or if the fields are empty
@@ -73,6 +73,6 @@ export function renderFeedList(feeds: Feed[], selectedFields: string[], options:
  * Renders the result of feed creation.
  * @param feed - The created feed.
  */
-export function renderFeedCreate(feed: Feed): string {
+export function feedCreate_render(feed: Feed): string {
   return chalk.green(`Feed created successfully.\nID: ${feed.id}\nName: ${feed.name}`);
 }

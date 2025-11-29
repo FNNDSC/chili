@@ -129,6 +129,19 @@ export function fileSystemItem_colorize(
     return colorStyle_apply(name, config.specialPaths[fullPath]);
   }
 
+  // Special handling for plugins: color version part differently
+  if (type === 'plugin' && name.includes('-v')) {
+    const lastVIndex: number = name.lastIndexOf('-v');
+    const pluginName: string = name.substring(0, lastVIndex);
+    const version: string = name.substring(lastVIndex);
+
+    // Plugin name in bold green, version in dim green
+    const nameStyled: string = chalk.green.bold(pluginName);
+    const versionStyled: string = chalk.green.dim(version);
+
+    return nameStyled + versionStyled;
+  }
+
   // Apply file type styling
   const style: ColorStyle = config.fileTypes[type];
   return colorStyle_apply(name, style);
