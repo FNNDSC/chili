@@ -17,8 +17,10 @@ import { fileSystemItem_colorize } from '../config/colorConfig.js';
  */
 export interface ViewOptions {
   human?: boolean; // Human-readable sizes
-  sort?: 'name' | 'size' | 'date' | 'owner'; // Sort field
-  reverse?: boolean; // Reverse sort order
+  // Note: sort and reverse are now handled at the command layer
+  // These are kept for backwards compatibility but should not be used
+  sort?: 'name' | 'size' | 'date' | 'owner'; // DEPRECATED: Sort at command layer instead
+  reverse?: boolean; // DEPRECATED: Sort at command layer instead
 }
 
 /**
@@ -48,7 +50,8 @@ function string_lengthVisible(str: string): number {
 }
 
 /**
- * Sorts an array of listing items based on specified criteria.
+ * DEPRECATED: Sorts an array of listing items based on specified criteria.
+ * @deprecated Sorting should be done at the command layer, not in views.
  * @param items - Array of items to sort.
  * @param sortBy - Field to sort by (default: 'name').
  * @param reverse - Whether to reverse the sort order.
@@ -85,16 +88,20 @@ export function items_sort(
 
 /**
  * Renders the items in a multi-column grid format (standard `ls`).
+ * Note: Items should already be sorted at the command layer.
  */
 export function grid_render(items: ListingItem[], options: ViewOptions = {}): string {
   if (items.length === 0) return '';
 
-  // Apply sorting (default: alphabetical by name)
-  const sortBy = options.sort || 'name';
-  const reverse = options.reverse || false;
-  const sortedItems = items_sort(items, sortBy, reverse);
+  // Legacy sorting support (deprecated - sort at command layer instead)
+  let displayItems = items;
+  if (options.sort) {
+    const sortBy = options.sort;
+    const reverse = options.reverse || false;
+    displayItems = items_sort(items, sortBy, reverse);
+  }
 
-  const formattedItems: string[] = sortedItems.map((item: ListingItem) => {
+  const formattedItems: string[] = displayItems.map((item: ListingItem) => {
     let str: string = name_format(item);
     if (item.version) str += chalk.dim(` (${item.version})`);
     return str;
@@ -125,16 +132,20 @@ export function grid_render(items: ListingItem[], options: ViewOptions = {}): st
 
 /**
  * Renders the items in a long list format (`ls -l`).
+ * Note: Items should already be sorted at the command layer.
  */
 export function long_render(items: ListingItem[], options: ViewOptions = {}): string {
   if (items.length === 0) return '';
 
-  // Apply sorting (default: alphabetical by name)
-  const sortBy = options.sort || 'name';
-  const reverse = options.reverse || false;
-  const sortedItems = items_sort(items, sortBy, reverse);
+  // Legacy sorting support (deprecated - sort at command layer instead)
+  let displayItems = items;
+  if (options.sort) {
+    const sortBy = options.sort;
+    const reverse = options.reverse || false;
+    displayItems = items_sort(items, sortBy, reverse);
+  }
 
-  return sortedItems.map((item: ListingItem) => {
+  return displayItems.map((item: ListingItem) => {
     // Type
     let typeChar: string = '-';
     if (item.type === 'dir') typeChar = 'd';

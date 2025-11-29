@@ -11,10 +11,13 @@ import { files_listAll } from "@fnndsc/salsa";
 import { path_resolveChrisFs } from "../../utils/cli.js";
 import { ListingItem } from "../../models/listing.js";
 import { ChrisFileOrDirRaw } from "../../models/resource.js";
+import { list_applySort } from "../../utils/sort.js";
 
 export interface LsOptions {
   path?: string;
-  [key: string]: string | undefined;
+  sort?: string;
+  reverse?: boolean;
+  [key: string]: string | boolean | undefined;
 }
 
 /**
@@ -68,8 +71,9 @@ export async function files_list(options: LsOptions, pathStr: string = ""): Prom
     links.tableData.forEach((l: ChrisFileOrDirRaw) => items.push(mapToItem(l, 'link')));
   }
 
-  // Sort by name
-  items.sort((a: ListingItem, b: ListingItem) => a.name.localeCompare(b.name));
-  
-  return items;
+  // Apply sorting (default to name if not specified)
+  const sortField = options.sort || 'name';
+  const sortedItems = list_applySort(items, sortField, options.reverse);
+
+  return sortedItems;
 }

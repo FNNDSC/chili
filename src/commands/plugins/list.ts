@@ -6,13 +6,14 @@
  *
  * @module
  */
-import { 
+import {
   plugins_list as salsaPlugins_list,
-  plugins_listAll as salsaPlugins_listAll 
+  plugins_listAll as salsaPlugins_listAll
 } from "@fnndsc/salsa";
 import { FilteredResourceData } from "@fnndsc/cumin";
 import { CLIoptions, options_toParams } from "../../utils/cli.js";
 import { Plugin } from "../../models/plugin.js";
+import { list_applySort } from "../../utils/sort.js";
 
 /**
  * Result structure for plugin listing.
@@ -40,8 +41,15 @@ export async function plugins_fetchList(options: CLIoptions): Promise<PluginList
   }
 
   if (result && result.tableData) {
+    let plugins = result.tableData as unknown as Plugin[];
+
+    // Apply sorting if specified
+    if (options.sort) {
+      plugins = list_applySort(plugins, options.sort, options.reverse);
+    }
+
     return {
-      plugins: result.tableData as unknown as Plugin[],
+      plugins,
       selectedFields: result.selectedFields || []
     };
   }

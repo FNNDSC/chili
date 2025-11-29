@@ -10,6 +10,7 @@ import { feeds_list as salsaFeeds_list } from "@fnndsc/salsa";
 import { FilteredResourceData } from "@fnndsc/cumin";
 import { CLIoptions, options_toParams } from "../../utils/cli.js";
 import { Feed } from "../../models/feed.js";
+import { list_applySort } from "../../utils/sort.js";
 
 /**
  * Result structure for feed listing.
@@ -28,10 +29,17 @@ export interface FeedListResult {
 export async function feeds_fetchList(options: CLIoptions): Promise<FeedListResult> {
   const params: Record<string, string | number | boolean> = options_toParams(options);
   const result: FilteredResourceData | null = await salsaFeeds_list(params);
-  
+
   if (result && result.tableData) {
+    let feeds = result.tableData as unknown as Feed[];
+
+    // Apply sorting if specified
+    if (options.sort) {
+      feeds = list_applySort(feeds, options.sort, options.reverse);
+    }
+
     return {
-      feeds: result.tableData as unknown as Feed[],
+      feeds,
       selectedFields: result.selectedFields || []
     };
   }
