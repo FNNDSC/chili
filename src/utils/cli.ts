@@ -73,7 +73,8 @@ export async function path_resolveChrisFs(
   } else if (fileIdentifier) {
     pathFragment = fileIdentifier;
   } else {
-    throw new Error("Cannot resolve file path: no filename or path fragment provided.");
+    // No fileIdentifier or name - use current directory
+    return baseDir.replace(/\/\//g, '/'); // Normalize and return baseDir
   }
 
   const resolvedPath = path.posix.join(baseDir, pathFragment);
