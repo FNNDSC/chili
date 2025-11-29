@@ -17,6 +17,8 @@ import { fileSystemItem_colorize } from '../config/colorConfig.js';
  */
 export interface ViewOptions {
   human?: boolean; // Human-readable sizes
+  sort?: 'name' | 'size' | 'date' | 'owner'; // Sort field
+  reverse?: boolean; // Reverse sort order
 }
 
 /**
@@ -46,12 +48,53 @@ function string_lengthVisible(str: string): number {
 }
 
 /**
+ * Sorts an array of listing items based on specified criteria.
+ * @param items - Array of items to sort.
+ * @param sortBy - Field to sort by (default: 'name').
+ * @param reverse - Whether to reverse the sort order.
+ * @returns Sorted array of items.
+ */
+export function items_sort(
+  items: ListingItem[],
+  sortBy: 'name' | 'size' | 'date' | 'owner' = 'name',
+  reverse: boolean = false
+): ListingItem[] {
+  const sorted = [...items].sort((a: ListingItem, b: ListingItem) => {
+    let comparison: number = 0;
+
+    switch (sortBy) {
+      case 'name':
+        comparison = a.name.localeCompare(b.name);
+        break;
+      case 'size':
+        comparison = a.size - b.size;
+        break;
+      case 'date':
+        comparison = a.date.localeCompare(b.date);
+        break;
+      case 'owner':
+        comparison = a.owner.localeCompare(b.owner);
+        break;
+    }
+
+    return reverse ? -comparison : comparison;
+  });
+
+  return sorted;
+}
+
+/**
  * Renders the items in a multi-column grid format (standard `ls`).
  */
-export function grid_render(items: ListingItem[]): string {
+export function grid_render(items: ListingItem[], options: ViewOptions = {}): string {
   if (items.length === 0) return '';
 
-  const formattedItems: string[] = items.map((item: ListingItem) => {
+  // Apply sorting (default: alphabetical by name)
+  const sortBy = options.sort || 'name';
+  const reverse = options.reverse || false;
+  const sortedItems = items_sort(items, sortBy, reverse);
+
+  const formattedItems: string[] = sortedItems.map((item: ListingItem) => {
     let str: string = name_format(item);
     if (item.version) str += chalk.dim(` (${item.version})`);
     return str;
@@ -86,7 +129,12 @@ export function grid_render(items: ListingItem[]): string {
 export function long_render(items: ListingItem[], options: ViewOptions = {}): string {
   if (items.length === 0) return '';
 
-  return items.map((item: ListingItem) => {
+  // Apply sorting (default: alphabetical by name)
+  const sortBy = options.sort || 'name';
+  const reverse = options.reverse || false;
+  const sortedItems = items_sort(items, sortBy, reverse);
+
+  return sortedItems.map((item: ListingItem) => {
     // Type
     let typeChar: string = '-';
     if (item.type === 'dir') typeChar = 'd';
