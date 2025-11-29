@@ -15,14 +15,22 @@ import { CLIoptions, options_toParams } from "../../utils/cli.js";
 import { Plugin } from "../../models/plugin.js";
 
 /**
+ * Result structure for plugin listing.
+ */
+export interface PluginListResult {
+  plugins: Plugin[];
+  selectedFields: string[];
+}
+
+/**
  * Fetches a list of ChRIS plugins based on options.
  *
  * @param options - CLI options containing filtering/pagination parameters.
- * @returns A Promise resolving to an array of Plugin objects.
+ * @returns A Promise resolving to a `PluginListResult` object.
  */
-export async function plugins_fetchList(options: CLIoptions): Promise<Plugin[]> {
+export async function plugins_fetchList(options: CLIoptions): Promise<PluginListResult> {
   const params: Record<string, string | number | boolean> = options_toParams(options);
-  
+
   let result: FilteredResourceData | null;
 
   if (options.all) {
@@ -32,7 +40,10 @@ export async function plugins_fetchList(options: CLIoptions): Promise<Plugin[]> 
   }
 
   if (result && result.tableData) {
-    return result.tableData as unknown as Plugin[];
+    return {
+      plugins: result.tableData as unknown as Plugin[],
+      selectedFields: result.selectedFields || []
+    };
   }
-  return [];
+  return { plugins: [], selectedFields: [] };
 }

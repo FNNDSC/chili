@@ -1,0 +1,51 @@
+# ChELL File System Color Configuration
+#
+# This file defines color mappings for different file system object types
+# displayed in the chell REPL.
+#
+# Available colors (from chalk):
+#   black, red, green, yellow, blue, magenta, cyan, white, gray, grey
+#   blackBright, redBright, greenBright, yellowBright, blueBright,
+#   magentaBright, cyanBright, whiteBright
+#
+# Color modifiers:
+#   bold, dim, italic, underline, inverse, strikethrough
+
+# File type color mappings
+fileTypes:
+  # Directories (including virtual dirs like /bin)
+  dir:
+    color: cyan
+    bold: true
+
+  # Regular files
+  file:
+    color: white
+    bold: false
+
+  # Symbolic links
+  link:
+    color: magenta
+    bold: false
+
+  # Plugin executables (virtual files in /bin)
+  plugin:
+    color: green
+    bold: true
+
+  # Virtual file system markers
+  vfs:
+    color: cyanBright
+    bold: true
+
+# Special path color mappings
+specialPaths:
+  # Virtual bin directory
+  "/bin":
+    color: cyan
+    bold: true
+
+  # Home directory indicator
+  "~":
+    color: blue
+    bold: false

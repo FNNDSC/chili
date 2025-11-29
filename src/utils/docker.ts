@@ -37,7 +37,7 @@ export async function shellCommand_run(command: string): Promise<string | null> 
       // console.warn(`Command stderr: ${stderr.trim()}`); // Log stderr as warning, not necessarily an error
     }
     return stdout.trim();
-  } catch (error: any) {
+  } catch (error: unknown) {
     // console.error(`Command failed: ${command}`);
     // console.error(`Error: ${error.message}`);
     return null;

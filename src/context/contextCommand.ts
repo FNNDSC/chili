@@ -40,10 +40,18 @@ function context_displayFull(options: ContextOptions): string {
   const currentUser: string | null = fullContext.currentUser;
   const currentURL: string | null = fullContext.currentURL;
 
+  interface ContextRow {
+    URL: string;
+    Folder: string;
+    Feed: string;
+    Plugin: string;
+    Token: string;
+  }
+
   Object.entries(fullContext.users).forEach(
     ([user, userContext]: [string, UserContext]) => {
-      const tableData: any[] = Object.entries(userContext.urls).map(
-        ([url, urlContext]: [string, URLContext]): any => ({
+      const tableData: ContextRow[] = Object.entries(userContext.urls).map(
+        ([url, urlContext]: [string, URLContext]): ContextRow => ({
           URL: url,
           Folder: urlContext.folder || "Not set",
           Feed: urlContext.feed || "Not set",
@@ -53,9 +61,9 @@ function context_displayFull(options: ContextOptions): string {
       );
 
       // Apply highlighting
-      tableData.forEach((row: any) => {
+      tableData.forEach((row: ContextRow) => {
         if (row.URL === currentURL && user === currentUser) {
-          Object.keys(row).forEach((key) => {
+          (Object.keys(row) as Array<keyof ContextRow>).forEach((key) => {
             row[key] = chalk.cyan(row[key]);
           });
         }
@@ -176,8 +184,9 @@ async function context_set(options: ContextOptions): Promise<string> {
     }
 
     return results.join("\n");
-  } catch (e: any) {
-    border_draw(`${chalk.red(`ERROR: ${e.message}`)}`);
+  } catch (e: unknown) {
+    const errorMessage: string = e instanceof Error ? e.message : String(e);
+    border_draw(`${chalk.red(`ERROR: ${errorMessage}`)}`);
     return "";
   }
 }

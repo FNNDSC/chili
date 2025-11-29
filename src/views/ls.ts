@@ -10,6 +10,7 @@
  */
 import chalk from 'chalk';
 import { ListingItem } from '../models/listing.js';
+import { fileSystemItem_colorize } from '../config/colorConfig.js';
 
 /**
  * Options for the view renderers.
@@ -31,18 +32,10 @@ export function formatSize(bytes: number): string {
 
 /**
  * Formats a resource item name based on its type (color coding).
+ * Uses color configuration from cumin.
  */
 function formatName(item: ListingItem): string {
-  switch (item.type) {
-    case 'dir':
-      return chalk.blue.bold(item.name);
-    case 'link':
-      return chalk.cyan(item.name);
-    case 'plugin':
-      return chalk.green(item.name);
-    default:
-      return item.name;
-  }
+  return fileSystemItem_colorize(item.name, item.type);
 }
 
 /**
@@ -99,6 +92,7 @@ export function renderLong(items: ListingItem[], options: ViewOptions = {}): str
     if (item.type === 'dir') typeChar = 'd';
     else if (item.type === 'link') typeChar = 'l';
     else if (item.type === 'plugin') typeChar = 'p';
+    else if (item.type === 'vfs') typeChar = 'v';
 
     // Owner
     const owner: string = item.owner.padEnd(10);

@@ -14,7 +14,8 @@ export interface CLIoptions {
   all?: boolean; // New option for listing all items
   table?: boolean; // Added option for table format
   csv?: boolean; // Added option for CSV format
-  [key: string]: any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  [key: string]: any; // Allow dynamic CLI options from commander
 }
 
 export function options_toParams(

@@ -197,7 +197,7 @@ export class BaseGroupHandler {
    * @param failureNotice - Optional custom failure message.
    * @returns The formatted status message.
    */
-  msg_OKorNot(obj: any | null, failureNotice?: string): string {
+  msg_OKorNot(obj: unknown, failureNotice?: string): string {
     let failMessage: string;
     if (!failureNotice) {
       failMessage = "[ Failed ]";

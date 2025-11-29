@@ -35,7 +35,7 @@ interface Borders {
 
 interface TableContent {
   headers: string[];
-  body: any[][];
+  body: unknown[][];
 }
 
 /**

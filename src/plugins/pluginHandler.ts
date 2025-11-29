@@ -12,7 +12,7 @@ import { CLIoptions } from "../utils/cli.js";
 import { table_display } from "../screen/screen.js";
 import { PluginController } from "../controllers/pluginController.js";
 import { errorStack, FilteredResourceData } from "@fnndsc/cumin";
-import { plugins_fetchList } from "../commands/plugins/list.js";
+import { plugins_fetchList, PluginListResult } from "../commands/plugins/list.js";
 import { pluginFields_fetch } from "../commands/plugins/fields.js";
 import { plugins_searchByTerm, plugin_deleteById } from "../commands/plugins/delete.js";
 import { prompt_confirm } from "../utils/ui.js";
@@ -52,8 +52,8 @@ export class PluginGroupHandler {
    */
   async plugins_list(options: CLIoptions): Promise<void> {
     try {
-      const results: Plugin[] = await plugins_fetchList(options);
-      console.log(renderPluginList(results));
+      const { plugins, selectedFields } = await plugins_fetchList(options);
+      console.log(renderPluginList(plugins, selectedFields, { table: options.table, csv: options.csv }));
     } catch (error: unknown) {
       const msg = error instanceof Error ? error.message : String(error);
       console.error(msg);
@@ -140,6 +140,8 @@ export class PluginGroupHandler {
         "-s, --search <searchTerms>",
         `search for ${this.assetName} using comma-separated key-value pairs`
       )
+      .option("--table", "Output in table format with headers")
+      .option("--csv", "Output in CSV format (overrides --table)")
       .action(async (options: CLIoptions) => {
         await this.plugins_list(options);
       });

@@ -16,7 +16,7 @@ export interface ListingItem {
   name: string;
   
   /** The type of the item. */
-  type: 'dir' | 'file' | 'link' | 'plugin';
+  type: 'dir' | 'file' | 'link' | 'plugin' | 'vfs';
   
   /** Size in bytes. */
   size: number;

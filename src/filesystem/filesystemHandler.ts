@@ -14,7 +14,8 @@ interface FSCLIoptions {
   filefields?: string;
   dirfields?: string;
   linkfields?: string;
-  [key: string]: any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  [key: string]: any; // Allow dynamic CLI options from commander
 }
 
 /**
