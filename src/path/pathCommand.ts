@@ -680,7 +680,9 @@ async function filesToUpload_get(
     }
   }
 
-  await dir_walk(hostpath, chrisdir);
+  // Preserve the basename of the source directory in the target path
+  const hostBasename: string = path.basename(hostpath);
+  await dir_walk(hostpath, path.join(chrisdir, hostBasename));
   return files;
 }
 
@@ -693,22 +695,26 @@ async function filesToUpload_get(
 async function localFS_scan(options: TransferCLI): Promise<ScanRecord | null> {
   await chrisContext.currentContext_update();
   const folder = chrisContext.singleContext.folder as any as string | undefined;
-  if (folder) {
-    chrisIO.chrisFolder = folder;
-  } else {
+  if (!folder) {
     console.error("ChRIS folder context is undefined, cannot initialize chrisIO.");
     return null;
   }
-  const initOK: boolean | null = await chrisIO.init();
-  if (!initOK) {
-    console.log(
-      border_draw(
-        chalk.red(errorStack.messagesOfType_search("error", "FileBrowserFolder"))
-      )
-    );
-    console.log(border_draw(chalk.red("Failed to initialize ChRIS folder.")));
+
+  // Validate that the folder context exists in CUBE before proceeding
+  try {
+    const testGroup = await objContext_create("ChRISDirsContext", `folder:${folder}`);
+    if (!testGroup) {
+      console.error(chalk.red(`Folder context '${folder}' does not exist in CUBE. Please specify an existing directory.`));
+      return null;
+    }
+  } catch (error) {
+    console.error(chalk.red(`Folder context '${folder}' does not exist in CUBE. Please specify an existing directory.`));
     return null;
   }
+
+  // Folder exists, so just set chrisFolder without calling init()
+  // (init() tries to CREATE the folder which will fail if it already exists)
+  chrisIO.chrisFolder = folder;
 
   console.log(border_draw(chalk.cyan("Scanning files to upload...")));
   const filesToUpload: FileInfo[] = await filesToUpload_get(

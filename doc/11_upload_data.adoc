@@ -1,9 +1,146 @@
-= intro
+= uploading data to ChRIS
 
-== welcome
+== intro
 
-Welome to the inline `chili` documentation system! This set of documents provides help text for each `chili` command. Additionally several important concepts like _searchable_ and _context_ are discussed.
+The `path upload` command provides a powerful way to upload entire directory trees from your local filesystem to ChRIS. Unlike single-file uploads with `file create --from-file`, `path upload` recursively scans directories and preserves their structure in the ChRIS filesystem.
 
-== how to use
+== basic usage
 
-To use this documentation system, simply read it!
+To upload a local directory to ChRIS:
+
+```bash
+chili folder=/home/user/uploads path upload ~/Downloads/dataset
+```
+
+This command:
+1. Validates that `/home/user/uploads` exists in ChRIS (fails if it doesn't)
+2. Uploads the `dataset` directory and all its contents
+3. Creates `/home/user/uploads/dataset/` in ChRIS with the full directory tree preserved
+
+== how it works
+
+=== folder validation
+
+The `folder=` context parameter specifies the *parent directory* in ChRIS where your upload will be placed. This directory **must already exist** in ChRIS—the command will fail if it doesn't.
+
+```bash
+# This works if /home/jane.doe/data exists in ChRIS
+chili folder=/home/jane.doe/data path upload ./experiment_results
+
+# This fails if /home/jane.doe/nonexistent does not exist
+chili folder=/home/jane.doe/nonexistent path upload ./experiment_results
+```
+
+=== directory structure preservation
+
+The basename of the source directory is preserved in the target path. For example:
+
+```bash
+chili folder=/home/user/uploads path upload ~/Downloads/experiment1
+```
+
+Creates the following structure in ChRIS:
+```
+/home/user/uploads/experiment1/
+  ├── data.csv
+  ├── notes.txt
+  └── results/
+      └── output.json
+```
+
+The `experiment1` directory itself becomes part of the ChRIS filesystem path.
+
+=== recursive upload
+
+All subdirectories and files are uploaded recursively:
+
+```bash
+# Local structure:
+~/project/
+  ├── src/
+  │   ├── main.py
+  │   └── utils.py
+  └── data/
+      └── input.csv
+
+# After: chili folder=/home/user/work path upload ~/project
+# ChRIS structure:
+/home/user/work/project/
+  ├── src/
+  │   ├── main.py
+  │   └── utils.py
+  └── data/
+      └── input.csv
+```
+
+== progress tracking
+
+During upload, `chili` displays a progress bar showing:
+- Current file count and total files
+- Percentage completion
+- Estimated time remaining
+- Data transferred
+
+```
+Transferring [████████░░] 45% | ETA: 12s | 23/50 files | 1.2 MB/2.8 MB
+```
+
+== common patterns
+
+=== uploading experiment data
+
+```bash
+# Upload today's experiment results
+chili folder=/home/researcher/experiments/2025-11-29 path upload ~/lab_data/run_42
+```
+
+=== organizing by project
+
+```bash
+# Create project directory first
+chili chefs mkdir /home/user/projects/projectX
+
+# Upload data into it
+chili folder=/home/user/projects/projectX path upload ~/local_work/dataset
+```
+
+=== multiple uploads to same parent
+
+```bash
+# Upload multiple datasets to the same parent directory
+chili folder=/home/user/raw_data path upload ~/data/batch1
+chili folder=/home/user/raw_data path upload ~/data/batch2
+chili folder=/home/user/raw_data path upload ~/data/batch3
+```
+
+Results in:
+```
+/home/user/raw_data/
+  ├── batch1/
+  ├── batch2/
+  └── batch3/
+```
+
+== error handling
+
+The command will fail with a clear error if:
+
+1. **Target folder doesn't exist:**
+   ```
+   Folder context '/home/user/nonexistent' does not exist in CUBE.
+   Please specify an existing directory.
+   ```
+
+2. **Source path doesn't exist:**
+   ```
+   Error: Source path '~/Downloads/missing' not found
+   ```
+
+3. **Permission issues:**
+   ChRIS will reject the upload if you don't have write permissions to the target folder.
+
+== see also
+
+- `chefs ls` - List directory contents to verify uploads
+- `chefs mkdir` - Create target directories before uploading
+- `file create --from-file` - Upload single files
