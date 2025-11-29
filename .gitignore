@@ -7,3 +7,9 @@ package-lock.json
 # Compiled result
 dist/
 
+# Test coverage
+coverage/
+
+# Shell history
+.chell_history
+
