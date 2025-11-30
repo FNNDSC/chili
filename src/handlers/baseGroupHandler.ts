@@ -292,17 +292,16 @@ export class BaseGroupHandler {
   }
 
   /**
-   * Sets up the Commander.js commands for resource listing and deletion.
+   * Creates a standard list command with all base options.
+   * This method provides a consistent set of options across all resource types.
    *
-   * @param program - The Commander.js program instance.
+   * @param actionHandler - The async function to execute when the command is invoked.
+   * @returns A configured Command object with standard list options.
    */
-  command_setup(program: Command): void {
-    const command = program
-      .command(this.assetName)
-      .description(`Interact with a group of ChRIS ${this.assetName}`);
-
-    command
-      .command("list")
+  public baseListCommand_create(
+    actionHandler: (options: CLIoptions) => Promise<void>
+  ): Command {
+    return new Command("list")
       .description(`list ${this.assetName}`)
       .option("-p, --page <size>", "Page size (default 20)")
       .option(
@@ -313,9 +312,28 @@ export class BaseGroupHandler {
         "-s, --search <searchTerms>",
         `search for ${this.assetName} using comma-separated key-value pairs`
       )
-      .action(async (options: CLIoptions) => {
+      .option("--sort <field>", "Sort by field (name, size, date, owner, etc.)")
+      .option("-r, --reverse", "Reverse sort order")
+      .option("--table", "Output in table format with headers")
+      .option("--csv", "Output in CSV format (overrides --table)")
+      .action(actionHandler);
+  }
+
+  /**
+   * Sets up the Commander.js commands for resource listing and deletion.
+   *
+   * @param program - The Commander.js program instance.
+   */
+  command_setup(program: Command): void {
+    const command = program
+      .command(this.assetName)
+      .description(`Interact with a group of ChRIS ${this.assetName}`);
+
+    command.addCommand(
+      this.baseListCommand_create(async (options: CLIoptions) => {
         await this.resources_list(options);
-      });
+      })
+    );
 
     command
       .command("fieldslist")

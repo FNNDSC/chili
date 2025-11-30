@@ -11,7 +11,7 @@ import { BaseGroupHandler } from "../handlers/baseGroupHandler.js";
 import { CLIoptions } from "../utils/cli.js";
 import { table_display } from "../screen/screen.js";
 import { PluginController } from "../controllers/pluginController.js";
-import { errorStack, FilteredResourceData } from "@fnndsc/cumin";
+import { errorStack, FilteredResourceData, Searchable } from "@fnndsc/cumin";
 import { plugins_fetchList, PluginListResult } from "../commands/plugins/list.js";
 import { pluginFields_fetch } from "../commands/plugins/fields.js";
 import { plugins_searchByTerm, plugin_deleteById } from "../commands/plugins/delete.js";
@@ -78,13 +78,16 @@ export class PluginGroupHandler {
 
   /**
    * Deletes plugins using the new command logic.
+   * Supports batch deletion using ++ separator.
    */
   async plugins_delete(searchable: string, options: CLIoptions): Promise<void> {
-    const searchParts = searchable.split("++").map((part) => part.trim());
-    for (const searchPart of searchParts) {
-      const items = await plugins_searchByTerm(searchPart);
+    const searchableObj = Searchable.from(searchable);
+    const searchables = searchableObj.toBatchSearchables();
+
+    for (const search of searchables) {
+      const items = await plugins_searchByTerm(search.raw);
       if (items.length === 0) {
-        console.log(`No plugins found matching: ${searchPart}`);
+        console.log(`No plugins found matching: ${search.raw}`);
         continue;
       }
 
@@ -127,24 +130,14 @@ export class PluginGroupHandler {
       .command(this.assetName)
       .description(`Interact with a group of ChRIS ${this.assetName}`);
 
-    pluginsCommand
-      .command("list")
-      .description(`list ${this.assetName}`)
-      .option("-p, --page <size>", "Page size (default 20)")
-      .option("-a, --all", "List all plugins (disable pagination)")
-      .option(
-        "-f, --fields <fields>",
-        `comma-separated list of ${this.assetName} fields to display`
-      )
-      .option(
-        "-s, --search <searchTerms>",
-        `search for ${this.assetName} using comma-separated key-value pairs`
-      )
-      .option("--table", "Output in table format with headers")
-      .option("--csv", "Output in CSV format (overrides --table)")
-      .action(async (options: CLIoptions) => {
+    // Use base list command generator and add plugin-specific options
+    const listCommand = this.baseGroupHandler.baseListCommand_create(
+      async (options: CLIoptions) => {
         await this.plugins_list(options);
-      });
+      }
+    );
+    listCommand.option("-a, --all", "List all plugins (disable pagination)");
+    pluginsCommand.addCommand(listCommand);
 
     pluginsCommand
       .command("fieldslist")

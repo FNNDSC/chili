@@ -19,6 +19,7 @@ import { fileFields_fetch } from "../commands/files/fields.js";
 import { files_searchByTerm, files_deleteById } from "../commands/files/delete.js";
 import { prompt_confirm } from "../utils/ui.js";
 import { files_viewContent } from "../commands/file/view.js";
+import { fileList_render } from "../views/file.js";
 
 /**
  * Handles commands related to groups of ChRIS files, links, or directories.
@@ -109,11 +110,12 @@ export class FileGroupHandler {
         console.log(`No ${this.assetName} found matching the criteria.`);
       } else {
         const uniqueResults = this.columns_removeDuplicates(results);
-        table_display(
+        // Use the new view layer with table/csv support
+        console.log(fileList_render(
           uniqueResults.tableData,
           uniqueResults.selectedFields,
-          { title: { title: this.assetName, justification: "center" } }
-        );
+          { table: options.table, csv: options.csv }
+        ));
       }
     } catch (error) {
       // TODO: Refactor errorStack usage to RPN function calls if available
@@ -206,24 +208,18 @@ export class FileGroupHandler {
       .command(this.assetName)
       .description(`Interact with a group of ChRIS ${this.assetName}`);
 
-    fileGroupCommand
-      .command("list [path]")
-      .description(`list ${this.assetName}`)
-      .option(
-        "-p, --page <size>",
-        "Page size (default 20)"
-      )
-      .option(
-        "-f, --fields <fields>",
-        `comma-separated list of ${this.assetName} fields to display`
-      )
-      .option(
-        "-s, --search <searchTerms>",
-        `search for ${this.assetName} using comma-separated key-value pairs`
-      )
-      .action(async (path, options: CLIoptions) => {
-        await this.files_list(options, path);
-      });
+    // Use base list command generator
+    const listCommand = this.baseGroupHandler.baseListCommand_create(
+      async (options: CLIoptions) => {
+        await this.files_list(options);
+      }
+    );
+    // Add path argument and override action to handle it properly
+    listCommand.argument('[path]', 'Optional path to list');
+    listCommand.action(async (path: string | undefined, options: CLIoptions) => {
+      await this.files_list(options, path);
+    });
+    fileGroupCommand.addCommand(listCommand);
     
     fileGroupCommand
       .command("fieldslist")

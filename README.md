@@ -1,4 +1,11 @@
-# ChILI (ChRIS Interactive Line Interface) 🌶️
+```
+  ____ _     ___ _     ___
+ / ___| |__ |_ _| |   |_ _|
+| |   | '_ \ | || |    | |
+| |___| | | || || |___ | |
+ \____|_| |_|___|_____|___|
+```
+**ChRIS Interactive Line Interface**
 
 `chili` is both a powerful CLI application and a reusable library for interacting with the ChRIS ecosystem. It serves as the "Controller" layer in the ChRIS interface stack, bridging the gap between raw business logic (`salsa`) and user presentation.
 

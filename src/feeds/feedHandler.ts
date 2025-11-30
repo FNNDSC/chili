@@ -139,23 +139,13 @@ export class FeedGroupHandler {
       .command(this.assetName)
       .description(`Interact with a group of ChRIS ${this.assetName}`);
 
-    feedGroupCommand
-      .command("list")
-      .description(`list ${this.assetName}`)
-      .option("-p, --page <size>", "Page size (default 20)")
-      .option(
-        "-f, --fields <fields>",
-        `comma-separated list of ${this.assetName} fields to display`
-      )
-      .option(
-        "-s, --search <searchTerms>",
-        `search for ${this.assetName} using comma-separated key-value pairs`
-      )
-      .option("--table", "Output in table format with headers")
-      .option("--csv", "Output in CSV format (overrides --table)")
-      .action(async (options: CLIoptions) => {
+    // Use base list command generator
+    const listCommand = this.baseGroupHandler.baseListCommand_create(
+      async (options: CLIoptions) => {
         await this.feeds_list(options);
-      });
+      }
+    );
+    feedGroupCommand.addCommand(listCommand);
 
     feedGroupCommand
       .command("fieldslist")
