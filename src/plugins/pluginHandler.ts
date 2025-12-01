@@ -274,9 +274,8 @@ export class PluginMemberHandler {
           const searchable: string = args[0];
           let pluginParams: string = "";
           if (args.length > 0) {
-            pluginParams = args.slice(1).join("' '");
+            pluginParams = args.slice(1).join(" "); // Join with space
           }
-          pluginParams = `'${pluginParams}'`;
           await this.plugin_run(searchable, pluginParams);
         });
 

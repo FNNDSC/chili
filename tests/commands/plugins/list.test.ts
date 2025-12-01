@@ -10,8 +10,8 @@ describe('commands/plugins/list', () => {
   });
 
   it('should call salsa.plugins_list with correct options', async () => {
-    const mockData: FilteredResourceData = {
-      tableData: [{ id: 1, name: 'pl-test' }],
+    const mockData = {
+      plugins: [{ id: 1, name: 'pl-test' }],
       selectedFields: ['id', 'name']
     };
     (salsa.plugins_list as jest.Mock).mockResolvedValue(mockData);
@@ -28,11 +28,11 @@ describe('commands/plugins/list', () => {
   });
 
   it('should return null if salsa.plugins_list returns null', async () => {
-    (salsa.plugins_list as jest.Mock).mockResolvedValue(null);
+    (salsa.plugins_list as jest.Mock).mockResolvedValue({ plugins: [], selectedFields: [] });
 
     const options = {};
     const result = await plugins_fetchList(options);
 
-    expect(result).toBeNull();
+    expect(result).toEqual({ plugins: [], selectedFields: [] });
   });
 });

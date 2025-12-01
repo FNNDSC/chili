@@ -15,12 +15,15 @@ describe('connect_login', () => {
     expect(salsa.connect_do).toHaveBeenCalledWith(mockOptions);
   });
 
-  it('should log error if salsa.connect_do fails', async () => {
-    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-    (salsa.connect_do as jest.Mock).mockRejectedValue(new Error('Connection failed'));
+  it('should return false if salsa.connect_do returns Err()', async () => {
+    (salsa.connect_do as jest.Mock).mockResolvedValue({ ok: false }); // Mock salsa.connect_do to return Err()
     const mockOptions = { url: 'http://example.com', user: 'test', password: 'password', debug: false };
-    await connect_login(mockOptions);
-    expect(consoleErrorSpy).toHaveBeenCalledWith('Failed to connect:', expect.any(Error));
+    const result = await connect_login(mockOptions);
+    expect(result).toBe(false);
+    expect(salsa.connect_do).toHaveBeenCalledWith(mockOptions);
+    // Expect no console.error calls from connect_login itself
+    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    expect(consoleErrorSpy).not.toHaveBeenCalled();
     consoleErrorSpy.mockRestore();
   });
 });

@@ -7,14 +7,15 @@
  * @module
  */
 import { connect_do as salsaConnect_do, ConnectOptions } from "@fnndsc/salsa";
+import { Result } from "@fnndsc/cumin";
 
 /**
  * Handles the login process.
  *
  * @param options - Connection options (url, username, password).
  * @returns A Promise resolving to true on success, false on failure.
- * @throws Error if connection fails unexpectedly.
  */
 export async function connect_login(options: ConnectOptions): Promise<boolean> {
-  return await salsaConnect_do(options);
+  const result: Result<boolean> = await salsaConnect_do(options);
+  return result.ok ? result.value : false;
 }

@@ -12,7 +12,7 @@ describe('commands/feeds/list', () => {
   });
 
   it('should call salsa.feeds_list with params', async () => {
-    const mockData = { tableData: [] };
+    const mockData = { feeds: [], selectedFields: [] };
     (salsa.feeds_list as jest.Mock).mockResolvedValue(mockData);
 
     const options = { page: '1' };

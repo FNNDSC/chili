@@ -40,8 +40,8 @@ export async function plugins_fetchList(options: CLIoptions): Promise<PluginList
     result = await salsaPlugins_list(params);
   }
 
-  if (result && result.tableData) {
-    let plugins = result.tableData as unknown as Plugin[];
+  if (result && result.plugins) {
+    let plugins = result.plugins as unknown as Plugin[];
 
     // Apply sorting if specified
     if (options.sort) {

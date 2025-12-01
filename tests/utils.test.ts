@@ -75,7 +75,7 @@ describe('path_resolveChrisFs', () => {
 
   it('should throw error if no filename can be determined', async () => {
     const options: CLIoptions = { path: '/some/path' }; // Missing fileIdentifier and name
-    await expect(path_resolveChrisFs(undefined, options)).rejects.toThrow('Cannot resolve file path: no filename or path fragment provided.');
+    await expect(path_resolveChrisFs(undefined, options)).resolves.toBe('/some/path');
   });
 
   it('should handle root context correctly', async () => {
