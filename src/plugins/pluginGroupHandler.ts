@@ -1,7 +1,9 @@
 import { Command } from "commander";
 import { BaseGroupHandler } from "../handlers/baseGroupHandler.js";
-import { CLIoptions } from "../utils/cli.js";
+import { CLIoptions, options_toParams } from "../utils/cli.js";
 import { PluginContextController } from "../controllers/pluginContextController.js";
+import { pluginParameters_renderMan } from "../views/pluginParameters.js";
+import { FilteredResourceData } from "@fnndsc/cumin";
 
 class InitializationError extends Error {
   constructor(message: string) {
@@ -50,6 +52,44 @@ export class PluginContextGroupHandler {
     } catch (error) {
         throw new InitializationError(`Failed to initialize PluginContextGroupHandler: ${error}`);
     }
+  }
+
+  /**
+   * Lists plugin parameters in a "man page" style format.
+   * This is a specialized view for parameters that differs from the standard table view.
+   *
+   * @param options - CLI options for filtering.
+   */
+  async parameters_listMan(options: CLIoptions): Promise<void> {
+    try {
+      // We access the asset directly from the controller
+      const asset = (this.controller.chrisObject as any).asset;
+      
+      if (!asset || typeof asset.resources_listAndFilterByOptions !== 'function') {
+         console.error("Underlying resource does not support listing.");
+         return;
+      }
+
+      const params = options_toParams(options);
+      const results: FilteredResourceData | null = await asset.resources_listAndFilterByOptions(params);
+
+      if (results) {
+        pluginParameters_renderMan(results);
+      } else {
+        console.log("No parameters found.");
+      }
+    } catch (error) {
+      console.error(`Error listing parameters: ${error}`);
+    }
+  }
+
+  /**
+   * Lists available fields for the current plugin context resource.
+   */
+  async parameters_fieldsList(): Promise<void> {
+      if (this.baseGroupHandler) {
+          await this.baseGroupHandler.resourceFields_list();
+      }
   }
 
   /**
