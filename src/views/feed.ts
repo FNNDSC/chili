@@ -61,10 +61,19 @@ export function feedList_render(feeds: Feed[], selectedFields: string[], options
     });
     
     // Pass original effectiveFields as head for correct data mapping, headerForDisplay for title
-    return screen.table_output(tableDataForScreen, { head: effectiveFields, title: { title: "Feeds", justification: "center" } });
+    return screen.table_output(tableDataForScreen, { 
+      head: effectiveFields, 
+      title: { title: "Feeds", justification: "center" },
+      typeColors: {
+        string: "green",
+        number: "yellow",
+        boolean: "cyan",
+        object: "magenta"
+      }
+    });
 
   } else {
-    // Default list format (no header)
+    // Default list format (tab-separated)
     return rows.map(row => row.join('\t')).join('\n');
   }
 }

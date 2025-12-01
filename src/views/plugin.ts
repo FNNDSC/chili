@@ -71,10 +71,19 @@ export function pluginList_render(plugins: Plugin[], selectedFields: string[], o
     });
 
     // Pass original effectiveFields as head for correct data mapping, headerForDisplay for title
-    return screen.table_output(tableDataForScreen, { head: effectiveFields, title: { title: "Plugins", justification: "center" } });
+    return screen.table_output(tableDataForScreen, { 
+      head: effectiveFields, 
+      title: { title: "Plugins", justification: "center" },
+      typeColors: {
+        string: "green",
+        number: "yellow",
+        boolean: "cyan",
+        object: "magenta"
+      }
+    });
 
   } else {
-    // Default list format (no header)
+    // Default list format (tab-separated)
     return rows.map(row => row.join('\t')).join('\n');
   }
 }

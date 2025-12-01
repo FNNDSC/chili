@@ -93,11 +93,35 @@ export class BaseGroupHandler {
         console.log(`No ${this.assetName} found matching the criteria.`);
       } else {
         const uniqueResults = this.columns_removeDuplicates(results);
-        table_display(
-          uniqueResults.tableData,
-          uniqueResults.selectedFields,
-          this.displayOptions
-        );
+        
+        if (options.csv) {
+          // CSV Output
+          const header = uniqueResults.selectedFields.map(h => `"${h.toUpperCase()}"`).join(',');
+          const rows = uniqueResults.tableData.map(row => {
+             return uniqueResults.selectedFields.map(field => {
+               const val = (row as any)[field];
+               return `"${String(val !== undefined ? val : '').split('"').join('""')}"`;
+             }).join(',');
+          }).join('\n');
+          console.log(header + '\n' + rows);
+        } else {
+          // Default: Use table display (aligned & colorized) for "nice" output
+          // This handles both explicit --table and the default case where we want alignment
+          table_display(
+            uniqueResults.tableData,
+            uniqueResults.selectedFields,
+            {
+              // ...this.displayOptions, // Don't spread title here for default case
+              borderless: true,
+              typeColors: {
+                string: "green",
+                number: "yellow",
+                boolean: "cyan",
+                object: "magenta"
+              }
+            }
+          );
+        }
       }
     } catch (error) {
       console.log(errorStack.stack_search(this.assetName)[0]);

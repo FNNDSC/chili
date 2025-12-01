@@ -19,6 +19,7 @@ export interface TableOptions {
     object?: string;
   };
   title?: Title;
+  borderless?: boolean;
 }
 
 interface Title {
@@ -256,7 +257,7 @@ export class Screen {
       );
 
       // First pass: Generate table without title to get width
-      const config = this.tableConfig_prepare(false);
+      const config = this.tableConfig_prepare(false, options);
       const tempOutput: string = table(styledData, config);
       const tableWidth = tempOutput.split("\n")[0].length;
 
@@ -267,7 +268,7 @@ export class Screen {
       }
 
       // Second pass: Generate full table with correct title
-      const fullConfig = this.tableConfig_prepare(!!options.title);
+      const fullConfig = this.tableConfig_prepare(!!options.title, options);
       const output: string = table(styledData, fullConfig);
 
       // Combine title (if any) and table
@@ -526,9 +527,17 @@ export class Screen {
    * Prepares the `table` library configuration object.
    *
    * @param hasTitle - Whether the table has a title (affects border drawing).
+   * @param options - Table options to check for borderless mode.
    * @returns The `TableUserConfig` object.
    */
-  private tableConfig_prepare(hasTitle: boolean): TableUserConfig {
+  private tableConfig_prepare(hasTitle: boolean, options: TableOptions): TableUserConfig {
+    if (options.borderless) {
+      return {
+        border: getBorderCharacters("void"),
+        drawHorizontalLine: () => false,
+      };
+    }
+
     const borderCharacters = getBorderCharacters("norc");
     const customBorderCharacters = hasTitle
       ? {
