@@ -78,6 +78,27 @@ export class BaseGroupHandler {
    */
   async resources_list(options: CLIoptions): Promise<void> {
     try {
+      // Parse fields to handle column width specifiers (e.g., "name:20")
+      const columnWidths: Record<string, number> = {};
+      if (options.fields) {
+        const fields = options.fields.split(',').map(f => f.trim());
+        const cleanFields: string[] = [];
+        
+        fields.forEach(field => {
+          const parts = field.split(':');
+          if (parts.length === 2 && !isNaN(Number(parts[1]))) {
+            const fieldName = parts[0];
+            const width = Number(parts[1]);
+            columnWidths[fieldName] = width;
+            cleanFields.push(fieldName);
+          } else {
+            cleanFields.push(field);
+          }
+        });
+        
+        options.fields = cleanFields.join(',');
+      }
+
       const params = options_toParams(options);
       const results: FilteredResourceData | null =
         await this.chrisObject.asset.resources_listAndFilterByOptions(params);
@@ -94,6 +115,12 @@ export class BaseGroupHandler {
       } else {
         const uniqueResults = this.columns_removeDuplicates(results);
         
+        // Construct column options based on parsed widths
+        const columns = uniqueResults.selectedFields.map(field => {
+           const width = columnWidths[field];
+           return width ? { width } : {};
+        });
+
         if (options.csv) {
           // CSV Output
           const header = uniqueResults.selectedFields.map(h => `"${h.toUpperCase()}"`).join(',');
@@ -104,15 +131,30 @@ export class BaseGroupHandler {
              }).join(',');
           }).join('\n');
           console.log(header + '\n' + rows);
-        } else {
-          // Default: Use table display (aligned & colorized) for "nice" output
-          // This handles both explicit --table and the default case where we want alignment
+        } else if (options.table) {
+          // Explicit Table format (with borders and title)
           table_display(
             uniqueResults.tableData,
             uniqueResults.selectedFields,
             {
-              // ...this.displayOptions, // Don't spread title here for default case
+              ...this.displayOptions,
+              columns: columns,
+              typeColors: {
+                string: "green",
+                number: "yellow",
+                boolean: "cyan",
+                object: "magenta"
+              }
+            }
+          );
+        } else {
+          // Default: Aligned, colorized, borderless list (no title)
+          table_display(
+            uniqueResults.tableData,
+            uniqueResults.selectedFields,
+            {
               borderless: true,
+              columns: columns,
               typeColors: {
                 string: "green",
                 number: "yellow",

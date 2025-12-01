@@ -189,9 +189,13 @@ export function table_display(
     return null;
   }
 
-  const columns: ColumnOptions[] = tableObj.headers.map(() => ({
-    justification: "left" as const,
-  }));
+  const columns: ColumnOptions[] = tableObj.headers.map((_, index) => {
+    const existingCol = options.columns?.[index] || {};
+    return {
+      justification: "left" as const,
+      ...existingCol,
+    };
+  });
   const updatedColumns = firstColumnSettings_apply(columns);
 
   const tableOptions: TableOptions = {
@@ -422,15 +426,29 @@ export class Screen {
   ): string {
     const columnOptions: ColumnOptions = safeColumns[index] || {};
     const justification: Justification = columnOptions.justification || "left";
-    const width: number = colWidths[index];
+    const width: number = colWidths[index]; // This is the target width for the column
+
+    // Use explicit width from column options if available for truncation limit, 
+    // otherwise use the calculated width (which fits the content anyway).
+    // Actually, colWidths[index] comes from columnWidths_calculate which respects columnOptions.width.
+    // So 'width' IS the limit if specified.
+
+    let cellString: string = this.string_safeConvert(cell);
+    const rawLength = this.visibleLength_get(cellString);
+
+    // Truncate if necessary (only if explicit width was likely set or calculated width is restrictive)
+    // Note: If width comes from content, rawLength <= width. 
+    // If width comes from columnOptions.width, it might be < rawLength.
+    if (columnOptions.width && rawLength > width) {
+        const truncateLen = Math.max(0, width - 3);
+        cellString = cellString.slice(0, truncateLen) + "...";
+    }
 
     let color: string | undefined = columnOptions.color;
 
     if (!color && options.typeColors) {
       color = this.color_determine(cell, options.typeColors);
     }
-
-    const cellString: string = this.string_safeConvert(cell);
 
     const coloredCell: string = cellString.includes("\u001b")
       ? cellString

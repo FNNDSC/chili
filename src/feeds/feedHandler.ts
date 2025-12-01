@@ -13,16 +13,16 @@ import { errorStack } from "@fnndsc/cumin";
 import { table_display } from "../screen/screen.js";
 import { FeedController } from "../controllers/feedController.js";
 import chalk from "chalk";
-import { feeds_fetchList } from "../commands/feeds/list.js";
+// import { feeds_fetchList } from "../commands/feeds/list.js"; // No longer needed
 import { feedFields_fetch } from "../commands/feeds/fields.js";
 import { feed_shareById } from "../commands/feeds/share.js";
 import { FeedShareOptions } from "@fnndsc/salsa";
 import { feeds_searchByTerm, feed_deleteById } from "../commands/feeds/delete.js";
 import { prompt_confirm } from "../utils/ui.js";
 import { feed_create } from "../commands/feed/create.js";
-import { feedList_render, feedCreate_render } from "../views/feed.js";
+import { feedCreate_render } from "../views/feed.js"; // Still needed for feedCreate_render
 import { Feed } from "../models/feed.js";
-import { FeedListResult } from "../commands/feeds/list.js";
+// import { FeedListResult } from "../commands/feeds/list.js"; // No longer needed
 
 /**
  * Handles commands related to groups of ChRIS feeds.
@@ -40,18 +40,18 @@ export class FeedGroupHandler {
     );
   }
 
-  /**
-   * Lists feeds using the new command logic.
-   */
-  async feeds_list(options: CLIoptions): Promise<void> {
-    try {
-      const { feeds, selectedFields }: FeedListResult = await feeds_fetchList(options);
-      console.log(feedList_render(feeds, selectedFields, { table: options.table, csv: options.csv }));
-    } catch (error: unknown) {
-      const msg = error instanceof Error ? error.message : String(error);
-      console.error(chalk.red(`Error listing feeds: ${msg}`));
-    }
-  }
+  // /**
+  //  * Lists feeds using the new command logic.
+  //  */
+  // async feeds_list(options: CLIoptions): Promise<void> {
+  //   try {
+  //     const { feeds, selectedFields }: FeedListResult = await feeds_fetchList(options);
+  //     console.log(feedList_render(feeds, selectedFields, { table: options.table, csv: options.csv }));
+  //   } catch (error: unknown) {
+  //     const msg = error instanceof Error ? error.message : String(error);
+  //     console.error(chalk.red(`Error listing feeds: ${msg}`));
+  //   }
+  // }
 
   /**
    * Lists feed fields using the new command logic.
@@ -142,7 +142,8 @@ export class FeedGroupHandler {
     // Use base list command generator
     const listCommand = this.baseGroupHandler.baseListCommand_create(
       async (options: CLIoptions) => {
-        await this.feeds_list(options);
+        // Use the base generic renderer instead of the custom one
+        await this.baseGroupHandler.resources_list(options);
       }
     );
     feedGroupCommand.addCommand(listCommand);

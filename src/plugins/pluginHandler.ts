@@ -12,7 +12,7 @@ import { CLIoptions } from "../utils/cli.js";
 import { table_display } from "../screen/screen.js";
 import { PluginController } from "../controllers/pluginController.js";
 import { errorStack, FilteredResourceData, Searchable } from "@fnndsc/cumin";
-import { plugins_fetchList, PluginListResult } from "../commands/plugins/list.js";
+// import { plugins_fetchList, PluginListResult } from "../commands/plugins/list.js"; // No longer needed
 import { pluginFields_fetch } from "../commands/plugins/fields.js";
 import { plugins_searchByTerm, plugin_deleteById } from "../commands/plugins/delete.js";
 import { prompt_confirm } from "../utils/ui.js";
@@ -21,7 +21,7 @@ import { pluginsOverview_display } from "../commands/plugins/overview.js";
 import { pluginReadme_fetch } from "../commands/plugin/readme.js";
 import { plugin_execute } from "../commands/plugin/run.js";
 import { pluginIds_resolve } from "../commands/plugin/search.js";
-import { pluginList_render, pluginRun_render } from "../views/plugin.js";
+import { pluginRun_render } from "../views/plugin.js"; // Still needed for pluginRun_render
 import { Plugin, PluginInstance } from "../models/plugin.js";
 
 /**
@@ -47,18 +47,18 @@ export class PluginGroupHandler {
     await pluginsOverview_display();
   }
 
-  /**
-   * Lists plugins using the new command logic.
-   */
-  async plugins_list(options: CLIoptions): Promise<void> {
-    try {
-      const { plugins, selectedFields } = await plugins_fetchList(options);
-      console.log(pluginList_render(plugins, selectedFields, { table: options.table, csv: options.csv }));
-    } catch (error: unknown) {
-      const msg = error instanceof Error ? error.message : String(error);
-      console.error(msg);
-    }
-  }
+  // /**
+  //  * Lists plugins using the new command logic.
+  //  */
+  // async plugins_list(options: CLIoptions): Promise<void> {
+  //   try {
+  //     const { plugins, selectedFields } = await plugins_fetchList(options);
+  //     console.log(pluginList_render(plugins, selectedFields, { table: options.table, csv: options.csv }));
+  //   } catch (error: unknown) {
+  //     const msg = error instanceof Error ? error.message : String(error);
+  //     console.error(msg);
+  //   }
+  // }
 
   /**
    * Lists plugin fields using the new command logic.
@@ -133,7 +133,7 @@ export class PluginGroupHandler {
     // Use base list command generator and add plugin-specific options
     const listCommand = this.baseGroupHandler.baseListCommand_create(
       async (options: CLIoptions) => {
-        await this.plugins_list(options);
+        await this.baseGroupHandler.resources_list(options);
       }
     );
     listCommand.option("-a, --all", "List all plugins (disable pagination)");

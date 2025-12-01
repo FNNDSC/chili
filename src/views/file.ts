@@ -81,7 +81,13 @@ export function fileList_render(
 
     return screen.table_output(tableDataForScreen, {
       head: effectiveFields,
-      title: { title: "Files", justification: "center" }
+      title: { title: "Files", justification: "center" },
+      typeColors: {
+        string: "green",
+        number: "yellow",
+        boolean: "cyan",
+        object: "magenta"
+      }
     });
 
   } else {
