@@ -51,13 +51,24 @@ export async function files_list(options: LsOptions, pathStr: string = ""): Prom
         name = name.split('/').pop() || name;
     }
 
+    // For links, strip the .chrislink extension from the display name
+    if (type === 'link' && name.endsWith('.chrislink')) {
+      name = name.slice(0, -10); // Remove '.chrislink' (10 characters)
+    }
+
+    // For links, prepend '/' to the target if it doesn't already have it
+    let target: string | undefined = undefined;
+    if (type === 'link' && raw.path) {
+      target = raw.path.startsWith('/') ? raw.path : `/${raw.path}`;
+    }
+
     return {
       name,
       type,
       size: raw.fsize || 0,
       owner: raw.owner_username || 'unknown',
       date: raw.creation_date || '',
-      target: raw.path // For links, path often points to target or is the link path itself
+      target
     };
   };
 

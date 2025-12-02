@@ -252,3 +252,6 @@ main().catch((error) => {
   console.error("An error occurred:", error);
   process.exit(1);
 });
+
+// Export utilities for use by other packages (e.g., chell)
+export { logical_toPhysical } from './utils/cli.js';
