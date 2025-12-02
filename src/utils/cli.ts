@@ -1,16 +1,7 @@
 import { ListOptions, chrisContext, Context, errorStack, Result, Ok, Err } from "@fnndsc/cumin";
 import { keyPairParams_apply } from "@fnndsc/cumin";
 import path from "path"; // Node.js path module for joining paths
-import { files_listAll } from "@fnndsc/salsa";
-
-// Simple cache for link data to avoid repeated API calls
-interface LinkCacheEntry {
-  links: Map<string, string>; // linkName -> target
-  timestamp: number;
-}
-
-const linkCache: Map<string, LinkCacheEntry> = new Map();
-const CACHE_TTL_MS: number = 30000; // 30 seconds
+import { pathMapper_get } from "../path/pathMapper.js";
 
 export interface CLIoptions {
   page?: string;
@@ -118,9 +109,8 @@ export async function path_resolveChrisFs(
 /**
  * Resolves a logical path to its physical path by following links.
  *
- * This function walks the path tree from root, checking each component
- * to see if it's a link. When a link is encountered, it jumps to the
- * link's target and continues from there.
+ * This function delegates to the PathMapper singleton, which uses
+ * hierarchical caching to optimize repeated resolutions with common prefixes.
  *
  * Example:
  *   Logical:  /home/user/public/data
@@ -131,135 +121,14 @@ export async function path_resolveChrisFs(
  * @returns A Result containing the physical path, or Err if path is invalid
  */
 export async function logical_toPhysical(logicalPath: string): Promise<Result<string>> {
-  // Validate input
-  if (!logicalPath || typeof logicalPath !== 'string') {
-    errorStack.stack_push('error', 'Invalid path: path must be a non-empty string');
-    return Err();
-  }
-
-  // Normalize path (ensure it starts with /)
-  const normalizedPath: string = logicalPath.startsWith('/') ? logicalPath : `/${logicalPath}`;
-
-  // Split into components, filtering out empty strings
-  const parts: string[] = normalizedPath.split('/').filter((p: string) => p.length > 0);
-
-  // Root directory case
-  if (parts.length === 0) {
-    return Ok('/');
-  }
-
-  let physicalCurrent: string = '/';
-
-  // Walk each component of the path
-  for (let i: number = 0; i < parts.length; i++) {
-    const part: string = parts[i];
-
-    // Build the candidate path in the current physical directory
-    const candidatePath: string = physicalCurrent === '/'
-      ? `/${part}`
-      : `${physicalCurrent}/${part}`;
-
-    try {
-      // Check if this component is a link in its parent directory
-      const linkTarget: string | null = await link_checkAndResolve(candidatePath);
-
-      if (linkTarget) {
-        // It's a link! Jump to the target
-        physicalCurrent = linkTarget;
-      } else {
-        // Not a link, continue building the physical path
-        physicalCurrent = candidatePath;
-      }
-    } catch (error: unknown) {
-      // Link resolution failed - log warning but continue
-      const msg: string = error instanceof Error ? error.message : String(error);
-      errorStack.stack_push(
-        'warning',
-        `Failed to check if '${candidatePath}' is a link: ${msg}. Treating as regular path.`
-      );
-      // Assume it's not a link and continue
-      physicalCurrent = candidatePath;
-    }
-  }
-
-  return Ok(physicalCurrent);
+  const mapper = pathMapper_get();
+  return mapper.logical_toPhysical(logicalPath);
 }
 
 /**
- * Checks if a path is a link and returns its target, or null if not a link.
- *
- * Uses a cache to avoid repeated API calls for the same directory.
- *
- * @param candidatePath - The path to check
- * @returns The link target if it's a link, null otherwise
- */
-async function link_checkAndResolve(candidatePath: string): Promise<string | null> {
-  // Extract parent directory for fetching links
-  const parts: string[] = candidatePath.split('/');
-  const filename: string = parts.pop() || '';
-  const parentDir: string = parts.join('/') || '/';
-
-  // Normalize the candidate path
-  const normalizedCandidate: string = candidatePath.startsWith('/')
-    ? candidatePath
-    : `/${candidatePath}`;
-
-  // Check cache first
-  const cached: LinkCacheEntry | undefined = linkCache.get(parentDir);
-  const now: number = Date.now();
-
-  if (cached && (now - cached.timestamp) < CACHE_TTL_MS) {
-    // Cache hit! Check if this path is a link
-    const target: string | undefined = cached.links.get(normalizedCandidate);
-    return target || null;
-  }
-
-  // Cache miss or expired - fetch from API
-  try {
-    const fetchOpts: Record<string, string | number> = { limit: 1000, offset: 0 };
-    const linksResult = await files_listAll(fetchOpts, 'links', parentDir);
-
-    // Build the link map for this directory
-    const linksMap: Map<string, string> = new Map();
-
-    if (linksResult && linksResult.tableData) {
-      for (const linkRaw of linksResult.tableData) {
-        const linkFname: string = (linkRaw.fname as string) || '';
-        const linkPath: string = (linkRaw.path as string) || '';
-
-        // Normalize link fname
-        const normalizedLinkFname: string = linkFname.startsWith('/')
-          ? linkFname
-          : `/${linkFname}`;
-
-        // Remove .chrislink extension to get the logical path
-        if (normalizedLinkFname.endsWith('.chrislink')) {
-          const logicalPath: string = normalizedLinkFname.slice(0, -10);
-          const target: string = linkPath.startsWith('/') ? linkPath : `/${linkPath}`;
-          linksMap.set(logicalPath, target);
-        }
-      }
-    }
-
-    // Update cache
-    linkCache.set(parentDir, {
-      links: linksMap,
-      timestamp: now
-    });
-
-    // Return the target if it's a link
-    const target: string | undefined = linksMap.get(normalizedCandidate);
-    return target || null;
-
-  } catch (error: unknown) {
-    // Error fetching links - propagate to caller
-    throw error;
-  }
-}
-
-/**
- * Clears the link cache. Useful when links are created/deleted.
+ * Clears the path mapping cache. Useful when links are created/deleted.
  */
 export function linkCache_clear(): void {
-  linkCache.clear();
+  const mapper = pathMapper_get();
+  mapper.cache_clear();
 }

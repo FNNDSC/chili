@@ -8,3 +8,5 @@
  */
 
 export { logical_toPhysical } from './utils/cli.js';
+export { PathMapper, pathMapper_get } from './path/pathMapper.js';
+export type { CacheStats } from './path/pathMapper.js';
