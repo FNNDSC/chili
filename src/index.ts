@@ -208,7 +208,8 @@ async function main() {
     .option("-s, --nosplash", "disable splash screen");
 
   connectCommand_setup(program);
-
+  await handlers_initialize(); // Call handlers_initialize here
+  
   // Parse arguments to handle global options
   program.parseOptions(process.argv);
   const options = program.opts();
@@ -216,32 +217,6 @@ async function main() {
   if (!options.nosplash) {
     console.log(figlet.textSync("ChILI"));
     console.log("ChILI handles Intelligent Line Interactions");
-  }
-
-  // table_display(
-  //   ["val1,val2,val3,val4,val5", "val6,val7,val8,val9,val10"],
-  //   "col1,col2,col3,col4,col5"
-  // );
-
-  // table_display(
-  //   [
-  //     ["val1", "val2", "val3", "val4", "val5"],
-  //     ["val6", "val7", "val8", "val9", "val10"],
-  //   ],
-  //   "col1,col2,col3,col4,col5"
-  // );
-
-  if (options.verbose) {
-    console.log("Verbose mode enabled");
-  }
-
-  if (options.config) {
-    console.log(`Using config file: ${options.config}`);
-  }
-
-  // If it's not a connect command, initialize other handlers
-  if (!process.argv.includes("connect")) {
-    await handlers_initialize();
   }
 
   // Parse the command

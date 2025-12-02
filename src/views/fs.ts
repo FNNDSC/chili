@@ -62,9 +62,18 @@ export function cat_render(content: string | null, path: string): string {
 }
 
 /**
- * Renders the result of an rm operation.
- * @param result - The result object from files_rm.
+ * Renders the result of a copy operation.
+ * @param src - Source path.
+ * @param dest - Destination path.
+ * @param success - Whether the operation succeeded.
  */
+export function cp_render(src: string, dest: string, success: boolean): string {
+  if (success) {
+    return chalk.green(`Copied ${src} to ${dest}`);
+  } else {
+    return chalk.red(`Failed to copy ${src} to ${dest}`);
+  }
+}
 export function rm_render(result: { success: boolean; path: string; type: 'file' | 'dir' | 'link' | null; error?: string }): string {
   if (result.success) {
     const typeStr: string = result.type || 'item';

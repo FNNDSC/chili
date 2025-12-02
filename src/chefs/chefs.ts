@@ -16,7 +16,8 @@ import { files_touch } from '../commands/fs/touch.js';
 import { files_upload } from '../commands/fs/upload.js';
 import { files_cat } from '../commands/fs/cat.js';
 import { files_rm, RmOptions, RmResult } from '../commands/fs/rm.js';
-import { mkdir_render, touch_render, upload_render, cat_render, rm_render } from '../views/fs.js';
+import { files_cp, CpOptions } from '../commands/fs/cp.js';
+import { mkdir_render, touch_render, upload_render, cat_render, rm_render, cp_render } from '../views/fs.js';
 import { path_resolveChrisFs } from '../utils/cli.js';
 
 /**
@@ -37,6 +38,18 @@ async function ls(options: LsOptions, pathStr: string = ""): Promise<void> {
   } else {
     console.log(grid_render(items));
   }
+}
+
+/**
+ * Copies a file or directory.
+ * 
+ * @param src - Source path.
+ * @param dest - Destination path.
+ * @param options - Copy options.
+ */
+async function cp(src: string, dest: string, options: CpOptions): Promise<void> {
+  const success: boolean = await files_cp(src, dest, options);
+  console.log(cp_render(src, dest, success));
 }
 
 /**
@@ -131,6 +144,14 @@ export function chefsCommand_setup(program: Command): void {
     .option("-h, --human", "Human readable sizes")
     .action(async (path: string | undefined, options: LsOptions) => {
       await ls(options, path || "");
+    });
+
+  chefsCommand
+    .command("cp <src> <dest>")
+    .description("Copy files or directories")
+    .option("-r, --recursive", "Recursive copy")
+    .action(async (src: string, dest: string, options: CpOptions) => {
+      await cp(src, dest, options);
     });
 
   chefsCommand

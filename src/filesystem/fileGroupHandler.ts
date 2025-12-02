@@ -8,6 +8,7 @@
  * @module
  */
 import { Command } from "commander";
+import chalk from "chalk";
 import { BaseGroupHandler } from "../handlers/baseGroupHandler.js";
 import { CLIoptions, path_resolveChrisFs } from "../utils/cli.js";
 import { FileController } from "../controllers/fileController.js";
@@ -108,18 +109,30 @@ export class FileGroupHandler {
 
       if (results.tableData.length === 0) {
         console.log(`No ${this.assetName} found matching the criteria.`);
+                      } else {
+                          const uniqueResults = this.columns_removeDuplicates(results);
+                          // Use the new view layer with table/csv support
+                          console.log(fileList_render(
+                              uniqueResults.tableData,
+                              uniqueResults.selectedFields,
+                              { table: options.table, csv: options.csv }
+                          ));
+                      }    } catch (error: any) {
+      const errors = errorStack.stack_search(this.assetName);
+      if (errors.length > 0) {
+        console.log(errors[0]);
       } else {
-        const uniqueResults = this.columns_removeDuplicates(results);
-        // Use the new view layer with table/csv support
-        console.log(fileList_render(
-          uniqueResults.tableData,
-          uniqueResults.selectedFields,
-          { table: options.table, csv: options.csv }
-        ));
+        const msg = error instanceof Error ? error.message : String(error);
+        console.error(`Error: ${msg}`);
+
+        // Check for 500 Internal Server Error
+        if (msg.includes("Internal server error") || (error.response && error.response.status === 500)) {
+            console.error(chalk.yellow("\nHint: This indicates a problem on the ChRIS server (CUBE)."));
+            console.error(chalk.yellow("      Please contact your system administrator or check the CUBE logs."));
+            console.error(chalk.yellow("      To see full debug output, run the command again with CHILI_DEBUG=true:"));
+            console.error(chalk.yellow("      CHILI_DEBUG=true chili ..."));
+        }
       }
-    } catch (error) {
-      // TODO: Refactor errorStack usage to RPN function calls if available
-      console.log(errorStack.stack_search(this.assetName)[0]);
     }
   }
 
