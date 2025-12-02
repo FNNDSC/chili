@@ -12,6 +12,7 @@ import { path_resolveChrisFs } from "../../utils/cli.js";
 import { ListingItem } from "../../models/listing.js";
 import { ChrisFileOrDirRaw } from "../../models/resource.js";
 import { list_applySort } from "../../utils/sort.js";
+import { errorStack } from "@fnndsc/cumin";
 
 export interface LsOptions {
   path?: string;
@@ -36,12 +37,15 @@ export async function files_list(options: LsOptions, pathStr: string = ""): Prom
 
   const fetchOpts: Record<string, string | number> = { limit: 100, offset: 0 }; // Starting options
 
-  // Fetch all resources in parallel
-  const [dirs, files, links] = await Promise.all([
+  // Fetch all resources in parallel, but allow some to fail
+  const results = await Promise.allSettled([
     files_listAll(fetchOpts, 'dirs', resolvedPath),
     files_listAll(fetchOpts, 'files', resolvedPath),
     files_listAll(fetchOpts, 'links', resolvedPath)
   ]);
+
+  // Process results: 0=dirs, 1=files, 2=links
+  const [dirsResult, filesResult, linksResult] = results;
 
   // Helper to map raw API objects to ListingItem
   const mapToItem = (raw: ChrisFileOrDirRaw, type: 'dir' | 'file' | 'link'): ListingItem => {
@@ -72,14 +76,34 @@ export async function files_list(options: LsOptions, pathStr: string = ""): Prom
     };
   };
 
-  if (dirs && dirs.tableData) {
-    dirs.tableData.forEach((d: ChrisFileOrDirRaw) => items.push(mapToItem(d, 'dir')));
+  // Handle directories
+  if (dirsResult.status === 'fulfilled') {
+    const dirs = dirsResult.value;
+    if (dirs && dirs.tableData) {
+      dirs.tableData.forEach((d: ChrisFileOrDirRaw) => items.push(mapToItem(d, 'dir')));
+    }
+  } else {
+    errorStack.stack_push('error', `Failed to list directories: ${dirsResult.reason}`);
   }
-  if (files && files.tableData) {
-    files.tableData.forEach((f: ChrisFileOrDirRaw) => items.push(mapToItem(f, 'file')));
+
+  // Handle files
+  if (filesResult.status === 'fulfilled') {
+    const files = filesResult.value;
+    if (files && files.tableData) {
+      files.tableData.forEach((f: ChrisFileOrDirRaw) => items.push(mapToItem(f, 'file')));
+    }
+  } else {
+    errorStack.stack_push('error', `Failed to list files: ${filesResult.reason}`);
   }
-  if (links && links.tableData) {
-    links.tableData.forEach((l: ChrisFileOrDirRaw) => items.push(mapToItem(l, 'link')));
+
+  // Handle links
+  if (linksResult.status === 'fulfilled') {
+    const links = linksResult.value;
+    if (links && links.tableData) {
+      links.tableData.forEach((l: ChrisFileOrDirRaw) => items.push(mapToItem(l, 'link')));
+    }
+  } else {
+    errorStack.stack_push('error', `Failed to list links: ${linksResult.reason}`);
   }
 
   // Apply sorting (default to name if not specified)
