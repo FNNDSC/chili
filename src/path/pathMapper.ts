@@ -15,6 +15,8 @@
 
 import { Result, Ok, Err, errorStack } from '@fnndsc/cumin';
 import { files_listAll } from '@fnndsc/salsa';
+import * as path from 'path';
+import { listCache_get } from '@fnndsc/cumin';
 
 /**
  * Cached mapping entry with TTL metadata.
@@ -253,7 +255,7 @@ export class PathMapper {
 
       try {
         // Check if this component is a link
-        const linkTarget: string | null = await this.link_checkAndResolve(candidatePhysical);
+        const linkTarget: string | null = await this.link_checkAndResolve(candidatePhysical, candidateLogical);
 
         if (linkTarget) {
           // It's a link! Jump to target
@@ -290,21 +292,49 @@ export class PathMapper {
   /**
    * Checks if a path is a link and returns its target.
    *
-   * Fetches link metadata from the parent directory and checks if the
-   * candidate path matches any link entry.
+   * Optimizes resolution by checking ListCache first. If the parent directory
+   * is cached, we can determine if the candidate is a link without an API call.
+   * Falls back to API (fetching all links in parent) if not cached.
    *
-   * @param candidatePath - The path to check.
+   * @param candidatePhysical - The physical path to check.
+   * @param candidateLogical - The logical path (used for cache lookup).
    * @returns The link target if it's a link, null otherwise.
    */
-  private async link_checkAndResolve(candidatePath: string): Promise<string | null> {
+  private async link_checkAndResolve(candidatePhysical: string, candidateLogical: string): Promise<string | null> {
+    // 1. Fast Path: Check ListCache using logical path
+    // If we have the parent directory cached, we can check if the item is a link there.
+    const logicalParent: string = path.dirname(candidateLogical);
+    const itemName: string = path.basename(candidateLogical);
+    
+    const listCache = listCache_get();
+    const cached = listCache.cache_get(logicalParent);
+    
+    if (cached && cached.data && Array.isArray(cached.data)) {
+      // Look for the item in the cached listing
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const item = cached.data.find((i: any) => i.name === itemName);
+      
+      if (item) {
+        // Item found in cache!
+        if (item.type === 'link' && item.target) {
+          return item.target;
+        }
+        // Found but not a link (or has no target) -> return null
+        return null;
+      }
+      // Item not found in cache. 
+      // It might be hidden or newly created. Fall back to API.
+    }
+
+    // 2. Slow Path: Check API using physical path
     // Extract parent directory
-    const parts: string[] = candidatePath.split('/');
+    const parts: string[] = candidatePhysical.split('/');
     parts.pop(); // Remove filename
     const parentDir: string = parts.join('/') || '/';
 
-    const normalizedCandidate: string = candidatePath.startsWith('/')
-      ? candidatePath
-      : `/${candidatePath}`;
+    const normalizedCandidate: string = candidatePhysical.startsWith('/')
+      ? candidatePhysical
+      : `/${candidatePhysical}`;
 
     try {
       const fetchOpts: Record<string, string | number> = { limit: 1000, offset: 0 };
