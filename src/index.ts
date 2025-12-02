@@ -202,7 +202,7 @@ async function main() {
 
   program
     .name("chili")
-    .description("Chili Handles Intelligent Line Interactions")
+    .description("ChILI handles Intelligent Line Interactions")
     .option("-v, --verbose", "enable verbose output")
     .option("-c, --config <path>", "path to config file")
     .option("-s, --nosplash", "disable splash screen");
@@ -215,7 +215,7 @@ async function main() {
 
   if (!options.nosplash) {
     console.log(figlet.textSync("ChILI"));
-    console.log("Chili Handles Intelligent Line Interactions");
+    console.log("ChILI handles Intelligent Line Interactions");
   }
 
   // table_display(
