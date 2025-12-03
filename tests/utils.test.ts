@@ -1,7 +1,13 @@
 import { path_resolveChrisFs, CLIoptions } from '../src/utils/cli';
 import { chrisContext, Context } from '@fnndsc/cumin';
 
-jest.mock('@fnndsc/cumin');
+jest.mock('@fnndsc/cumin', () => {
+  const actual = jest.requireActual('@fnndsc/cumin');
+  return {
+    ...actual,
+    chrisContext: { current_get: jest.fn() },
+  };
+});
 
 describe('path_resolveChrisFs', () => {
   const mockCurrentContext = '/default/context';

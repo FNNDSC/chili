@@ -55,16 +55,17 @@ export async function files_list(options: LsOptions, pathStr: string = ""): Prom
         name = name.split('/').pop() || name;
     }
 
+    const normalizedPath: string | undefined = raw.path
+      ? (raw.path.startsWith('/') ? raw.path : `/${raw.path}`)
+      : undefined;
+
     // For links, strip the .chrislink extension from the display name
     if (type === 'link' && name.endsWith('.chrislink')) {
       name = name.slice(0, -10); // Remove '.chrislink' (10 characters)
     }
 
-    // For links, prepend '/' to the target if it doesn't already have it
-    let target: string | undefined = undefined;
-    if (type === 'link' && raw.path) {
-      target = raw.path.startsWith('/') ? raw.path : `/${raw.path}`;
-    }
+    // Normalize target for all item types when a path is present
+    const target: string | undefined = normalizedPath;
 
     return {
       name,

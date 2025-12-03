@@ -4,7 +4,14 @@ import * as salsa from '@fnndsc/salsa';
 import * as cumin from '@fnndsc/cumin';
 
 jest.mock('@fnndsc/salsa');
-jest.mock('@fnndsc/cumin');
+jest.mock('@fnndsc/cumin', () => {
+  const actual = jest.requireActual('@fnndsc/cumin');
+  return {
+    ...actual,
+    chrisContext: { current_get: jest.fn() },
+    params_fromOptions: jest.fn(actual.params_fromOptions),
+  };
+});
 
 describe('files_list', () => {
   beforeEach(() => {
