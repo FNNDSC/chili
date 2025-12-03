@@ -31,6 +31,7 @@ export interface UploadSummary {
   transferSize: number;
   duration: number;
   speed: number;
+  actualTargetPath: string; // The actual path where files were uploaded
 }
 
 /**
@@ -121,6 +122,16 @@ export async function files_uploadWithProgress(
 
   const totalSize = fileList.reduce((sum, f) => sum + f.size, 0);
 
+  // Determine actual target path (where files will be uploaded)
+  const stats = await fs.promises.stat(localPath);
+  let actualTarget = resolvedRemote;
+  if (stats.isDirectory()) {
+    const basename = path.basename(localPath);
+    actualTarget = resolvedRemote.endsWith('/')
+      ? resolvedRemote + basename
+      : resolvedRemote + '/' + basename;
+  }
+
   // Setup progress bar
   const progressBar = new cliProgress.SingleBar(
     {
@@ -145,6 +156,7 @@ export async function files_uploadWithProgress(
     transferSize: 0,
     duration: 0,
     speed: 0,
+    actualTargetPath: actualTarget,
   };
 
   for (const [index, file] of fileList.entries()) {
