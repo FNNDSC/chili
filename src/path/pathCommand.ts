@@ -40,7 +40,7 @@ interface FileInfo {
   isDirectory: boolean;
 }
 
-interface ScanRecord {
+export interface ScanRecord {
   fileInfo: FileInfo[];
   totalSize: number;
 }
@@ -67,7 +67,7 @@ interface ResourceGroups {
   linksGroup: ChRISEmbeddedResourceGroup<FileBrowserFolder>;
 }
 
-interface CLIscan {
+export interface CLIscan {
   tree?: boolean;
   follow?: boolean;
   silent?: boolean;
@@ -280,7 +280,7 @@ async function mermaid_renderServerSide(
  * @param files - An array of FileInfo objects.
  * @returns The Archy-formatted tree string.
  */
-function archyTree_create(files: FileInfo[]): string {
+export function archyTree_create(files: FileInfo[]): string {
   interface ArchyNode {
     label: string;
     nodes: { [key: string]: ArchyNode };
@@ -532,7 +532,7 @@ async function chrisFS_scan(
  * @param options - CLI options for the scan, including display format and filters.
  * @returns A Promise resolving to a ScanRecord, or null on error.
  */
-async function scan_do(options: CLIscan): Promise<ScanRecord | null> {
+export async function scan_do(options: CLIscan): Promise<ScanRecord | null> {
   const chrisFolder: string | null = await chrisContext.current_get(
     "folder" as any
   );
