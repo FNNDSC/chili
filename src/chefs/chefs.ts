@@ -17,7 +17,8 @@ import { files_upload } from '../commands/fs/upload.js';
 import { files_cat } from '../commands/fs/cat.js';
 import { files_rm, RmOptions, RmResult } from '../commands/fs/rm.js';
 import { files_cp, CpOptions } from '../commands/fs/cp.js';
-import { mkdir_render, touch_render, upload_render, cat_render, rm_render, cp_render } from '../views/fs.js';
+import { files_mv, MvOptions } from '../commands/fs/mv.js';
+import { mkdir_render, touch_render, upload_render, cat_render, rm_render, cp_render, mv_render } from '../views/fs.js';
 import { path_resolveChrisFs } from '../utils/cli.js';
 
 /**
@@ -50,6 +51,18 @@ async function ls(options: LsOptions, pathStr: string = ""): Promise<void> {
 async function cp(src: string, dest: string, options: CpOptions): Promise<void> {
   const success: boolean = await files_cp(src, dest, options);
   console.log(cp_render(src, dest, success));
+}
+
+/**
+ * Moves a file or directory.
+ *
+ * @param src - Source path.
+ * @param dest - Destination path.
+ * @param options - Move options.
+ */
+async function mv(src: string, dest: string, _options: MvOptions): Promise<void> {
+  const success: boolean = await files_mv(src, dest);
+  console.log(mv_render(src, dest, success));
 }
 
 /**
@@ -152,6 +165,13 @@ export function chefsCommand_setup(program: Command): void {
     .option("-r, --recursive", "Recursive copy")
     .action(async (src: string, dest: string, options: CpOptions) => {
       await cp(src, dest, options);
+    });
+
+  chefsCommand
+    .command("mv <src> <dest>")
+    .description("Move or rename files or directories")
+    .action(async (src: string, dest: string, options: MvOptions) => {
+      await mv(src, dest, options);
     });
 
   chefsCommand
