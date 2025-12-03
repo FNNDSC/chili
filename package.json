@@ -1,6 +1,6 @@
 {
   "name": "@fnndsc/chili",
-  "version": "1.13.0",
+  "version": "1.14.0",
   "description": "The ChRIS Interactive Line Agent -- a nodejs CLI REPL for ChRIS",
   "main": "dist/index.js",
   "type": "module",
