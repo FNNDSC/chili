@@ -18,7 +18,11 @@
 -   **Comprehensive FS Operations (`chefs` commands):**
     -   `ls`: Advanced listing with `-l`, `-h` and generic output formats (`--table`, `--csv`).
     -   `mkdir`, `touch`, `cat`.
-    -   `upload`: Recursive local directory upload to ChRIS with folder validation and directory structure preservation.
+    -   `upload`: Recursive local directory upload to ChRIS with:
+        -   Real-time progress bar (file count, percentage, ETA, data transferred)
+        -   Folder validation and directory structure preservation
+        -   Upload summary statistics (speed, duration, success/failure counts)
+        -   Unified implementation in chili library consumed by both `chili` and `chell`
 -   **Connection Management:**
     -   `connect`, `logout` commands.
 -   **Plugin Management:**
@@ -39,6 +43,7 @@
 -   **`path upload` Folder Validation:** Implemented validation to ensure `folder=` context points to an existing directory in CUBE. Upload now fails gracefully if target doesn't exist.
 -   **`path upload` Directory Preservation:** Fixed upload behavior to preserve source directory basename in target path (e.g., uploading `~/data/test` to `folder=/uploads` creates `/uploads/test/` instead of placing contents directly in `/uploads/`).
 -   **`chefs ls` Empty Path Resolution:** Fixed `path_resolveChrisFs` to handle empty string by returning current directory context.
+-   **Upload Progress Bar Architecture:** Extracted progress bar functionality from `pathCommand.ts` into reusable library function `files_uploadWithProgress()` in `commands/fs/upload.ts`. Both `chili` CLI and `chell` interactive shell now use the same implementation, maintaining chili as single source of truth while providing rich progress feedback (ETA, file count, data transfer, speed statistics).
 
 ## Next Steps / To-Do
 1.  **Expand Command Refactoring:** Continue applying the CVM pattern to remaining `chili` command groups (e.g., `context`, `man`, `file`).
