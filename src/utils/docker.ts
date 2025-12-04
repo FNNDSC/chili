@@ -45,6 +45,36 @@ export async function shellCommand_run(command: string): Promise<string | null> 
 }
 
 /**
+ * Executes a shell command and returns detailed result including stderr.
+ *
+ * @param command - The command to execute.
+ * @returns Object with stdout, stderr, and success status.
+ */
+export async function shellCommand_runWithDetails(command: string): Promise<{
+  stdout: string;
+  stderr: string;
+  success: boolean;
+  error?: string;
+}> {
+  try {
+    const { stdout, stderr } = await childProcess_exec(command);
+    return {
+      stdout: stdout.trim(),
+      stderr: stderr.trim(),
+      success: true,
+    };
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    return {
+      stdout: '',
+      stderr: '',
+      success: false,
+      error: errorMessage,
+    };
+  }
+}
+
+/**
  * Checks if Docker is installed and running.
  * @returns True if Docker is available, false otherwise.
  */
@@ -57,4 +87,86 @@ export async function docker_checkAvailability(): Promise<boolean> {
   console.error("Error: Docker is not installed or not running.");
   console.error("Please ensure Docker is properly set up on your system to add plugins.");
   return false;
+}
+
+/**
+ * Checks if a Docker image exists locally.
+ *
+ * @param image - The Docker image name/tag to check (e.g., 'fnndsc/pl-dircopy:2.1.1').
+ * @returns Promise resolving to true if image exists locally, false otherwise.
+ *
+ * @example
+ * ```typescript
+ * const exists = await docker_imageExistsLocally('fnndsc/pl-dircopy:2.1.1');
+ * if (!exists) {
+ *   await docker_pullImage('fnndsc/pl-dircopy:2.1.1');
+ * }
+ * ```
+ */
+export async function docker_imageExistsLocally(image: string): Promise<boolean> {
+  const result = await shellCommand_run(`docker images -q ${image} 2>/dev/null`);
+  return result !== null && result.trim().length > 0;
+}
+
+/**
+ * Pulls a Docker image from a registry.
+ *
+ * Checks if image exists locally first. If it exists, skips pull.
+ * Output is suppressed for CLI use (use --quiet flag).
+ *
+ * @param image - The Docker image name/tag to pull.
+ * @param quiet - Whether to suppress verbose output (default: true for CLI).
+ * @returns Promise resolving to true if pull succeeded or image already exists, false otherwise.
+ */
+export async function docker_pullImage(image: string, quiet: boolean = true): Promise<boolean> {
+  // Check if image exists locally first
+  const existsLocally = await docker_imageExistsLocally(image);
+  if (existsLocally) {
+    console.log(`Docker image ${image} already exists locally.`);
+    return true;
+  }
+
+  console.log(`Pulling Docker image: ${image}...`);
+  const quietFlag = quiet ? '--quiet' : '';
+  const result = await shellCommand_run(`docker pull ${quietFlag} ${image}`);
+
+  if (result !== null) {
+    console.log(`Successfully pulled ${image}`);
+    return true;
+  }
+
+  console.error(`Failed to pull Docker image: ${image}`);
+  return false;
+}
+
+/**
+ * Gets the CMD directive from a Docker image.
+ *
+ * Inspects the Docker image configuration to extract the default command.
+ * This is useful for running plugins that don't have chris_plugin_info.
+ *
+ * @param image - The Docker image name/tag.
+ * @returns Promise resolving to array of command parts, or empty array if not found.
+ *
+ * @example
+ * ```typescript
+ * const cmd = await docker_getImageCmd('fnndsc/pl-civet:2.1.1.3');
+ * // Returns: ['civet.py'] or similar
+ * ```
+ */
+export async function docker_getImageCmd(image: string): Promise<string[]> {
+  const result = await shellCommand_run(
+    `docker inspect --format='{{json .Config.Cmd}}' ${image} 2>/dev/null`
+  );
+
+  if (!result || result.trim() === '' || result === 'null') {
+    return [];
+  }
+
+  try {
+    const cmd = JSON.parse(result);
+    return Array.isArray(cmd) ? cmd : [];
+  } catch {
+    return [];
+  }
 }
