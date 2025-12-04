@@ -70,5 +70,9 @@ export async function files_touch(
     content = options.withContents;
   }
 
-  return await salsaFiles_touch(resolvedPath, content);
+  if (content !== undefined) {
+    return await salsaFiles_touch(resolvedPath, content);
+  } else {
+    return await salsaFiles_touch(resolvedPath);
+  }
 }
