@@ -26,9 +26,22 @@ export interface ColorStyle {
 }
 
 /**
+ * Interface for icon configuration.
+ */
+export interface IconConfig {
+  enabled: boolean;
+  dir: string;
+  file: string;
+  link: string;
+  plugin: string;
+  vfs: string;
+}
+
+/**
  * Interface for the complete color configuration.
  */
 export interface ColorConfig {
+  icons?: IconConfig;
   fileTypes: {
     dir: ColorStyle;
     file: ColorStyle;
@@ -68,6 +81,14 @@ function colorConfig_load(): ColorConfig {
 
     // Return default configuration
     return {
+      icons: {
+        enabled: true,
+        dir: '\uF07C',
+        file: '\uF15B',
+        link: '\uF0C1',
+        plugin: '\uF013',
+        vfs: '\uF0C8'
+      },
       fileTypes: {
         dir: { color: 'cyan', bold: true },
         file: { color: 'white', bold: false },
@@ -115,7 +136,7 @@ function colorStyle_apply(text: string, style: ColorStyle): string {
  * @param name - The name of the item.
  * @param type - The type of the item ('dir', 'file', 'link', 'plugin', 'vfs').
  * @param fullPath - Optional full path for special path handling.
- * @returns The colorized name.
+ * @returns The colorized name with optional icon prefix.
  */
 export function fileSystemItem_colorize(
   name: string,
@@ -124,22 +145,31 @@ export function fileSystemItem_colorize(
 ): string {
   const config: ColorConfig = colorConfig_load();
 
+  // Get icon if enabled
+  let icon: string = '';
+  if (config.icons && config.icons.enabled) {
+    icon = config.icons[type] + ' ';
+  }
+
   // Check for special path styling first
   if (fullPath && config.specialPaths[fullPath]) {
-    return colorStyle_apply(name, config.specialPaths[fullPath]);
+    const styled: string = colorStyle_apply(name, config.specialPaths[fullPath]);
+    return icon ? colorStyle_apply(icon, config.specialPaths[fullPath]) + styled : styled;
   }
 
   // Fallback: check if the name itself is a special path key
   if (config.specialPaths[name]) {
-    return colorStyle_apply(name, config.specialPaths[name]);
+    const styled: string = colorStyle_apply(name, config.specialPaths[name]);
+    return icon ? colorStyle_apply(icon, config.specialPaths[name]) + styled : styled;
   }
 
   // Fallback: check if /name is a special path key
   if (config.specialPaths[`/${name}`]) {
-    return colorStyle_apply(name, config.specialPaths[`/${name}`]);
+    const styled: string = colorStyle_apply(name, config.specialPaths[`/${name}`]);
+    return icon ? colorStyle_apply(icon, config.specialPaths[`/${name}`]) + styled : styled;
   }
 
-  // Special handling for plugins: color version part differently
+  // Special handling for plugins with versions: color version part differently
   if (type === 'plugin' && name.includes('-v')) {
     const lastVIndex: number = name.lastIndexOf('-v');
     const pluginName: string = name.substring(0, lastVIndex);
@@ -148,13 +178,23 @@ export function fileSystemItem_colorize(
     // Plugin name in bold green, version in dim green
     const nameStyled: string = chalk.green.bold(pluginName);
     const versionStyled: string = chalk.green.dim(version);
+    const iconStyled: string = icon ? chalk.green.bold(icon) : '';
 
-    return nameStyled + versionStyled;
+    return iconStyled + nameStyled + versionStyled;
+  }
+
+  // Special handling for plugins without versions (builtins in /usr/bin): bright green
+  if (type === 'plugin' && !name.includes('-v')) {
+    const styled: string = chalk.greenBright.bold(name);
+    const iconStyled: string = icon ? chalk.greenBright.bold(icon) : '';
+    return iconStyled + styled;
   }
 
   // Apply file type styling
   const style: ColorStyle = config.fileTypes[type];
-  return colorStyle_apply(name, style);
+  const styled: string = colorStyle_apply(name, style);
+  const iconStyled: string = icon ? colorStyle_apply(icon, style) : '';
+  return iconStyled + styled;
 }
 
 /**

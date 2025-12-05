@@ -11,11 +11,21 @@
 # Color modifiers:
 #   bold, dim, italic, underline, inverse, strikethrough
 
+# Icon configuration (Nerd Fonts required)
+icons:
+  enabled: true
+  # Nerd Font glyphs (Unicode characters)
+  dir: "\uF07C"        #
+  file: "\uF15B"       #
+  link: "\uF0C1"       #
+  plugin: "\uF013"     #
+  vfs: "\uF0C8"        #
+
 # File type color mappings
 fileTypes:
-  # Directories (including virtual dirs like /bin)
+  # Directories
   dir:
-    color: cyan
+    color: yellow
     bold: true
 
   # Regular files
@@ -25,7 +35,7 @@ fileTypes:
 
   # Symbolic links
   link:
-    color: magenta
+    color: cyan
     bold: false
 
   # Plugin executables (virtual files in /bin)
@@ -33,19 +43,28 @@ fileTypes:
     color: green
     bold: true
 
-  # Virtual file system markers
+  # Virtual file system markers (directories like /bin, /usr)
   vfs:
     color: magenta
     bold: true
 
 # Special path color mappings
 specialPaths:
-  # Virtual bin directory
+  # Virtual bin directory (plugins)
   "/bin":
     color: magenta
     bold: true
 
   "bin":
+    color: magenta
+    bold: true
+
+  # Virtual usr directory
+  "/usr":
+    color: magenta
+    bold: true
+
+  "usr":
     color: magenta
     bold: true
 

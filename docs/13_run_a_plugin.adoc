@@ -105,4 +105,167 @@ Note the ID of the plugin. This is needed in the next step.
 
 == now let's run an analysis on this root node
 
-To use this documentation system, simply read it!
+Having created the feed, the next step is to run your actual analysis plugin. From the feed creation output above, note the **Plugin ID** value (in this example, it's 37). This is the plugin instance ID of the `pl-dircopy` that forms the root of your feed. We need this ID to tell ChRIS that our next plugin should use this data as input.
+
+Let's say you want to run `pl-dcm2niix` to convert your DICOM images to NIfTI format. You would invoke it like this:
+
+```
+chili pluginInstanceID=37 plugin run pl-dcm2niix --params "outputdir: converted"
+```
+
+Let's break this down:
+
+* `pluginInstanceID=37` - This sets the **context** to plugin instance 37 (our pl-dircopy root node). This tells ChRIS: "use the output of instance 37 as input for the next plugin"
+
+* `plugin run` - The chili command to execute a plugin
+
+* `pl-dcm2niix` - The **searchable** identifier for the plugin. This can be:
+  - Simple name: `pl-dcm2niix` (matches by name)
+  - Exact name: `name_exact: pl-dcm2niix` (precise match)
+  - With version: `name: pl-dcm2niix, version: 2.1.1` (specific version)
+  - By ID: `id: 42` (if you know the plugin's database ID)
+
+* `--params "outputdir: converted"` - Plugin-specific parameters as comma-separated key:value pairs
+
+If successful, you should see output similar to:
+
+```
+   ____ _     ___ _     ___
+  / ___| |__ |_ _| |   |_ _|
+ | |   | '_ \ | || |    | |
+ | |___| | | || || |___ | |
+  \____|_| |_|___|_____|___|
+
+The ChRIS Interactive Line Interface
+
+Plugin Instance Created:
+┌────────────────────┬──────────────────────────────────────────────────┐
+│ Property           │ Value                                            │
+├────────────────────┼──────────────────────────────────────────────────┤
+│ Status             │ Success                                          │
+├────────────────────┼──────────────────────────────────────────────────┤
+│ Instance ID        │ 38                                               │
+├────────────────────┼──────────────────────────────────────────────────┤
+│ Plugin Name        │ pl-dcm2niix                                      │
+├────────────────────┼──────────────────────────────────────────────────┤
+│ Feed ID            │ 37                                               │
+├────────────────────┼──────────────────────────────────────────────────┤
+│ Status             │ scheduled                                        │
+└────────────────────┴──────────────────────────────────────────────────┘
+```
+
+The new plugin instance (ID 38 in this example) has been scheduled to run. ChRIS will execute it on a compute resource, reading data from the output of instance 37 (the dircopy) and writing results to instance 38's output directory.
+
+== understanding the feed structure
+
+After creating the feed and running the plugin, your ChRIS filesystem will look like this:
+
+```
+/home/jane.doe/
+  └── feeds/
+      └── feed_37/                    # The feed we created
+          ├── pl-dircopy_37/          # Root node (instance ID 37)
+          │   └── data/               # Contains: brainproject/scan-1/
+          └── pl-dcm2niix_38/         # Child node (instance ID 38)
+              └── data/               # Will contain: converted NIfTI files
+```
+
+Notice the directory naming pattern: `<plugin-name>_<instance-id>`. This encodes both:
+1. Which plugin created the data
+2. The instance ID (for referencing in further operations)
+
+The `data/` subdirectory in each plugin instance directory contains that plugin's output.
+
+== viewing results
+
+Once the plugin completes (this may take time depending on the plugin), you can browse the results:
+
+```
+chili chefs ls /home/jane.doe/feeds/feed_37/pl-dcm2niix_38/data/
+```
+
+This will show the NIfTI files produced by pl-dcm2niix.
+
+== continuing the analysis
+
+To run another plugin using the output of pl-dcm2niix as input, simply use its instance ID:
+
+```
+chili pluginInstanceID=38 plugin run pl-freesurfer --params "subject: patient001"
+```
+
+This creates a new plugin instance (let's say ID 39) that reads from instance 38's output, creating a graph:
+
+```
+pl-dircopy_37 (root)
+  └── pl-dcm2niix_38
+        └── pl-freesurfer_39
+```
+
+== parallel branches
+
+You can also create parallel branches by running multiple plugins from the same parent:
+
+```
+# Branch 1: Brain extraction
+chili pluginInstanceID=38 plugin run pl-fsl-bet --params "threshold: 0.5"
+
+# Branch 2: Registration
+chili pluginInstanceID=38 plugin run pl-fsl-flirt --params "reference: MNI152"
+```
+
+This creates:
+
+```
+pl-dircopy_37 (root)
+  └── pl-dcm2niix_38
+        ├── pl-fsl-bet_40      # Parallel branch 1
+        └── pl-fsl-flirt_41    # Parallel branch 2
+```
+
+== asynchronous execution
+
+**Important:** Plugin execution in ChRIS is **asynchronous**. When you run a plugin:
+
+1. ChRIS validates the request
+2. Schedules the job on a compute resource
+3. Returns immediately with the instance ID
+4. The plugin runs in the background
+
+The plugin status starts as "scheduled", transitions to "started" when running, and eventually becomes "finishedSuccessfully" or "finishedWithError".
+
+You can check status by:
+
+```
+chili feeds list
+# Look for your feed and check instance statuses
+```
+
+Or use the ChRIS web UI to visualize the feed graph and see real-time status updates.
+
+== the chell alternative
+
+The `chell` interactive shell provides a more intuitive way to run plugins by treating them like local executables. Instead of managing plugin instance IDs explicitly, you simply navigate to your data and type the plugin name:
+
+```
+chell> cd ~/uploads/brainproject/scan-1
+chell> pl-dcm2niix-v2.1.1 --outputdir converted
+Feed created: 37
+Job scheduled: pl-dcm2niix-v2.1.1 (ID: 38)
+Output will be in: ~/feeds/feed_37/pl-dcm2niix_38/data/
+```
+
+See `chell/docs/pluginrun.adoc` for comprehensive documentation on this workflow.
+
+== summary
+
+Running a plugin analysis in ChRIS involves:
+
+1. **Upload data** to ChRIS using `chili chefs upload`
+2. **Create a feed** using `chili feed create --dirs <path>`
+3. **Note the plugin instance ID** from the feed creation output
+4. **Run your plugin** using `chili pluginInstanceID=<id> plugin run <searchable> --params <params>`
+5. **View results** by browsing the feed filesystem structure
+6. **Continue the analysis** by running additional plugins using the new instance IDs
+
+The key concept: Each plugin instance has an ID, and you specify the "previous" instance ID to create parent-child relationships in the analysis graph.
