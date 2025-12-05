@@ -30,6 +30,7 @@ export async function feed_create(options: CLIoptions): Promise<Feed | null> {
     try {
       feedParams = dictionary_fromCLI(params);
     } catch (e) {
+      // Original error handling without errorStack.push
       throw new Error(`Error parsing feed parameters: ${e}`);
     }
   }

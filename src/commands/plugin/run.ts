@@ -18,13 +18,13 @@ import { PluginInstance } from "../../models/plugin.js";
  * @returns A Promise resolving to the created plugin instance, or `null` on failure.
  * @throws {Error} If the parameter string cannot be parsed.
  */
-export async function plugin_execute(searchable: string, params: string): Promise<PluginInstance | null> {
+export async function plugin_execute(searchable: string, params: string, explicitPreviousId?: number): Promise<PluginInstance | null> {
   let parsedParams: Dictionary = {};
   try {
     parsedParams = dictionary_fromCLI(params);
   } catch (e) {
     throw new Error(`Error parsing plugin parameters: ${e}`);
   }
-  const result = await salsaPlugin_run(searchable, parsedParams);
+  const result = await salsaPlugin_run(searchable, parsedParams, explicitPreviousId);
   return result as unknown as PluginInstance;
 }

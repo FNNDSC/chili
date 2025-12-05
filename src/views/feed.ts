@@ -5,7 +5,8 @@
  *
  * @module
  */
-import { Feed } from '../models/feed.js';
+import { SimpleRecord } from '@fnndsc/cumin'; // Import SimpleRecord
+import { Feed } from '../models/feed.js'; // Still used by feedList_render
 import chalk from 'chalk';
 import { screen } from '../screen/screen.js';
 
@@ -80,8 +81,8 @@ export function feedList_render(feeds: Feed[], selectedFields: string[], options
 
 /**
  * Renders the result of feed creation.
- * @param feed - The created feed.
+ * @param feedRecord - The created feed record (SimpleRecord).
  */
-export function feedCreate_render(feed: Feed): string {
-  return chalk.green(`Feed created successfully.\nID: ${feed.id}\nName: ${feed.name}`);
+export function feedCreate_render(feedRecord: SimpleRecord): string {
+  return chalk.green(`Feed created successfully.\nID: ${feedRecord.id}\nName: ${feedRecord.name}`);
 }

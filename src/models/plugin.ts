@@ -25,5 +25,6 @@ export interface PluginInstance {
   plugin_name?: string;
   start_date?: string;
   end_date?: string;
+  feed_id?: number; // Added to match ChrisAPI PluginInstance
   [key: string]: unknown;
 }

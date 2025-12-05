@@ -9,17 +9,16 @@
 import { Command } from "commander";
 import { BaseGroupHandler } from "../handlers/baseGroupHandler.js";
 import { CLIoptions } from "../utils/cli.js";
-import { errorStack } from "@fnndsc/cumin";
+import { errorStack } from "@fnndsc/cumin"; // Import errorStack
 import { table_display } from "../screen/screen.js";
 import { FeedController } from "../controllers/feedController.js";
 import chalk from "chalk";
-// import { feeds_fetchList } from "../commands/feeds/list.js"; // No longer needed
 import { feedFields_fetch } from "../commands/feeds/fields.js";
 import { feed_shareById } from "../commands/feeds/share.js";
 import { FeedShareOptions } from "@fnndsc/salsa";
 import { feeds_searchByTerm, feed_deleteById } from "../commands/feeds/delete.js";
 import { prompt_confirm } from "../utils/ui.js";
-import { feed_create } from "../commands/feed/create.js";
+import { feed_create as feed_create_command } from "../commands/feed/create.js"; // Original name
 import { feedCreate_render } from "../views/feed.js"; // Still needed for feedCreate_render
 import { Feed } from "../models/feed.js";
 // import { FeedListResult } from "../commands/feeds/list.js"; // No longer needed
@@ -87,7 +86,7 @@ export class FeedGroupHandler {
       for (const feedId of feedIds) {
         console.log(`Sharing feed ID: ${feedId}...`);
         const shareOptions: FeedShareOptions = { is_public: options.is_public === true };
-        const success = await feed_shareById(feedId, shareOptions);
+        const success = await feed_shareById(Number(feedId), shareOptions);
         if (success) {
           console.log(`Feed ID ${feedId} shared successfully.`);
         } else {
@@ -199,12 +198,17 @@ export class FeedMemberHandler {
    */
   async feed_create(options: CLIoptions): Promise<Feed | null> {
     try {
-      const feed = await feed_create(options);
+      const feed = await feed_create_command(options);
       if (feed) {
         console.log(feedCreate_render(feed));
         return feed;
       }
       console.error(chalk.red("Feed creation returned null result."));
+      const errors = errorStack.allOfType_get('error'); // Keep error reporting
+      if (errors.length > 0) {
+          console.error(chalk.red('Errors:'));
+          errors.forEach(e => console.error(chalk.red(`  - ${e}`)));
+      }
       return null;
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error);
