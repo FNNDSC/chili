@@ -129,6 +129,16 @@ export function fileSystemItem_colorize(
     return colorStyle_apply(name, config.specialPaths[fullPath]);
   }
 
+  // Fallback: check if the name itself is a special path key
+  if (config.specialPaths[name]) {
+    return colorStyle_apply(name, config.specialPaths[name]);
+  }
+
+  // Fallback: check if /name is a special path key
+  if (config.specialPaths[`/${name}`]) {
+    return colorStyle_apply(name, config.specialPaths[`/${name}`]);
+  }
+
   // Special handling for plugins: color version part differently
   if (type === 'plugin' && name.includes('-v')) {
     const lastVIndex: number = name.lastIndexOf('-v');

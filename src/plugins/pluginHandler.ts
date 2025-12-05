@@ -177,6 +177,18 @@ export class PluginGroupHandler {
           "-c, --compute <names>",
           "Comma-separated list of compute resource names to assign the plugin to"
         )
+        .option(
+          "--store <url>",
+          "URL of the peer store to search/import from"
+        )
+        .option(
+          "--adminUser <username>",
+          "Admin username for registration"
+        )
+        .option(
+          "--adminPassword <password>",
+          "Admin password for registration"
+        )
         .action(async (image: string, options: CLIoptions) => {
           await this.plugins_add(image, options);
         });

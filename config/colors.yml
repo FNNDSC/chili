@@ -35,14 +35,18 @@ fileTypes:
 
   # Virtual file system markers
   vfs:
-    color: cyanBright
+    color: magenta
     bold: true
 
 # Special path color mappings
 specialPaths:
   # Virtual bin directory
   "/bin":
-    color: cyan
+    color: magenta
+    bold: true
+
+  "bin":
+    color: magenta
     bold: true
 
   # Home directory indicator

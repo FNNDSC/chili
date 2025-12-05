@@ -1,65 +1,91 @@
-import { plugin_add } from '../../../src/commands/plugins/add';
+import { plugin_add } from '../../../src/commands/plugins/add.js';
 import * as salsa from '@fnndsc/salsa';
-import * as dockerUtils from '../../../src/utils/docker';
+import * as cumin from '@fnndsc/cumin';
+import * as docker from '../../../src/utils/docker.js';
+import * as inputFormat from '../../../src/utils/input_format.js';
 
+// Mock dependencies
 jest.mock('@fnndsc/salsa');
-jest.mock('../../../src/utils/docker');
+// Manually mock cumin to ensure errorStack works
+jest.mock('@fnndsc/cumin', () => ({
+  computeResources_validate: jest.fn(),
+  computeResourceNames_parse: jest.fn(),
+  errorStack: {
+    allOfType_get: jest.fn().mockReturnValue([]),
+    stack_push: jest.fn(),
+  },
+}));
+jest.mock('../../../src/utils/docker.js');
+jest.mock('../../../src/utils/input_format.js');
+jest.mock('../../../src/utils/admin_prompt.js', () => ({
+  adminCredentials_prompt: jest.fn().mockResolvedValue({ username: 'admin', password: 'pw' }),
+}));
 
 describe('plugin_add', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    (dockerUtils.docker_checkAvailability as jest.Mock).mockResolvedValue(true);
-  });
-
-  it('should fail if docker is not available', async () => {
-    (dockerUtils.docker_checkAvailability as jest.Mock).mockResolvedValue(false);
-    const result = await plugin_add('image', {});
-    expect(result).toBe(false);
-  });
-
-  it('should orchestrate docker pull, info extraction and registration', async () => {
-    (dockerUtils.shellCommand_run as jest.Mock).mockImplementation(async (cmd: string) => {
-      if (cmd.includes('pull')) return 'Status: Downloaded';
-      if (cmd.includes('chris_plugin_info')) return JSON.stringify({ name: 'pl-test', dock_image: 'test/image' });
-      return null;
+    
+    // Default mocks
+    (cumin.computeResources_validate as jest.Mock).mockResolvedValue({ ok: true });
+    (cumin.computeResourceNames_parse as jest.Mock).mockReturnValue(['host']);
+    (salsa.plugin_checkExists as jest.Mock).mockResolvedValue(null);
+    (salsa.plugins_searchPeers as jest.Mock).mockResolvedValue(null);
+    (inputFormat.input_detectFormat as jest.Mock).mockReturnValue({
+      format: 'plugin_name',
+      value: 'pl-test'
     });
-
-    (salsa.plugin_register as jest.Mock).mockResolvedValue({ id: 1, name: 'pl-test' });
-
-    const result = await plugin_add('test/image', { compute: 'local' });
-
-    expect(dockerUtils.shellCommand_run).toHaveBeenCalledWith(expect.stringContaining('docker pull'));
-    expect(dockerUtils.shellCommand_run).toHaveBeenCalledWith(expect.stringContaining('chris_plugin_info'));
-    expect(salsa.plugin_register).toHaveBeenCalledWith(
-      expect.objectContaining({ name: 'pl-test', dock_image: 'test/image' }),
-      ['local']
-    );
-    expect(result).toBe(true);
-  });
-
-  it('should fallback to --json if chris_plugin_info fails', async () => {
-    (dockerUtils.shellCommand_run as jest.Mock).mockImplementation(async (cmd: string) => {
-      if (cmd.includes('pull')) return 'Status: Downloaded';
-      if (cmd.includes('chris_plugin_info')) return null; // Simulate failure
-      if (cmd.includes('--json')) return JSON.stringify({ name: 'pl-legacy' });
-      return null;
+    (docker.docker_checkAvailability as jest.Mock).mockResolvedValue(true);
+    (docker.docker_pullImage as jest.Mock).mockResolvedValue(true);
+    (docker.shellCommand_runWithDetails as jest.Mock).mockResolvedValue({
+      success: true,
+      stdout: JSON.stringify({ name: 'pl-test', dock_image: 'pl-test:latest' }),
+      stderr: ''
     });
-
-    (salsa.plugin_register as jest.Mock).mockResolvedValue({ id: 2, name: 'pl-legacy' });
-
-    const result = await plugin_add('legacy/image', {});
-
-    expect(dockerUtils.shellCommand_run).toHaveBeenCalledWith(expect.stringContaining('--json'));
-    expect(salsa.plugin_register).toHaveBeenCalled();
-    expect(result).toBe(true);
   });
 
-  it('should fail if json extraction fails', async () => {
-    (dockerUtils.shellCommand_run as jest.Mock).mockResolvedValue(null); // All commands fail or return empty
+  test('Phase 1: Exists in CUBE', async () => {
+    (salsa.plugin_checkExists as jest.Mock).mockResolvedValue({ name: 'pl-test', id: 1 });
+    (salsa.plugin_assignToComputeResources as jest.Mock).mockResolvedValue(true);
 
-    const result = await plugin_add('broken/image', {});
+    const result = await plugin_add('pl-test', { compute: 'host' });
+
+    expect(result).toBe(true);
+    expect(salsa.plugin_checkExists).toHaveBeenCalled();
+    expect(salsa.plugin_assignToComputeResources).toHaveBeenCalled();
+  });
+
+  test('Phase 2: Found in Peer Store', async () => {
+    (salsa.plugins_searchPeers as jest.Mock).mockResolvedValue({
+      plugin: { name: 'pl-test' },
+      storeUrl: 'http://store/1',
+      storeName: 'store'
+    });
+    (salsa.plugin_importFromStore as jest.Mock).mockResolvedValue({ success: true, plugin: { name: 'pl-test' } });
+
+    const result = await plugin_add('pl-test', { compute: 'host' });
+
+    expect(result).toBe(true);
+    expect(salsa.plugins_searchPeers).toHaveBeenCalled();
+    expect(salsa.plugin_importFromStore).toHaveBeenCalled();
+  });
+
+  test('Phase 3: Docker Registration', async () => {
+    // Not in CUBE, not in Store
+    (salsa.plugin_registerWithAdmin as jest.Mock).mockResolvedValue({ name: 'pl-test' });
+
+    const result = await plugin_add('pl-test:latest', { compute: 'host' });
+
+    expect(result).toBe(true);
+    expect(docker.docker_pullImage).toHaveBeenCalled();
+    expect(salsa.plugin_registerWithAdmin).toHaveBeenCalled();
+  });
+
+  test('Compute validation failure', async () => {
+    (cumin.computeResources_validate as jest.Mock).mockResolvedValue({ ok: false });
+
+    const result = await plugin_add('pl-test', { compute: 'bad-resource' });
 
     expect(result).toBe(false);
-    expect(salsa.plugin_register).not.toHaveBeenCalled();
+    expect(salsa.plugin_checkExists).not.toHaveBeenCalled();
   });
 });

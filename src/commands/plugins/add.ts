@@ -23,6 +23,7 @@ import {
   plugin_assignToComputeResources,
   plugins_searchPeers,
   plugin_importFromStore,
+  PluginRegistrationData, // Import this interface
 } from '@fnndsc/salsa';
 import {
   computeResources_validate,
@@ -128,7 +129,15 @@ export async function plugin_add(
       ? [options.store]
       : ['https://cube.chrisproject.org/api/v1/'];
 
-    const peerResult = await plugins_searchPeers(searchTerm, peerStoreUrls);
+    const searchName: string = detected.format === PluginInputFormat.DOCKER_IMAGE
+      ? detected.pluginName! // Should be present for docker images
+      : detected.value;
+    
+    const searchVersion: string | undefined = detected.format === PluginInputFormat.DOCKER_IMAGE
+      ? detected.version
+      : undefined;
+
+    const peerResult = await plugins_searchPeers(searchName, searchVersion, peerStoreUrls);
     if (peerResult) {
       console.log(`Found plugin in peer store: ${peerResult.storeName}`);
       return await pluginFromStore_register(
@@ -173,11 +182,17 @@ async function pluginFromStore_register(
 ): Promise<boolean> {
   console.log('Importing plugin from peer store...');
 
-  // Try with current credentials first
+  const initialCreds: AdminCredentials | undefined = 
+    options.adminUser && options.adminPassword 
+      ? { username: options.adminUser, password: options.adminPassword } 
+      : undefined;
+
+  // Try with provided credentials (or current user)
   const result = await plugin_importFromStore(
     '', // Store URL not needed when we have plugin data
     pluginData,
-    computeResources
+    computeResources,
+    initialCreds
   );
 
   if (result.success) {
@@ -190,16 +205,31 @@ async function pluginFromStore_register(
     return false;
   }
 
-  // Admin auth required - try with credentials
-  return await registrationWithAuth_retry(
+  // Admin auth required - try with interactive credentials
+  const retrySuccess = await registrationWithAuth_retry(
     async (creds: AdminCredentials) => {
-      // TODO: Pass admin credentials to importFromStore
-      // For now, this is a placeholder
-      const retryResult = await plugin_importFromStore('', pluginData, computeResources);
+      const retryResult = await plugin_importFromStore('', pluginData, computeResources, creds);
       return retryResult.success;
     },
     options
   );
+
+  if (!retrySuccess) {
+    console.error('Failed to import plugin from store (authentication failed or rejected).');
+    const errors = errorStack.allOfType_get('error');
+    if (errors.length > 0) {
+      console.error('Errors:');
+      errors.forEach((e: string) => console.error(`- ${e}`));
+    }
+    
+    const warnings = errorStack.allOfType_get('warning');
+    if (warnings.length > 0) {
+      console.error('Warnings:');
+      warnings.forEach((e: string) => console.error(`- ${e}`));
+    }
+  }
+
+  return retrySuccess;
 }
 
 /**
@@ -240,9 +270,18 @@ async function pluginFromDocker_register(
   // Infer missing fields
   pluginData_inferMissingFields(pluginData, image, options);
 
+  const initialCreds: AdminCredentials | undefined = 
+    options.adminUser && options.adminPassword 
+      ? { username: options.adminUser, password: options.adminPassword } 
+      : undefined;
+
   // Register with admin API
   console.log('Registering plugin with ChRIS CUBE...');
-  const registered = await plugin_registerWithAdmin(pluginData, computeResources);
+  const registered = await plugin_registerWithAdmin(
+    pluginData as unknown as PluginRegistrationData, 
+    computeResources,
+    initialCreds
+  );
 
   if (registered) {
     console.log(`Plugin '${registered.name}' registered successfully.`);
@@ -251,9 +290,15 @@ async function pluginFromDocker_register(
 
   // Check if failure was due to admin auth
   const errors = errorStack.allOfType_get('error');
-  const authError = errors.some((e: string) =>
-    e.toLowerCase().includes('admin') || e.toLowerCase().includes('auth')
-  );
+  const authError = errors.some((e: string) => {
+    const lowerE = e.toLowerCase();
+    return lowerE.includes('unauthorized') ||
+           lowerE.includes('forbidden') ||
+           lowerE.includes('permission denied') ||
+           lowerE.includes('401') ||
+           lowerE.includes('403') ||
+           lowerE.includes('admin credentials required');
+  });
 
   if (!authError) {
     console.error('Failed to register plugin.');
@@ -263,9 +308,11 @@ async function pluginFromDocker_register(
   // Retry with admin credentials
   return await registrationWithAuth_retry(
     async (creds: AdminCredentials) => {
-      // TODO: Pass admin credentials to registerWithAdmin
-      // For now, retry without explicit creds (will use same auth token)
-      const retryResult = await plugin_registerWithAdmin(pluginData, computeResources);
+      const retryResult = await plugin_registerWithAdmin(
+          pluginData as unknown as PluginRegistrationData, 
+          computeResources, 
+          creds
+      );
       return retryResult !== null;
     },
     options
@@ -312,7 +359,7 @@ async function pluginJSON_extractFromImage(
 
     if (jsonString && jsonString.trim() !== '') {
       try {
-        const parsed = JSON.parse(jsonString);
+        const parsed: PluginInfo = JSON.parse(jsonString) as PluginInfo;
         console.log(`Successfully extracted plugin descriptor using ${method.name}`);
         return parsed;
       } catch (e) {

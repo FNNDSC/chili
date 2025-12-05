@@ -9,6 +9,7 @@
  */
 
 import * as readline from 'readline';
+import { Writable } from 'stream';
 
 /**
  * Interface for admin credentials.
@@ -16,6 +17,13 @@ import * as readline from 'readline';
 export interface AdminCredentials {
   username: string;
   password: string;
+}
+
+/**
+ * Extended Writable stream with muted property for password input.
+ */
+interface MutableWritable extends Writable {
+  muted?: boolean;
 }
 
 /**
@@ -27,14 +35,6 @@ export interface AdminCredentials {
  * @param attempt - Current attempt number (for retry logic).
  * @param maxAttempts - Maximum number of attempts allowed.
  * @returns Promise resolving to admin credentials, or null if user cancels.
- *
- * @example
- * ```typescript
- * const creds = await adminCredentials_prompt(1, 3);
- * if (creds) {
- *   // Use credentials
- * }
- * ```
  */
 export async function adminCredentials_prompt(
   attempt: number = 1,
@@ -50,15 +50,24 @@ export async function adminCredentials_prompt(
     console.log('');
   }
 
+  const mutableStdout: MutableWritable = new Writable({
+    write: function(chunk, encoding, callback) {
+      if (!(this as MutableWritable).muted)
+        process.stdout.write(chunk, encoding);
+      callback();
+    }
+  });
+
   const rl = readline.createInterface({
     input: process.stdin,
-    output: process.stdout,
+    output: mutableStdout,
+    terminal: true
   });
 
   try {
-    // Prompt for username
+    mutableStdout.muted = false;
     const username: string = await new Promise((resolve) => {
-      rl.question('Username: ', (answer) => {
+      rl.question('Username: ', (answer: string) => {
         resolve(answer.trim());
       });
     });
@@ -69,8 +78,14 @@ export async function adminCredentials_prompt(
       return null;
     }
 
-    // Prompt for password (hidden input)
-    const password: string = await promptPassword_hidden(rl);
+    mutableStdout.muted = true;
+    process.stdout.write('Password: ');
+    const password: string = await new Promise((resolve) => {
+      rl.question('', (answer: string) => {
+        process.stdout.write('\n'); // Newline after hidden input
+        resolve(answer.trim());
+      });
+    });
 
     if (!password) {
       console.log('Password cannot be empty.');
@@ -79,78 +94,12 @@ export async function adminCredentials_prompt(
     }
 
     rl.close();
-
     return { username, password };
   } catch (error) {
     rl.close();
     console.error('\nPrompt cancelled or error occurred.');
     return null;
   }
-}
-
-/**
- * Prompts for password input with hidden display.
- *
- * Uses raw mode to hide password characters as they are typed.
- *
- * @param rl - Readline interface instance.
- * @returns Promise resolving to the entered password.
- */
-async function promptPassword_hidden(rl: readline.Interface): Promise<string> {
-  return new Promise((resolve) => {
-    process.stdout.write('Password: ');
-
-    // Set stdin to raw mode to hide input
-    const stdin = process.stdin;
-    const wasRaw = stdin.isRaw;
-    stdin.setRawMode(true);
-    stdin.resume();
-
-    let password = '';
-
-    const onData = (char: Buffer) => {
-      const charStr = char.toString();
-
-      switch (charStr) {
-        case '\n':
-        case '\r':
-        case '\u0004': // Ctrl+D
-          // Enter pressed, finish input
-          stdin.setRawMode(wasRaw);
-          stdin.pause();
-          stdin.removeListener('data', onData);
-          process.stdout.write('\n');
-          resolve(password);
-          break;
-
-        case '\u0003': // Ctrl+C
-          // Cancel
-          stdin.setRawMode(wasRaw);
-          stdin.pause();
-          stdin.removeListener('data', onData);
-          process.stdout.write('\n');
-          resolve('');
-          break;
-
-        case '\u007f': // Backspace
-        case '\b':     // Backspace (some terminals)
-          if (password.length > 0) {
-            password = password.slice(0, -1);
-            // Clear the character visually
-            process.stdout.write('\b \b');
-          }
-          break;
-
-        default:
-          // Add character to password
-          password += charStr;
-          process.stdout.write('*'); // Show asterisk for each character
-          break;
-      }
-    };
-
-    stdin.on('data', onData);
-  });
 }
 
 /**

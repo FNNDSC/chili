@@ -15,7 +15,7 @@ import { exec } from "child_process";
  */
 export async function childProcess_exec(command: string): Promise<{ stdout: string; stderr: string }> {
   return new Promise((resolve, reject) => {
-    exec(command, (error, stdout, stderr) => {
+    exec(command, (error: Error | null, stdout: string, stderr: string) => {
       if (error) {
         reject(error);
       } else {
@@ -164,7 +164,7 @@ export async function docker_getImageCmd(image: string): Promise<string[]> {
   }
 
   try {
-    const cmd = JSON.parse(result);
+    const cmd: string[] = JSON.parse(result) as string[];
     return Array.isArray(cmd) ? cmd : [];
   } catch {
     return [];
