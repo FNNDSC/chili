@@ -118,3 +118,14 @@ export function pluginNameAndVersion_extractFromImage(dockerImage: string): { na
 
   return { name, version };
 }
+
+/**
+ * Backward-compatible helper to extract only the plugin name from a Docker image.
+ *
+ * @param dockerImage - Docker image string.
+ * @returns The extracted plugin name.
+ */
+export function pluginName_extractFromImage(dockerImage: string): string {
+  const { name } = pluginNameAndVersion_extractFromImage(dockerImage);
+  return name;
+}

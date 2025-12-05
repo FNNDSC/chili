@@ -14,7 +14,8 @@ describe('Input Format Detection', () => {
     expect(result).toEqual({
       format: PluginInputFormat.DOCKER_IMAGE,
       value: 'fnndsc/pl-dircopy:2.1.1',
-      pluginName: 'pl-dircopy'
+      pluginName: 'pl-dircopy',
+      version: '2.1.1'
     });
   });
 
@@ -32,7 +33,8 @@ describe('Input Format Detection', () => {
     expect(result).toEqual({
       format: PluginInputFormat.DOCKER_IMAGE,
       value: 'pl-dircopy:latest',
-      pluginName: 'pl-dircopy'
+      pluginName: 'pl-dircopy',
+      version: 'latest'
     });
   });
 
