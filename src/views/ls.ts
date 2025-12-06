@@ -138,12 +138,21 @@ export function long_render(items: ListingItem[], options: ViewOptions = {}): st
   if (items.length === 0) return '';
 
   // Legacy sorting support (deprecated - sort at command layer instead)
-  let displayItems = items;
+  let displayItems: ListingItem[] = items;
   if (options.sort) {
-    const sortBy = options.sort;
-    const reverse = options.reverse || false;
+    const sortBy: 'name' | 'size' | 'date' | 'owner' = options.sort;
+    const reverse: boolean = options.reverse || false;
     displayItems = items_sort(items, sortBy, reverse);
   }
+
+  // Calculate max name width for alignment
+  const maxNameWidth: number = Math.max(
+    ...displayItems.map((item: ListingItem) => {
+      const nameStr: string = name_format(item);
+      const visibleLen: number = string_lengthVisible(nameStr);
+      return item.version ? visibleLen + item.version.length + 3 : visibleLen;
+    })
+  );
 
   return displayItems.map((item: ListingItem) => {
     // Type
@@ -171,7 +180,16 @@ export function long_render(items: ListingItem[], options: ViewOptions = {}): st
     let nameStr: string = name_format(item);
     if (item.version) nameStr += ` (${item.version})`;
 
-    let line: string = `${typeChar} ${owner} ${sizeStr} ${dateStr} ${nameStr}`;
+    // Pad name to max width for alignment
+    const nameVisibleLen: number = string_lengthVisible(nameStr);
+    const namePadding: string = ' '.repeat(Math.max(0, maxNameWidth - nameVisibleLen));
+
+    let line: string = `${typeChar} ${owner} ${sizeStr} ${dateStr} ${nameStr}${namePadding}`;
+
+    // Title (for feeds, plugin instances)
+    if (item.title) {
+      line += `    ${chalk.greenBright(item.title)}`;
+    }
 
     // Link Target
     if (item.type === 'link' && item.target) {

@@ -7,12 +7,12 @@
  *
  * @module
  */
-import { files_listAll } from "@fnndsc/salsa";
+import { files_listAll, feeds_list } from "@fnndsc/salsa";
 import { path_resolveChrisFs } from "../../utils/cli.js";
 import { ListingItem } from "../../models/listing.js";
 import { ChrisFileOrDirRaw } from "../../models/resource.js";
 import { list_applySort } from "../../utils/sort.js";
-import { errorStack } from "@fnndsc/cumin";
+import { errorStack, chrisConnection } from "@fnndsc/cumin";
 
 export interface LsOptions {
   path?: string;
@@ -107,9 +107,66 @@ export async function files_list(options: LsOptions, pathStr: string = ""): Prom
     errorStack.stack_push('error', `Failed to list links: ${linksResult.reason}`);
   }
 
+  // Enrich items with titles for feeds and plugin instances
+  await enrichItemsWithTitles(items);
+
   // Apply sorting (default to name if not specified)
   const sortField = options.sort || 'name';
   const sortedItems = list_applySort(items, sortField, options.reverse);
 
   return sortedItems;
+}
+
+/**
+ * Enriches listing items with titles for feeds and plugin instances.
+ * Detects patterns: feed_XXXX and pl-<name>_XXXX
+ *
+ * @param items - Array of listing items to enrich.
+ */
+async function enrichItemsWithTitles(items: ListingItem[]): Promise<void> {
+  const enrichPromises: Promise<void>[] = items.map(async (item: ListingItem): Promise<void> => {
+    if (item.type !== 'dir') return; // Only process directories
+
+    // Pattern 1: feed_XXXX
+    const feedMatch: RegExpMatchArray | null = item.name.match(/^feed_(\d+)$/);
+    if (feedMatch) {
+      const feedId: number = parseInt(feedMatch[1], 10);
+      try {
+        const feedData: any = await feeds_list({ id: feedId, limit: 1 });
+        if (feedData && feedData.tableData && feedData.tableData.length > 0) {
+          const feed: any = feedData.tableData[0];
+          if (feed && feed.name) {
+            item.title = feed.name;
+          }
+        }
+      } catch (e: unknown) {
+        // Silently ignore errors
+      }
+      return;
+    }
+
+    // Pattern 2: pl-<name>_XXXX
+    const pluginMatch: RegExpMatchArray | null = item.name.match(/^(pl-.+)_(\d+)$/);
+    if (pluginMatch) {
+      const pluginInstanceId: number = parseInt(pluginMatch[2], 10);
+      try {
+        // For plugin instances, we still need the client API
+        // Try to get client, but don't fail if unavailable
+        const client: any = await chrisConnection.client_get();
+        if (client) {
+          const instance: any = await client.getPluginInstance(pluginInstanceId);
+          if (instance && instance.data) {
+            const pluginName: string = instance.data.plugin_name || '';
+            const pluginVersion: string = instance.data.plugin_version || '';
+            item.title = pluginVersion ? `${pluginName} v${pluginVersion}` : pluginName;
+          }
+        }
+      } catch (e: unknown) {
+        // Silently ignore errors
+      }
+      return;
+    }
+  });
+
+  await Promise.all(enrichPromises);
 }

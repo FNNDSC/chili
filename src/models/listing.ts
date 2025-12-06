@@ -29,7 +29,10 @@ export interface ListingItem {
   
   /** Target path (for links). */
   target?: string;
-  
+
   /** Version string (for plugins). */
   version?: string;
+
+  /** Title or description (for feeds, plugin instances). */
+  title?: string;
 }
