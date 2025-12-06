@@ -7,7 +7,7 @@
  *
  * @module
  */
-import { files_listAll, feeds_list } from "@fnndsc/salsa";
+import { files_listAll, feeds_list, pluginInstances_list } from "@fnndsc/salsa";
 import { path_resolveChrisFs } from "../../utils/cli.js";
 import { ListingItem } from "../../models/listing.js";
 import { ChrisFileOrDirRaw } from "../../models/resource.js";
@@ -150,14 +150,12 @@ async function enrichItemsWithTitles(items: ListingItem[]): Promise<void> {
     if (pluginMatch) {
       const pluginInstanceId: number = parseInt(pluginMatch[2], 10);
       try {
-        // For plugin instances, we still need the client API
-        // Try to get client, but don't fail if unavailable
-        const client: any = await chrisConnection.client_get();
-        if (client) {
-          const instance: any = await client.getPluginInstance(pluginInstanceId);
-          if (instance && instance.data) {
-            const pluginName: string = instance.data.plugin_name || '';
-            const pluginVersion: string = instance.data.plugin_version || '';
+        const instanceData: any = await pluginInstances_list({ id: pluginInstanceId, limit: 1 });
+        if (instanceData && instanceData.tableData && instanceData.tableData.length > 0) {
+          const instance: any = instanceData.tableData[0];
+          if (instance) {
+            const pluginName: string = instance.plugin_name || '';
+            const pluginVersion: string = instance.plugin_version || '';
             item.title = pluginVersion ? `${pluginName} v${pluginVersion}` : pluginName;
           }
         }
