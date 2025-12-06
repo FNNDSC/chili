@@ -1,6 +1,6 @@
 {
   "name": "@fnndsc/chili",
-  "version": "1.26.0",
+  "version": "1.27.0",
   "description": "ChILI handles Intelligent Line Interactions: A CLI and library for ChRIS, acting as the controller layer for business logic and user presentation.",
   "main": "dist/index.js",
   "type": "module",
