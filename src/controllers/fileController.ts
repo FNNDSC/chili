@@ -1,4 +1,5 @@
-import { ChRISEmbeddedResourceGroup } from "@fnndsc/cumin";
+import { ChRISEmbeddedResourceGroup, errorStack, Result } from "@fnndsc/cumin";
+import chalk from 'chalk';
 import { FileBrowserFolder } from "@fnndsc/chrisapi"; // Still needed for the generic type of ChRISEmbeddedResourceGroup
 import { BaseController } from "./baseController.js";
 import { CLIoptions } from "../utils/cli.js";
@@ -6,7 +7,7 @@ import {
   files_getGroup,
   files_getSingle,
   files_share as salsaFiles_share,
-  files_view as salsaFiles_view,
+  fileContent_get,
   FileShareOptions
 } from "@fnndsc/salsa";
 
@@ -98,16 +99,14 @@ export class FileController extends BaseController {
    * @param options - CLI options for viewing. Expected to contain `fileId` and other viewing parameters.
    * @returns A Promise resolving to void (output is handled by salsa or logged).
    */
-  async file_view(options: CLIoptions): Promise<void> {
-    const fileId = options.fileId; // Assuming CLIoptions has a fileId property
-    if (fileId === undefined) {
-      console.error("Error: fileId is required for viewing.");
-      return;
+  async file_view(filePath: string): Promise<void> {
+    const result: Result<string> = await fileContent_get(filePath);
+    if (!result.ok) {
+        const error = errorStack.stack_pop();
+        console.error(chalk.red(`Error viewing file: ${error?.message || 'Unknown error'}`));
+        return;
     }
-    const content = await salsaFiles_view(fileId);
-    if (content) {
-        console.log(content.toString());
-    }
+    console.log(result.value);
   }
 
   /**

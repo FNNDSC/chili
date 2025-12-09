@@ -2,7 +2,7 @@
  * @file Implements the core logic for the `cat` command.
  * @module
  */
-import { files_content } from "@fnndsc/salsa";
+import { fileContent_get } from "@fnndsc/salsa";
 import { path_resolveChrisFs } from "../../utils/cli.js";
 import { Result } from "@fnndsc/cumin";
 
@@ -14,5 +14,5 @@ import { Result } from "@fnndsc/cumin";
  */
 export async function files_cat(filePath: string): Promise<Result<string>> {
   const resolved: string = await path_resolveChrisFs(filePath, {});
-  return await files_content(resolved);
+  return await fileContent_get(resolved);
 }
