@@ -1,0 +1,471 @@
+= File Content Retrieval in ChILI
+:toc:
+:toc-placement: preamble
+:sectnums:
+
+== Overview
+
+This document describes how ChILI commands and controllers consume the file content retrieval functionality provided by the `salsa` business logic layer. It focuses on the integration patterns used in ChILI's command layer.
+
+For comprehensive architecture and implementation details, see: `salsa/docs/file-content-retrieval.adoc`
+
+== Integration Pattern
+
+ChILI commands follow this pattern:
+
+1. **Parse arguments** - Extract file path from user input
+2. **Resolve path** - Convert relative → absolute using `path_resolveChrisFs()`
+3. **Call salsa** - Invoke `fileContent_get(filePath)`
+4. **Handle result** - Check `Result<T>`, pop errors from `errorStack`
+5. **Display output** - Render content or error message
+
+== Commands Using File Content
+
+=== 1. `cat` Command
+
+**File:** `src/commands/fs/cat.ts`
+
+**Purpose:** Display file content (like Unix `cat`)
+
+[source,typescript]
+----
+import { fileContent_get } from "@fnndsc/salsa";
+import { path_resolveChrisFs } from "../../utils/cli.js";
+import { Result } from "@fnndsc/cumin";
+
+/**
+ * Retrieves the content of a file.
+ *
+ * @param filePath - The path to the file.
+ * @returns Promise resolving to content string or error.
+ */
+export async function files_cat(filePath: string): Promise<Result<string>> {
+  const resolved: string = await path_resolveChrisFs(filePath, {});
+  return await fileContent_get(resolved);
+}
+----
+
+**Key Points:**
+
+* **RPN naming:** Function named `files_cat` (not `catFile` or `getCatContent`)
+* **Path resolution:** Always resolve relative paths before calling salsa
+* **Pass-through:** Returns `Result<T>` directly to caller for error handling
+* **No console output:** Command logic is pure, caller decides how to display
+
+**Usage in CLI:**
+
+[source,bash]
+----
+chili chefs cat /home/user/file.txt
+chili chefs cat ./relative/path.txt
+chili chefs cat /PIPELINES/user/spec.yml
+----
+
+---
+
+=== 2. `view` Command
+
+**File:** `src/commands/file/view.ts`
+
+**Purpose:** View content of a specific file (supports ID or path)
+
+[source,typescript]
+----
+import { fileContent_get } from "@fnndsc/salsa";
+import { Result } from "@fnndsc/cumin";
+
+/**
+ * Fetches the content of a ChRIS file as a UTF-8 string.
+ *
+ * @param fileIdentifier - The path of the file to view.
+ * @returns A Promise resolving to the file content as a string, or `null` if empty/not found.
+ * @throws {Error} If the operation fails and an error is pushed to the stack.
+ */
+export async function files_viewContent(fileIdentifier: string): Promise<string | null> {
+  const result: Result<string> = await fileContent_get(fileIdentifier);
+
+  if (!result.ok) {
+    // Errors are pushed to the stack within salsa
+    throw new Error(`Failed to view content for: ${fileIdentifier}`);
+  }
+
+  return result.value;
+}
+----
+
+**Key Points:**
+
+* **Alternative error handling:** Throws exception instead of returning `Result<T>`
+* **Why?** This function is called by controller layer which expects exceptions
+* **Pattern:** `Result<T>` → exception conversion for legacy compatibility
+
+**Usage in CLI:**
+
+[source,bash]
+----
+chili file view /home/user/data.json
+----
+
+---
+
+=== 3. FileController
+
+**File:** `src/controllers/fileController.ts`
+
+**Purpose:** Controller-level abstraction for file operations
+
+[source,typescript]
+----
+import {
+  fileContent_get,
+  FileShareOptions
+} from "@fnndsc/salsa";
+import { Result, errorStack } from "@fnndsc/cumin";
+import chalk from 'chalk';
+
+export class FileController extends BaseController {
+  /**
+   * Views content of a file using salsa logic.
+   *
+   * @param filePath - The ChRIS path to the file.
+   * @returns A Promise resolving to void (output is logged).
+   */
+  async file_view(filePath: string): Promise<void> {
+    const result: Result<string> = await fileContent_get(filePath);
+    if (!result.ok) {
+        const error = errorStack.stack_pop();
+        console.error(chalk.red(`Error viewing file: ${error?.message || 'Unknown error'}`));
+        return;
+    }
+    console.log(result.value);
+  }
+}
+----
+
+**Key Points:**
+
+* **Controller responsibility:** Handle display/formatting
+* **Error rendering:** Uses `chalk` for colored error messages
+* **Result handling:** Explicit `!result.ok` check, error pop, display
+* **Separation:** Business logic in salsa, presentation in controller
+
+---
+
+== Import Patterns
+
+=== Standard Import
+
+[source,typescript]
+----
+// Named import (preferred)
+import { fileContent_get } from "@fnndsc/salsa";
+
+// Usage
+const result = await fileContent_get(path);
+----
+
+=== Avoiding Conflicts
+
+If you need to import multiple `*_get` functions:
+
+[source,typescript]
+----
+import {
+  fileContent_get,
+  fileFields_get,
+  feedContent_get
+} from "@fnndsc/salsa";
+----
+
+Names are distinct due to RPN convention (subject comes first).
+
+---
+
+== Error Handling Patterns
+
+=== Pattern 1: Return Result<T>
+
+**When:** Command logic that doesn't display output
+
+[source,typescript]
+----
+export async function files_cat(filePath: string): Promise<Result<string>> {
+  const resolved: string = await path_resolveChrisFs(filePath, {});
+  return await fileContent_get(resolved);  // Pass-through
+}
+----
+
+**Caller:**
+[source,typescript]
+----
+const result = await files_cat(path);
+if (!result.ok) {
+  const error = errorStack.stack_pop();
+  console.error(chalk.red(error?.message));
+  return;
+}
+console.log(result.value);
+----
+
+---
+
+=== Pattern 2: Throw Exception
+
+**When:** Integration with legacy code expecting exceptions
+
+[source,typescript]
+----
+export async function files_viewContent(fileId: string): Promise<string | null> {
+  const result: Result<string> = await fileContent_get(fileId);
+
+  if (!result.ok) {
+    throw new Error(`Failed to view content for: ${fileId}`);
+  }
+
+  return result.value;
+}
+----
+
+**Caller:**
+[source,typescript]
+----
+try {
+  const content = await files_viewContent(path);
+  console.log(content);
+} catch (error) {
+  console.error(`Error: ${error.message}`);
+}
+----
+
+---
+
+=== Pattern 3: Display Directly
+
+**When:** Controller methods that handle both logic and display
+
+[source,typescript]
+----
+async file_view(filePath: string): Promise<void> {
+  const result: Result<string> = await fileContent_get(filePath);
+  if (!result.ok) {
+      const error = errorStack.stack_pop();
+      console.error(chalk.red(`Error: ${error?.message}`));
+      return;
+  }
+  console.log(result.value);
+}
+----
+
+== Path Resolution
+
+Always resolve paths before calling salsa functions:
+
+[source,typescript]
+----
+import { path_resolveChrisFs } from "../../utils/cli.js";
+
+// User input (may be relative)
+const userPath = "./data/file.txt";
+
+// Resolve to absolute
+const resolved: string = await path_resolveChrisFs(userPath, {});
+// Result: "/home/chris/data/file.txt"
+
+// Now safe to call salsa
+const result = await fileContent_get(resolved);
+----
+
+**Why?**
+
+* User may provide relative paths
+* Salsa expects absolute paths
+* Path resolution respects current working directory
+
+== Adding New Commands
+
+To add a new command that uses file content:
+
+=== Step 1: Create Command File
+
+[source,typescript]
+----
+// src/commands/mycommand/process.ts
+import { fileContent_get } from "@fnndsc/salsa";
+import { path_resolveChrisFs } from "../../utils/cli.js";
+import { Result } from "@fnndsc/cumin";
+
+/**
+ * Process a file's content.
+ *
+ * @param filePath - Path to the file.
+ * @returns Result with processed content.
+ */
+export async function fileContent_process(filePath: string): Promise<Result<string>> {
+  const resolved: string = await path_resolveChrisFs(filePath, {});
+  const result: Result<string> = await fileContent_get(resolved);
+
+  if (!result.ok) {
+    return result;  // Pass through error
+  }
+
+  // Process content
+  const processed: string = result.value.toUpperCase();  // Example
+  return Ok(processed);
+}
+----
+
+=== Step 2: Add CLI Handler
+
+[source,typescript]
+----
+// src/index.ts or appropriate CLI router
+import { fileContent_process } from './commands/mycommand/process.js';
+
+// In command handler
+case 'process':
+  const result = await fileContent_process(args.file);
+  if (!result.ok) {
+    const error = errorStack.stack_pop();
+    console.error(chalk.red(error?.message));
+  } else {
+    console.log(result.value);
+  }
+  break;
+----
+
+=== Step 3: Add Tests
+
+[source,typescript]
+----
+// tests/mycommand.test.ts
+import { fileContent_process } from '../src/commands/mycommand/process';
+
+describe('fileContent_process', () => {
+  it('should process file content', async () => {
+    // Mock fileContent_get
+    const result = await fileContent_process('/test/file.txt');
+    expect(result.ok).toBe(true);
+  });
+});
+----
+
+== Testing
+
+=== Mocking File Content
+
+[source,typescript]
+----
+import { fileContent_get } from "@fnndsc/salsa";
+
+// Mock in test setup
+jest.mock('@fnndsc/salsa', () => ({
+  fileContent_get: jest.fn()
+}));
+
+// In test
+const mockFileContent = fileContent_get as jest.MockedFunction<typeof fileContent_get>;
+mockFileContent.mockResolvedValue({
+  ok: true,
+  value: 'mock file content'
+});
+
+// Test your command
+const result = await files_cat('/test/file.txt');
+expect(result.ok).toBe(true);
+expect(result.value).toBe('mock file content');
+----
+
+== Debugging
+
+=== Enable Verbose Logging
+
+Temporarily add logging in commands:
+
+[source,typescript]
+----
+export async function files_cat(filePath: string): Promise<Result<string>> {
+  console.error(`[DEBUG] files_cat called with: ${filePath}`);
+
+  const resolved: string = await path_resolveChrisFs(filePath, {});
+  console.error(`[DEBUG] Resolved to: ${resolved}`);
+
+  const result = await fileContent_get(resolved);
+  console.error(`[DEBUG] Result ok: ${result.ok}`);
+
+  return result;
+}
+----
+
+**Remember to remove debug statements before committing.**
+
+=== Check Error Stack
+
+If errors are unclear:
+
+[source,typescript]
+----
+const result = await fileContent_get(path);
+if (!result.ok) {
+  // Pop ALL errors to see full stack
+  while (true) {
+    const error = errorStack.stack_pop();
+    if (!error) break;
+    console.error(`[${error.level}] ${error.message}`);
+  }
+}
+----
+
+== Common Issues
+
+[cols="2,3,3"]
+|===
+| Issue | Cause | Solution
+
+| **Relative path fails**
+| Path not resolved
+| Use `path_resolveChrisFs()` before calling salsa
+
+| **Error not displayed**
+| Forgot to pop errorStack
+| Always `errorStack.stack_pop()` after `Err()`
+
+| **Pipeline files fail**
+| Wrong path format
+| Ensure path starts with `/PIPELINES/`
+
+| **File not found**
+| Typo or permissions
+| Test with `chili chefs ls` first
+|===
+
+== Performance Tips
+
+1. **Don't fetch unnecessarily**
+   - Check if file exists with `ls` before `cat`
+   - Cache results if displaying multiple times
+
+2. **Large files**
+   - Consider streaming for files > 10MB
+   - Warn user before fetching huge files
+
+3. **Batch operations**
+   - Use `Promise.all()` for multiple files
+   - But respect API rate limits
+
+== Related Documentation
+
+* **Comprehensive Architecture:** `salsa/docs/file-content-retrieval.adoc`
+* **VFS Routing:** `chell/docs/vfs.adoc`
+* **Error Handling:** `cumin/docs/error_handling.adoc`
+* **RPN Naming:** `TYPESCRIPT-STYLE-GUIDE.md`
+
+== Change Log
+
+[cols="1,2,4"]
+|===
+| Version | Date | Changes
+
+| 1.0.0
+| 2025-12-09
+| Initial chili integration documentation
+|===
