@@ -1,5 +1,38 @@
 #!/usr/bin/env node
 
+/**
+ * Suppress DEP0169 warning from axios/proxy-from-env dependency.
+ *
+ * This warning originates from the `proxy-from-env` package (version 1.1.0)
+ * used by axios for proxy configuration. The package uses the legacy `url.parse()`
+ * API which is deprecated in favor of the WHATWG URL API.
+ *
+ * Why we suppress it:
+ * - It's a transitive dependency (axios → proxy-from-env) we don't control
+ * - proxy-from-env 1.1.0 is the latest version and hasn't been updated
+ * - According to the warning: "CVEs are not issued for url.parse() vulnerabilities"
+ * - The warning doesn't affect functionality, only console output
+ * - This is a well-known issue in the Node.js ecosystem
+ *
+ * This can be removed once:
+ * - proxy-from-env migrates to WHATWG URL API, OR
+ * - axios replaces proxy-from-env with an alternative
+ *
+ * Tracking: https://github.com/Rob--W/proxy-from-env/issues/51
+ */
+const originalEmitWarning = process.emitWarning;
+process.emitWarning = function (warning: string | Error, ...args: any[]): void {
+  // Suppress only the specific DEP0169 warning
+  if (
+    typeof warning === 'string' &&
+    (warning.includes('DEP0169') || warning.includes('url.parse()'))
+  ) {
+    return;
+  }
+  // Allow all other warnings through
+  return originalEmitWarning.call(process, warning, ...args);
+};
+
 import { Command } from "commander";
 import figlet from "figlet";
 import omelette from "omelette";
@@ -178,10 +211,17 @@ async function handlers_initialize() {
  * @returns A tuple containing the context string (if found) and the remaining arguments.
  */
 function context_parse(args: string[]): [string | undefined, string[]] {
-  if (args.length > 2 && args[2].includes("=")) {
-    const context: string = args[2];
-    return [context, [args[0], args[1], ...args.slice(3)]];
+  // Find the first argument that looks like a context string (contains "=" but doesn't start with "-")
+  for (let i = 2; i < args.length; i++) {
+    const arg = args[i];
+    if (arg.includes("=") && !arg.startsWith("-")) {
+      const context: string = arg;
+      // Reconstruct args without the context string
+      const newArgs = [...args.slice(0, i), ...args.slice(i + 1)];
+      return [context, newArgs];
+    }
   }
+
   return [undefined, args];
 }
 
@@ -196,7 +236,11 @@ async function main() {
 
   const [context, newArgs] = context_parse(process.argv);
   if (context) {
-    await connection.context_set(context);
+    const contextSetSuccess = await connection.context_set(context);
+    if (!contextSetSuccess) {
+      console.error("Failed to set context. Exiting.");
+      process.exit(1);
+    }
     process.argv = newArgs;
   }
 

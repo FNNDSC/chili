@@ -4,7 +4,7 @@
 
 Each plugin should have a corresponding `README` file that the developer created documenting important information. This `README` can exist in various formats, but is typically in github markdown syntax and unsurprisingly is assumed to be accessible on github.
 
-The `pluginMetas` subcommand can be used to return the `readme` of a given plugin. It operates by examining the `url` of the plugin json representation and searching in that location for a `README` file in various formats.
+The `plugin` subcommand can be used to return the `readme` of a given plugin. It operates by examining the `url` of the plugin json representation and searching in that location for a `README` file in various formats.
 
 == how to use
 
@@ -60,16 +60,16 @@ The ChRIS Interactive Line Interface
 
 === simplest case
 
-Every element within CUBE has a corresponding unique ID, and plugins are of course no exception. The simplest mechanism to print the readme is to use the `pluginMetas` subcommand with a given plugin id in the pattern
+Every element within CUBE has a corresponding unique ID, and plugins are of course no exception. The simplest mechanism to print the readme is to use the `plugin` subcommand with a given plugin id in the pattern
 
 ```
-pluginMetas readme <id>
+plugin readme <id>
 ```
 
 So, given the table above, to get the readme of the `pl-shexec` we note its id is `14`, and thus:
 
 ```
-chili pluginMetas readme 14
+chili plugin readme 14
 ```
 
 === using a searchable
@@ -77,21 +77,21 @@ chili pluginMetas readme 14
 A more intuitive manner is to use a `--search <searchable>` (see elsewhere for full description of `<searchables>`). This is typically useful if the name of the plugin is known and it is simply more convenient to use this explicitly:
 
 ```
-chili pluginMetas readme --search "name: pl-shexec"
+chili plugin readme --search "name: pl-shexec"
 ```
 
 In fact, the intial command using the plugin <id> is equivalent to:
 
 ```
-chili pluginMetas readme --search "id: 14"
+chili plugin readme --search "id: 14"
 ```
 
 Note the quotes in the above are for readability and to protect the embedded space. One could just as easily have
 
 
 ```
-chili pluginMetas readme --search name:pl-shexec
-chili pluginMetas readme --search id:14
+chili plugin readme --search name:pl-shexec
+chili plugin readme --search id:14
 ```
 
 === using a context specification
@@ -99,19 +99,19 @@ chili pluginMetas readme --search id:14
 A final mechanism for specifying the plugin to process, is to use a _context_ construction. Here, we specify the plugin as a _context_ and call the `readme` subcommand without any arguments:
 
 ```
-chili plugin=14 pluginMetas readme
+chili plugin=14 plugin readme
 ```
 
 Since the plugin context is also a _searchable_ we can equally do
 
 ```
-chili plugin=name:pl-shexec pluginMetas readme
+chili plugin=name:pl-shexec plugin readme
 ```
 
 and even
 
 ```
-chili plugin=name:pl-dylld,version=4.4.40 pluginMetas readme
+chili plugin=name:pl-dylld,version=4.4.40 plugin readme
 ```
 
 Take note that using a _context_ specification *will update the plugin context that persists across subsequent operations*.

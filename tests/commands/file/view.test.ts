@@ -1,48 +1,42 @@
 import { files_viewContent } from '../../../src/commands/file/view';
 import * as salsa from '@fnndsc/salsa';
-import * as fileListCmd from '../../../src/commands/files/list';
 
 jest.mock('@fnndsc/salsa');
-jest.mock('../../../src/commands/files/list');
 
 describe('commands/file/view', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
-  it('should call salsa.files_view with ID directly if numeric', async () => {
-    (salsa.files_view as jest.Mock).mockResolvedValue(Buffer.from('content'));
+  it('should call salsa.fileContent_get and return content on success', async () => {
+    (salsa.fileContent_get as jest.Mock).mockResolvedValue({ ok: true, value: 'file content' });
 
-    const result = await files_viewContent('123');
+    const result = await files_viewContent('/path/to/file.txt');
 
-    expect(salsa.files_view).toHaveBeenCalledWith(123);
-    expect(result).toBe('content');
+    expect(salsa.fileContent_get).toHaveBeenCalledWith('/path/to/file.txt');
+    expect(result).toBe('file content');
   });
 
-  it('should resolve name to ID and call salsa.files_view', async () => {
-    (fileListCmd.files_fetchList as jest.Mock).mockResolvedValue({
-      tableData: [{ id: 456, fname: 'test.txt' }]
-    });
-    (salsa.files_view as jest.Mock).mockResolvedValue(Buffer.from('text content'));
+  it('should call salsa.fileContent_get with file path', async () => {
+    (salsa.fileContent_get as jest.Mock).mockResolvedValue({ ok: true, value: 'content from path' });
 
-    const result = await files_viewContent('test.txt');
+    const result = await files_viewContent('/home/user/test.txt');
 
-    expect(fileListCmd.files_fetchList).toHaveBeenCalledWith({ search: 'test.txt' }, 'files');
-    expect(salsa.files_view).toHaveBeenCalledWith(456);
-    expect(result).toBe('text content');
+    expect(salsa.fileContent_get).toHaveBeenCalledWith('/home/user/test.txt');
+    expect(result).toBe('content from path');
   });
 
-  it('should throw error if file not found', async () => {
-    (fileListCmd.files_fetchList as jest.Mock).mockResolvedValue({ tableData: [] });
+  it('should throw error if salsa.fileContent_get returns not ok', async () => {
+    (salsa.fileContent_get as jest.Mock).mockResolvedValue({ ok: false, error: 'File not found' });
 
-    await expect(files_viewContent('missing.txt')).rejects.toThrow('File not found: missing.txt');
+    await expect(files_viewContent('/missing/file.txt')).rejects.toThrow('Failed to view content for: /missing/file.txt');
+    expect(salsa.fileContent_get).toHaveBeenCalledWith('/missing/file.txt');
   });
 
-  it('should return null if salsa.files_view returns null', async () => {
-    (salsa.files_view as jest.Mock).mockResolvedValue(null);
+  it('should throw error if salsa.fileContent_get fails', async () => {
+    (salsa.fileContent_get as jest.Mock).mockResolvedValue({ ok: false, error: 'Network error' });
 
-    const result = await files_viewContent('789');
-
-    expect(result).toBeNull();
+    await expect(files_viewContent('789')).rejects.toThrow('Failed to view content for: 789');
+    expect(salsa.fileContent_get).toHaveBeenCalledWith('789');
   });
 });
