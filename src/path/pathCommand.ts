@@ -8,7 +8,7 @@ import {
   ListOptions,
   FilteredResourceData,
   objContext_create,
-  FileBrowserFolder,
+  ChrisPathNode,
 } from "@fnndsc/cumin";
 import chalk from "chalk";
 import fs from "fs";
@@ -62,9 +62,9 @@ interface Tranmission {
 }
 
 interface ResourceGroups {
-  filesGroup: ChRISEmbeddedResourceGroup<FileBrowserFolder>;
-  dirsGroup: ChRISEmbeddedResourceGroup<FileBrowserFolder>;
-  linksGroup: ChRISEmbeddedResourceGroup<FileBrowserFolder>;
+  filesGroup: ChRISEmbeddedResourceGroup<ChrisPathNode>;
+  dirsGroup: ChRISEmbeddedResourceGroup<ChrisPathNode>;
+  linksGroup: ChRISEmbeddedResourceGroup<ChrisPathNode>;
 }
 
 export interface CLIscan {
@@ -120,15 +120,15 @@ async function resourceGroups_create(
     const filesGroup = (await objContext_create(
       "ChRISFilesContext",
       `folder:${currentPath}`
-    )) as ChRISEmbeddedResourceGroup<FileBrowserFolder>;
+    )) as ChRISEmbeddedResourceGroup<ChrisPathNode>;
     const dirsGroup = (await objContext_create(
       "ChRISDirsContext",
       `folder:${currentPath}`
-    )) as ChRISEmbeddedResourceGroup<FileBrowserFolder>;
+    )) as ChRISEmbeddedResourceGroup<ChrisPathNode>;
     const linksGroup = (await objContext_create(
       "ChRISLinksContext",
       `folder:${currentPath}`
-    )) as ChRISEmbeddedResourceGroup<FileBrowserFolder>;
+    )) as ChRISEmbeddedResourceGroup<ChrisPathNode>;
 
     return { filesGroup, dirsGroup, linksGroup };
   } catch (error) {
@@ -324,7 +324,7 @@ export function archyTree_create(files: FileInfo[]): string {
  * @returns A Promise resolving to an array of FileInfo objects for directories.
  */
 async function dirs_scan(
-  dirsGroup: ChRISEmbeddedResourceGroup<FileBrowserFolder>,
+  dirsGroup: ChRISEmbeddedResourceGroup<ChrisPathNode>,
   chrisPath: string,
   hostBasePath: string,
   linkedPath: string = ""
@@ -368,7 +368,7 @@ async function dirs_scan(
  * @returns A Promise resolving to an array of FileInfo objects for files.
  */
 async function files_scan(
-  filesGroup: ChRISEmbeddedResourceGroup<FileBrowserFolder>,
+  filesGroup: ChRISEmbeddedResourceGroup<ChrisPathNode>,
   chrisPath: string,
   hostBasePath: string,
   linkedPath: string = ""
@@ -413,7 +413,7 @@ async function files_scan(
  * @returns A Promise resolving to an array of FileInfo objects for links.
  */
 async function links_scan(
-  linksGroup: ChRISEmbeddedResourceGroup<FileBrowserFolder>,
+  linksGroup: ChRISEmbeddedResourceGroup<ChrisPathNode>,
   chrisPath: string,
   hostBasePath: string,
   linkedPath: string = ""

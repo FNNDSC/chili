@@ -3,7 +3,7 @@ import {
   objContext_create,
   chrisContext,
   Context,
-  Plugin,
+  ChrisPluginSummary,
 } from "@fnndsc/cumin";
 import { BaseController } from "./baseController.js";
 
@@ -15,7 +15,7 @@ export class PluginContextController extends BaseController {
   private _assetName: string;
 
   constructor(
-    chrisObject: ChRISEmbeddedResourceGroup<Plugin>,
+    chrisObject: ChRISEmbeddedResourceGroup<ChrisPluginSummary>,
     id: number | null,
     assetName: string
   ) {
@@ -43,26 +43,26 @@ export class PluginContextController extends BaseController {
       id = pluginContext ? Number(pluginContext) : 1;
     }
 
-    let chrisPluginSystemGroup: ChRISEmbeddedResourceGroup<Plugin> | null = null;
+    let chrisPluginSystemGroup: ChRISEmbeddedResourceGroup<ChrisPluginSummary> | null = null;
 
     switch (assetName) {
       case "computesofplugin":
         chrisPluginSystemGroup = (await objContext_create(
           "ComputesOfPlugin",
           `plugin:${id}`
-        )) as ChRISEmbeddedResourceGroup<Plugin>;
+        )) as ChRISEmbeddedResourceGroup<ChrisPluginSummary>;
         break;
       case "instancesofplugin":
         chrisPluginSystemGroup = (await objContext_create(
           "InstancesOfPlugin",
           `plugin:${id}`
-        )) as ChRISEmbeddedResourceGroup<Plugin>;
+        )) as ChRISEmbeddedResourceGroup<ChrisPluginSummary>;
         break;
       case "parametersofplugin":
         chrisPluginSystemGroup = (await objContext_create(
           "ParametersOfPlugin",
           `plugin:${id}`
-        )) as ChRISEmbeddedResourceGroup<Plugin>;
+        )) as ChRISEmbeddedResourceGroup<ChrisPluginSummary>;
         break;
       default:
         throw new Error(`Unsupported asset type: ${assetName}`);

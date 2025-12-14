@@ -1,4 +1,4 @@
-import { ChRISEmbeddedResourceGroup, errorStack, Result, FileBrowserFolder } from "@fnndsc/cumin";
+import { ChRISEmbeddedResourceGroup, errorStack, Result, ChrisPathNode } from "@fnndsc/cumin";
 import chalk from 'chalk';
 import { BaseController } from "./baseController.js";
 import { CLIoptions } from "../utils/cli.js";
@@ -11,7 +11,7 @@ import {
 } from "@fnndsc/salsa";
 
 // Helper interface to access internal property safely
-interface ChRISFileSystemGroupWithFolder extends ChRISEmbeddedResourceGroup<FileBrowserFolder> {
+interface ChRISFileSystemGroupWithFolder extends ChRISEmbeddedResourceGroup<ChrisPathNode> {
   folder?: string;
 }
 
@@ -25,7 +25,7 @@ export class FileController extends BaseController {
   private _assetName: string;
 
   constructor(
-    chrisObject: ChRISEmbeddedResourceGroup<FileBrowserFolder>,
+    chrisObject: ChRISEmbeddedResourceGroup<ChrisPathNode>,
     path: string,
     assetName: string
   ) {
