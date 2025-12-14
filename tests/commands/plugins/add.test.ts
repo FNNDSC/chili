@@ -88,4 +88,36 @@ describe('plugin_add', () => {
     expect(result).toBe(false);
     expect(salsa.plugin_checkExists).not.toHaveBeenCalled();
   });
+
+  test('Peer store import fails without auth', async () => {
+    (salsa.plugins_searchPeers as jest.Mock).mockResolvedValue({
+      plugin: { name: 'pl-test' },
+      storeUrl: 'http://store/1',
+      storeName: 'store'
+    });
+    (salsa.plugin_importFromStore as jest.Mock).mockResolvedValue({
+      success: false,
+      requiresAuth: false,
+      errorMessage: 'import failed'
+    });
+    const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+    const result = await plugin_add('pl-test', { compute: 'host' });
+
+    expect(result).toBe(false);
+    expect(salsa.plugin_importFromStore).toHaveBeenCalled();
+    expect(errorSpy).toHaveBeenCalled();
+    errorSpy.mockRestore();
+  });
+
+  test('Docker extraction aborts when docker is unavailable', async () => {
+    (salsa.plugin_checkExists as jest.Mock).mockResolvedValue(null);
+    (salsa.plugins_searchPeers as jest.Mock).mockResolvedValue(null);
+    (docker.docker_checkAvailability as jest.Mock).mockResolvedValue(false);
+
+    const result = await plugin_add('pl-test:latest', { compute: 'host' });
+
+    expect(result).toBe(false);
+    expect(docker.docker_pullImage).not.toHaveBeenCalled();
+  });
 });
