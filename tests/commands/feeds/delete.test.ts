@@ -47,5 +47,11 @@ describe('commands/feeds/delete', () => {
       expect(salsa.feed_delete).toHaveBeenCalledWith(123);
       expect(result).toBe(true);
     });
+
+    it('returns false when feed deletion fails', async () => {
+      (salsa.feed_delete as jest.Mock).mockResolvedValue(false);
+      const result = await feed_deleteById(321);
+      expect(result).toBe(false);
+    });
   });
 });

@@ -47,5 +47,11 @@ describe('files delete command', () => {
       expect(salsa.files_delete).toHaveBeenCalledWith(123, 'files');
       expect(result).toBe(true);
     });
+
+    it('returns false when deletion fails', async () => {
+      (salsa.files_delete as jest.Mock).mockResolvedValue(false);
+      const result = await files_deleteById(999, 'files');
+      expect(result).toBe(false);
+    });
   });
 });
