@@ -8,8 +8,8 @@ import {
   ListOptions,
   FilteredResourceData,
   objContext_create,
+  FileBrowserFolder,
 } from "@fnndsc/cumin";
-import { FileBrowserFolder } from "@fnndsc/chrisapi";
 import chalk from "chalk";
 import fs from "fs";
 import path from "path";

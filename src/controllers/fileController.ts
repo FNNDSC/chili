@@ -1,6 +1,5 @@
-import { ChRISEmbeddedResourceGroup, errorStack, Result } from "@fnndsc/cumin";
+import { ChRISEmbeddedResourceGroup, errorStack, Result, FileBrowserFolder } from "@fnndsc/cumin";
 import chalk from 'chalk';
-import { FileBrowserFolder } from "@fnndsc/chrisapi"; // Still needed for the generic type of ChRISEmbeddedResourceGroup
 import { BaseController } from "./baseController.js";
 import { CLIoptions } from "../utils/cli.js";
 import {

@@ -3,9 +3,9 @@ import {
   objContext_create,
   chrisContext,
   Context,
+  Plugin,
 } from "@fnndsc/cumin";
 import { BaseController } from "./baseController.js";
-import { Plugin } from "@fnndsc/chrisapi";
 
 /**
  * Controller for managing plugin context resources (computes, instances, parameters).
