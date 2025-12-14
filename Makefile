@@ -28,7 +28,7 @@ CHILI_DIR := .
 CUMIN_REPO := https://github.com/FNNDSC/cumin.git
 SALSA_REPO := https://github.com/FNNDSC/salsa.git
 
-.PHONY: help shop prep cook taste serve scrub meal install build test clean link all
+.PHONY: help shop prep cook taste taste-flight serve scrub meal install build test clean link all
 
 help:
 	@echo "ChILI Kitchen Makefile 🌶️"
@@ -38,6 +38,7 @@ help:
 	@echo "  make prep    - Install NPM dependencies for all components"
 	@echo "  make cook    - Build (compile) all components in order"
 	@echo "  make taste   - Run tests for all components"
+	@echo "  make taste-flight - Run tests with coverage (v8 provider) for all components"
 	@echo "  make serve   - Link 'chili' globally (npm link)"
 	@echo "  make scrub   - Clean build artifacts and node_modules"
 	@echo ""
@@ -116,6 +117,15 @@ taste-salsa:
 taste-chili:
 	@echo "👅 Tasting chili..."
 	cd $(CHILI_DIR) && npm test
+
+# Coverage (not part of meal)
+taste-flight:
+	@echo "👅 Tasting flight (with coverage) cumin..."
+	cd $(CUMIN_DIR) && npm test -- --coverage --coverageProvider=v8
+	@echo "👅 Tasting flight (with coverage) salsa..."
+	cd $(SALSA_DIR) && npm test -- --coverage --coverageProvider=v8
+	@echo "👅 Tasting flight (with coverage) chili..."
+	cd $(CHILI_DIR) && npm test -- --coverage --coverageProvider=v8
 
 # --- Serve (Link) ---
 
