@@ -2,13 +2,17 @@
  * @file Download command implementation.
  * @module
  */
-import { fileContent_getBinary, files_listRecursive, FsItem } from "@fnndsc/salsa";
+import { fileContent_getBinaryStream, files_listRecursive, FsItem } from "@fnndsc/salsa";
 import { path_resolveChrisFs } from "../../utils/cli.js";
 import fs from "fs";
 import path from "path";
 import cliProgress from "cli-progress";
 import chalk from "chalk";
-import { bytes_format } from "./upload.js";
+import { pipeline } from "stream/promises";
+import { bytes_format, eta_format, rate_format } from "./upload.js";
+import { prompt_confirmOrThrow } from "../../utils/input_format.js";
+
+export { bytes_format };
 
 /**
  * Download summary statistics.
@@ -40,7 +44,7 @@ async function directory_ensureExists(dirPath: string): Promise<void> {
 async function chrisPath_isDirectory(chrisPath: string): Promise<boolean> {
   try {
     // Try to list it - if it succeeds, it's a directory
-    const items = await files_listRecursive(chrisPath);
+    const items: FsItem[] = await files_listRecursive(chrisPath);
     return items.length > 0 || chrisPath.endsWith('/');
   } catch {
     // If listing fails, assume it's a file
@@ -61,13 +65,17 @@ export async function files_downloadWithProgress(
   options: { force?: boolean } = {}
 ): Promise<DownloadSummary> {
   // Resolve ChRIS path
-  const resolvedChris = await path_resolveChrisFs(chrisPath, {});
+  const resolvedChris: string = await path_resolveChrisFs(chrisPath, {});
 
-  // Check if local path exists (unless force flag)
-  if (!options.force && fs.existsSync(localPath)) {
-    throw new Error(
-      `Local path already exists: ${localPath}. Use -f flag to overwrite.`
-    );
+  // Check if local path exists (only block overwriting regular files unless force)
+  if (fs.existsSync(localPath)) {
+    const localStat: fs.Stats = await fs.promises.stat(localPath);
+    if (localStat.isFile() && !options.force) {
+      throw new Error(
+        `Local path already exists: ${localPath}. Use -f flag to overwrite.`
+      );
+    }
+    // If it's a directory, allow and handle below.
   }
 
   const summary: DownloadSummary = {
@@ -82,26 +90,105 @@ export async function files_downloadWithProgress(
   };
 
   // Check if ChRIS path is a file or directory
-  const isDirectory = await chrisPath_isDirectory(resolvedChris);
+  const isDirectory: boolean = await chrisPath_isDirectory(resolvedChris);
 
   if (!isDirectory) {
     // Download single file
     try {
-      const result = await fileContent_getBinary(resolvedChris);
+      const result = await fileContent_getBinaryStream(resolvedChris);
       if (!result.ok) {
         throw new Error(result.error || "Failed to download file");
       }
 
+      const { stream, size } = result.value as {
+        stream: NodeJS.ReadableStream;
+        size?: number;
+        filename?: string;
+      };
+
+      // If localPath is a directory, place the file inside using remote basename
+      const stats: fs.Stats | null = fs.existsSync(localPath) ? await fs.promises.stat(localPath) : null;
+      const finalLocalPath: string =
+        stats && stats.isDirectory()
+          ? path.join(localPath, path.basename(resolvedChris))
+          : localPath;
+
+      // Warn if target file already exists (non-overwrite) or directory already exists
+      if (fs.existsSync(finalLocalPath)) {
+        const existingStat: fs.Stats = await fs.promises.stat(finalLocalPath);
+        if (existingStat.isFile()) {
+          if (!options.force) {
+            await prompt_confirmOrThrow(
+              `Local file exists at ${finalLocalPath}. Overwrite? (y/N)`
+            );
+          }
+        } else if (existingStat.isDirectory()) {
+          if (!options.force) {
+            await prompt_confirmOrThrow(
+              `Target directory exists. Download into existing folder: ${finalLocalPath}? (y/N)`
+            );
+          }
+        }
+      }
+
       // Ensure parent directory exists
-      const parentDir = path.dirname(localPath);
+      const parentDir = path.dirname(finalLocalPath);
       await directory_ensureExists(parentDir);
 
-      // Write file
-      await fs.promises.writeFile(localPath, result.value);
+      const showProgress: boolean = !!process.stdout.isTTY;
+      const progressBar =
+        typeof size === "number" && showProgress
+          ? new cliProgress.SingleBar(
+              {
+                format:
+                  "Downloading [{bar}] {percentage}% | ETA: {etaHuman} | Rate: {rate} | {bytes}/{totalBytes}",
+              },
+              cliProgress.Presets.shades_classic
+            )
+          : null;
+
+      if (progressBar) {
+        progressBar.start(size!, 0, {
+          etaHuman: "--",
+          rate: "--",
+          bytes: bytes_format(0),
+          totalBytes: bytes_format(size!),
+        });
+      }
+
+      let transferred: number = 0;
+      const writeStream: fs.WriteStream = fs.createWriteStream(finalLocalPath);
+      stream.on("data", (chunk: Buffer) => {
+        transferred += chunk.length;
+        if (progressBar) {
+          const elapsedSeconds: number = Math.max(
+            1e-6,
+            (Date.now() - summary.startTime) / 1000
+          );
+          const rateCurrent: number = transferred / elapsedSeconds;
+          const remainingBytes: number = Math.max(0, (size ?? transferred) - transferred);
+          const etaSeconds: number | null =
+            rateCurrent > 0 ? remainingBytes / rateCurrent : null;
+
+          progressBar.update(Math.min(transferred, size || transferred), {
+            etaHuman: eta_format(etaSeconds),
+            rate: rate_format(rateCurrent),
+            bytes: bytes_format(transferred),
+            totalBytes: bytes_format(size ?? transferred),
+          });
+        }
+      });
+
+      await pipeline(stream, writeStream);
+
+      if (progressBar) {
+        progressBar.update(size || transferred);
+        progressBar.stop();
+      }
 
       summary.totalFiles = 1;
       summary.transferredCount = 1;
-      summary.transferSize = result.value.length;
+      summary.transferSize = transferred;
 
       summary.endTime = Date.now();
       summary.duration = (summary.endTime - summary.startTime) / 1000;
@@ -117,69 +204,116 @@ export async function files_downloadWithProgress(
   // Download directory
   console.log(chalk.cyan("Scanning files to download..."));
   const items: FsItem[] = await files_listRecursive(resolvedChris);
-  const files = items.filter(item => item.type === 'file');
+  const files: FsItem[] = items.filter((item: FsItem) => item.type === 'file');
 
   summary.totalFiles = files.length;
-  const totalSize = files.reduce((sum, f) => sum + (f.size || 0), 0);
+  const totalSize: number = files.reduce((sum: number, f: FsItem) => sum + (f.size || 0), 0);
 
   // Apply Unix semantics: trailing slash determines merge behavior
   const targetDir: string = resolvedChris.endsWith('/')
     ? localPath  // Merge contents
     : path.join(localPath, path.basename(resolvedChris)); // Create subdir
 
+  // Warn/confirm if target directory exists
+  if (fs.existsSync(targetDir)) {
+    const statTarget: fs.Stats = await fs.promises.stat(targetDir);
+    if (statTarget.isDirectory()) {
+      const entries: string[] = await fs.promises.readdir(targetDir);
+      if (!options.force) {
+        await prompt_confirmOrThrow(
+          `Target directory exists${entries.length ? ' (will merge contents)' : ''}: ${targetDir}. Continue? (y/N)`
+        );
+      }
+    } else if (statTarget.isFile()) {
+      if (!options.force) {
+        await prompt_confirmOrThrow(
+          `Local file exists at ${targetDir}. Overwrite? (y/N)`
+        );
+      }
+    }
+  }
+
   // Ensure target directory exists
   await directory_ensureExists(targetDir);
 
   // Setup progress bar
-  const progressBar = new cliProgress.SingleBar(
-    {
-      format:
-        "Downloading [{bar}] {percentage}% | ETA: {eta}s | {value}/{total} files | {bytes}/{totalBytes}",
-    },
-    cliProgress.Presets.shades_classic
-  );
+  const showProgress: boolean = !!process.stdout.isTTY;
+  const progressBar = showProgress
+    ? new cliProgress.SingleBar(
+        {
+          format:
+            "Downloading [{bar}] {percentage}% | ETA: {etaHuman} | Rate: {rate} | {value}/{total} files | {bytes}/{totalBytes}",
+        },
+        cliProgress.Presets.shades_classic
+      )
+    : null;
 
-  progressBar.start(files.length, 0, {
-    bytes: bytes_format(0),
-    totalBytes: bytes_format(totalSize),
-  });
+  if (progressBar) {
+    progressBar.start(files.length, 0, {
+      bytes: bytes_format(0),
+      totalBytes: bytes_format(totalSize),
+      etaHuman: "--",
+      rate: "--",
+    });
+  }
 
   // Download each file
   for (const [index, file] of files.entries()) {
     try {
-      // Get file content
-      const result = await fileContent_getBinary(file.path);
+      const result = await fileContent_getBinaryStream(file.path);
       if (!result.ok) {
         summary.failedCount++;
         console.log(chalk.yellow(`\nFailed to download: ${file.path}`));
         continue;
       }
 
+      const { stream, size } = result.value as {
+        stream: NodeJS.ReadableStream;
+        size?: number;
+        filename?: string;
+      };
+
       // Calculate relative path
-      const relativePath = file.path.substring(resolvedChris.length).replace(/^\//, '');
-      const localFilePath = path.join(targetDir, relativePath);
+      const relativePath: string = file.path.substring(resolvedChris.length).replace(/^\//, '');
+      const localFilePath: string = path.join(targetDir, relativePath);
 
       // Ensure parent directory exists
-      const parentDir = path.dirname(localFilePath);
+      const parentDir: string = path.dirname(localFilePath);
       await directory_ensureExists(parentDir);
 
-      // Write file
-      await fs.promises.writeFile(localFilePath, result.value);
+      const writeStream: fs.WriteStream = fs.createWriteStream(localFilePath);
+      let transferred: number = 0;
+      stream.on("data", (chunk: Buffer) => {
+        transferred += chunk.length;
+      });
+      await pipeline(stream, writeStream);
 
       summary.transferredCount++;
-      summary.transferSize += result.value.length;
+      summary.transferSize += size ?? transferred;
     } catch (error: unknown) {
       summary.failedCount++;
       const msg = error instanceof Error ? error.message : String(error);
       console.log(chalk.red(`\nError downloading ${file.path}: ${msg}`));
     }
 
-    progressBar.update(index + 1, {
-      bytes: bytes_format(summary.transferSize),
-    });
+    const elapsedSeconds: number = Math.max(1e-6, (Date.now() - summary.startTime) / 1000);
+    const rateCurrent: number =
+      summary.transferSize > 0 ? summary.transferSize / elapsedSeconds : 0;
+    const remainingBytes: number = Math.max(0, totalSize - summary.transferSize);
+    const etaSeconds: number | null = rateCurrent > 0 ? remainingBytes / rateCurrent : null;
+
+    if (progressBar) {
+      progressBar.update(index + 1, {
+        bytes: bytes_format(summary.transferSize),
+        etaHuman: eta_format(etaSeconds),
+        rate: rate_format(rateCurrent),
+      });
+    }
   }
 
-  progressBar.stop();
+  if (progressBar) {
+    progressBar.stop();
+  }
 
   summary.endTime = Date.now();
   summary.duration = (summary.endTime - summary.startTime) / 1000;

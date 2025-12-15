@@ -9,6 +9,7 @@ import fs from "fs";
 import path from "path";
 import cliProgress from "cli-progress";
 import chalk from "chalk";
+import { prompt_confirmOrThrow } from "../../utils/input_format.js";
 
 /**
  * File information for upload tracking.
@@ -45,6 +46,31 @@ export function bytes_format(bytes: number): string {
   const sizes = ["B", "KB", "MB", "GB", "TB"];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
+}
+
+/**
+ * Formats seconds into a human-friendly ETA string.
+ * @param seconds - Remaining seconds.
+ */
+export function eta_format(seconds: number | null): string {
+  if (seconds === null || !Number.isFinite(seconds) || seconds < 0) return "--";
+  if (seconds < 60) return `${Math.round(seconds)}s`;
+  const hrs = Math.floor(seconds / 3600);
+  const mins = Math.floor((seconds % 3600) / 60);
+  const secs = Math.floor(seconds % 60);
+  if (hrs > 0) {
+    return `${hrs}h ${mins}m ${secs}s`;
+  }
+  return `${mins}m ${secs}s`;
+}
+
+/**
+ * Formats a bytes-per-second rate into human-readable string.
+ * @param rateBytesPerSec - Rate in bytes per second.
+ */
+export function rate_format(rateBytesPerSec: number): string {
+  if (!Number.isFinite(rateBytesPerSec) || rateBytesPerSec <= 0) return "--";
+  return `${bytes_format(rateBytesPerSec)}/s`;
 }
 
 /**
@@ -111,40 +137,69 @@ async function scanLocalFiles(localPath: string, remotePath: string): Promise<Up
  */
 export async function files_uploadWithProgress(
   localPath: string,
-  remotePath: string
+  remotePath: string,
+  options: { force?: boolean } = {}
 ): Promise<UploadSummary> {
   // Resolve remote path
-  const resolvedRemote = await path_resolveChrisFs(remotePath, {});
+  const resolvedRemote: string = await path_resolveChrisFs(remotePath, {});
 
   // Scan files
   console.log(chalk.cyan("Scanning files to upload..."));
-  const fileList = await scanLocalFiles(localPath, resolvedRemote);
+  const fileList: UploadFileInfo[] = await scanLocalFiles(localPath, resolvedRemote);
 
-  const totalSize = fileList.reduce((sum, f) => sum + f.size, 0);
+  const totalSize: number = fileList.reduce(
+    (sum: number, f: UploadFileInfo) => sum + f.size,
+    0
+  );
 
   // Determine actual target path (where files will be uploaded)
-  const stats = await fs.promises.stat(localPath);
-  let actualTarget = resolvedRemote;
+  const stats: fs.Stats = await fs.promises.stat(localPath);
+  let actualTarget: string = resolvedRemote;
   if (stats.isDirectory()) {
-    const basename = path.basename(localPath);
+    const basename: string = path.basename(localPath);
     actualTarget = resolvedRemote.endsWith('/')
       ? resolvedRemote + basename
       : resolvedRemote + '/' + basename;
   }
 
-  // Setup progress bar
-  const progressBar = new cliProgress.SingleBar(
-    {
-      format:
-        "Transferring [{bar}] {percentage}% | ETA: {eta}s | {value}/{total} files | {bytes}/{totalBytes}",
-    },
-    cliProgress.Presets.shades_classic
-  );
+  // Detect existing target and require confirmation unless force is set
+  if (!options.force) {
+    try {
+      const client = await chrisIO.client_get();
+      if (client) {
+        const folderList = await client.getFileBrowserFolders({ path: actualTarget });
+        const items = await folderList.getItems();
+        if (items.length > 0) {
+          await prompt_confirmOrThrow(`Target '${actualTarget}' already exists in ChRIS. Merge/overwrite? (y/N)`);
+        }
+      }
+    } catch {
+      // If listing fails (path absent or error), continue.
+    }
+  } else {
+    // Force mode: if target exists and is a directory, no prompt. If it's a file and we're uploading a single file, proceed.
+  }
 
-  progressBar.start(fileList.length, 0, {
-    bytes: "0 B",
-    totalBytes: bytes_format(totalSize),
-  });
+  // Setup progress bar
+  const showProgress: boolean = !!process.stdout.isTTY;
+  const progressBar = showProgress
+    ? new cliProgress.SingleBar(
+        {
+          format:
+            "Transferring [{bar}] {percentage}% | ETA: {etaHuman} | Rate: {rate} | {value}/{total} files | {bytes}/{totalBytes}",
+        },
+        cliProgress.Presets.shades_classic
+      )
+    : null;
+
+  if (progressBar) {
+    progressBar.start(fileList.length, 0, {
+      bytes: "0 B",
+      totalBytes: bytes_format(totalSize),
+      etaHuman: "--",
+      rate: "--",
+    });
+  }
 
   // Upload files
   const summary: UploadSummary = {
@@ -187,12 +242,24 @@ export async function files_uploadWithProgress(
       );
     }
 
-    progressBar.update(index + 1, {
-      bytes: bytes_format(summary.transferSize),
-    });
+    const elapsedSeconds: number = Math.max(1e-6, (Date.now() - summary.startTime) / 1000);
+    const rateCurrent: number =
+      summary.transferSize > 0 ? summary.transferSize / elapsedSeconds : 0;
+    const remainingBytes: number = Math.max(0, totalSize - summary.transferSize);
+    const etaSeconds: number | null = rateCurrent > 0 ? remainingBytes / rateCurrent : null;
+
+    if (progressBar) {
+      progressBar.update(index + 1, {
+        bytes: bytes_format(summary.transferSize),
+        etaHuman: eta_format(etaSeconds),
+        rate: rate_format(rateCurrent),
+      });
+    }
   }
 
-  progressBar.stop();
+  if (progressBar) {
+    progressBar.stop();
+  }
 
   summary.endTime = Date.now();
   summary.duration = (summary.endTime - summary.startTime) / 1000; // seconds

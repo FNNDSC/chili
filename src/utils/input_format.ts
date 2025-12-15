@@ -10,6 +10,8 @@
 /**
  * Plugin input format types.
  */
+import readline from "readline";
+
 export enum PluginInputFormat {
   PLUGIN_NAME = 'plugin_name',
   DOCKER_IMAGE = 'docker_image',
@@ -128,4 +130,30 @@ export function pluginNameAndVersion_extractFromImage(dockerImage: string): { na
 export function pluginName_extractFromImage(dockerImage: string): string {
   const { name } = pluginNameAndVersion_extractFromImage(dockerImage);
   return name;
+}
+
+/**
+ * Prompts the user for confirmation. Throws if declined or if prompt cannot be shown (non-TTY) without force.
+ *
+ * @param message - The confirmation message to display.
+ */
+export async function prompt_confirmOrThrow(message: string): Promise<void> {
+  if (!process.stdout.isTTY) {
+    throw new Error(`${message} Use --force to skip confirmation.`);
+  }
+
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout,
+  });
+
+  const question = (q: string): Promise<string> =>
+    new Promise((resolve) => rl.question(q, resolve));
+
+  const answer: string = (await question(`${message} `)).trim().toLowerCase();
+  rl.close();
+
+  if (answer !== "y" && answer !== "yes") {
+    throw new Error("Operation cancelled by user.");
+  }
 }

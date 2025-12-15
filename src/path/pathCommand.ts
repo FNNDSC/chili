@@ -20,9 +20,11 @@ import archy from "archy";
 import open from "open";
 import { exec } from "child_process";
 import os from "os";
+import { files_downloadWithProgress, DownloadSummary } from "../commands/fs/download.js";
 
 interface TransferCLI {
   hostpath: string;
+  force?: boolean;
 }
 
 interface DownloadCLI {
@@ -937,22 +939,27 @@ async function chris_push(
  * @returns A Promise resolving to true if download was successful, false otherwise.
  */
 async function download_handle(options: TransferCLI): Promise<boolean> { // Renamed
-  const scanRecord: ScanRecord | null = await scan_do({
-    silent: true,
-    follow: true,
-    hostpath: options.hostpath,
-  });
-  if (!scanRecord) {
+  await chrisContext.currentContext_update();
+  const folder = chrisContext.singleContext.folder as any as string | undefined;
+  if (!folder) {
+    console.error(chalk.red("No ChRIS folder context set. Use 'connect' to establish a session."));
     return false;
   }
-  const progressBar: cliProgress.SingleBar =
-    progressBar_setupAndStart(scanRecord);
-  const summary = await chris_pull(scanRecord, progressBar);
-  table_display(summaryTable_create(summary), ["Metric", "Value"], { // Renamed
-    title: { title: "Download summary", justification: "center" },
-  });
 
-  return summary.failedCount === 0;
+  const localTarget: string = path.resolve(options.hostpath || process.cwd());
+  try {
+    const summary: DownloadSummary = await files_downloadWithProgress(folder, localTarget, {
+      force: options.force,
+    });
+    table_display(summaryTable_create(summary), ["Metric", "Value"], {
+      title: { title: "Download summary", justification: "center" },
+    });
+    return summary.failedCount === 0;
+  } catch (error: unknown) {
+    const msg = error instanceof Error ? error.message : String(error);
+    console.error(chalk.red(`Download failed: ${msg}`));
+    return false;
+  }
 }
 
 /**
@@ -1014,9 +1021,11 @@ export async function pathCommand_setup(program: Command): Promise<void> {
     .description(
       "download the current ChRIS folder context to current dir or [hostdir]"
     )
-    .action(async (hostpath: string) => {
+    .option("-f, --force", "overwrite existing local path")
+    .action(async (hostpath: string, options: { force?: boolean }) => {
       const result: boolean = await download_handle({
         hostpath: hostpath || process.cwd(),
+        force: options.force,
       });
       console.log(result);
     });
