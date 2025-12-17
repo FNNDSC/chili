@@ -4,6 +4,7 @@ import {
   ChRISPluginGroup,
   ChRISFeedGroup,
   ChRISEmbeddedResourceGroup,
+  ChRISPACSGroup,
   ListOptions,
   QueryHits,
   record_extract,
@@ -26,7 +27,8 @@ export class BaseGroupHandler {
   chrisObject:
     | ChRISPluginGroup
     | ChRISFeedGroup
-    | ChRISEmbeddedResourceGroup<any>;
+    | ChRISEmbeddedResourceGroup<any>
+    | ChRISPACSGroup;
 
   constructor(
     assetName: string,
@@ -34,6 +36,7 @@ export class BaseGroupHandler {
       | ChRISPluginGroup
       | ChRISFeedGroup
       | ChRISEmbeddedResourceGroup<any>
+      | ChRISPACSGroup
   ) {
     this.assetName = assetName;
     this.chrisObject = chrisObject;

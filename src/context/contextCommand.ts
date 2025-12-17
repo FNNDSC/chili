@@ -45,6 +45,7 @@ function context_displayFull(options: ContextOptions): string {
     Folder: string;
     Feed: string;
     Plugin: string;
+    PACS: string;
     Token: string;
   }
 
@@ -56,6 +57,7 @@ function context_displayFull(options: ContextOptions): string {
           Folder: urlContext.folder || "Not set",
           Feed: urlContext.feed || "Not set",
           Plugin: urlContext.plugin || "Not set",
+          PACS: urlContext.pacsserver || "Not set",
           Token: urlContext.token ? "Set" : "Not set",
         })
       );
@@ -69,7 +71,7 @@ function context_displayFull(options: ContextOptions): string {
         }
       });
 
-      table_display(tableData, ["URL", "Folder", "Feed", "Plugin", "Token"], {
+      table_display(tableData, ["URL", "Folder", "Feed", "Plugin", "PACS", "Token"], {
         title: {
           title: `User: ${user}`,
           justification: "center",
@@ -110,6 +112,10 @@ function context_displaySingle(options: ContextOptions): string {
       {
         Context: "ChRIS Plugin",
         Value: singleContext.plugin || "Not set",
+      },
+      {
+        Context: "PACS Server",
+        Value: singleContext.pacsserver || "Not set",
       },
     ];
 
@@ -159,9 +165,13 @@ function context_displaySingle(options: ContextOptions): string {
       );
     }
 
+    if (options.pacsserver) {
+      results.push(`PACS Server: ${singleContext.pacsserver || "Not set"}`);
+    }
+
     if (results.length === 0) {
       results.push(
-        "No specific context requested. Use --ChRISurl, --ChRISuser, --ChRISfolder, --ChRISfeed, or --full"
+        "No specific context requested. Use --ChRISurl, --ChRISuser, --ChRISfolder, --ChRISfeed, --pacsserver, or --full"
       );
     }
 
@@ -213,6 +223,7 @@ export async function contextCommand_setup(program: Command): Promise<void> {
       "--ChRISplugin",
       "get the current ChRIS Plugin (or instance) context"
     )
+    .option("--pacsserver", "get the current PACS server context")
     .option("--full", "get full current context")
     .option("--all", "get all contexts for current session")
     .action((options) => {
@@ -231,6 +242,7 @@ export async function contextCommand_setup(program: Command): Promise<void> {
       "--ChRISplugin <pluginID>",
       "set the current ChRIS Plugin (or instance) context"
     )
+    .option("--pacsserver <pacsserver>", "set the current PACS server context")
     .action(async (options) => {
       const result = await context_set(options);
       if (result.length) border_draw(result);

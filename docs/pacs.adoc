@@ -1,0 +1,48 @@
+= PACS Commands in Chili
+:toc:
+:toclevels: 2
+:sectnums:
+
+== Overview
+
+`chili` is the CLI layer where PACS interactions become user-facing commands. It handles context management, tabular output, and decoding/presentation of PACS query results, while delegating business logic to `salsa`/`cumin`. The goal is to give an operator a concise, line-friendly workflow: pick a PACS server, launch a query, and view its structured results (studies with nested series) without touching raw JSON.
+
+== PACS Servers
+
+- `chili pacsservers list [--identifier <id>] [--limit <n>] [--offset <n>]`
+- `chili pacsservers fieldslist`
+
+== PACS Context
+
+- `chili context set --pacsserver <id|identifier>` (stores PACS server target)
+- `chili context get --pacsserver` (displays current PACS server)
+- Inline override on commands: `--pacsserver <id|identifier>`
+
+== PACS Queries
+
+- **Create**: `chili pacsqueries create "<query>" [--title <title>] [--description <desc>] [--pacsserver <pacs>]`
+  - `<query>` can be JSON (`{"PatientID":"12345"}`) or comma-separated `key:value` pairs (`PatientID:12345,StudyDate:20251003`).
+  - On success prints: `Created PACS query id=<ID> status=<status> pacs=<pacs> title="<title>"`.
+- **List**: `chili pacsqueries list [--pacsserver <pacs>] [--fields ...] [--table|--csv]`
+  - Filters to current/override PACS server. Use `fieldslist` to discover columns.
+- **Fields**: `chili pacsqueries fieldslist`
+- **Decode result**: `chili pacsqueries decode <queryId> [--raw]`
+  - Decodes the query `result` payload (base64 → zlib/gzip → JSON/text).
+  - Renders studies with nested series when JSON is present.
+  - `--raw` prints the decoded JSON prettified.
+
+== Typical Flow
+
+```
+chili context set --pacsserver PACSDCM
+chili pacsservers list --table
+chili pacsqueries create "PatientID:4456554" --title "PID 4456554"
+chili pacsqueries list --fields id,title,status,pacs_id,query
+chili pacsqueries decode <id>
+```
+
+== Notes
+
+- Commands rely on existing ChRIS auth/token; ensure `chili connect` is done.
+- Decoding/parsing happens client-side; no changes to the PACS service.
+- The CLI prints only at the presentation layer; underlying intents remain quiet for programmatic reuse.

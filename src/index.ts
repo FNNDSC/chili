@@ -51,6 +51,8 @@ import { pathCommand_setup } from "./path/pathCommand.js";
 import { fileBrowserCommand_setup } from "./filesystem/filesystemHandler.js";
 import { manCommand_setup } from "./man/man.js";
 import { chefsCommand_setup } from "./chefs/chefs.js";
+import { PACSServerGroupHandler } from "./pacs/pacsServerHandler.js";
+import { PACSQueryGroupHandler } from "./pacs/pacsQueryHandler.js";
 import { chrisConnection, chrisConnection_init, NodeStorageProvider, errorStack_getAllOfType } from "@fnndsc/cumin";
 import { FileGroupHandler } from "./filesystem/fileGroupHandler.js";
 import { screen, table_display } from "./screen/screen.js";
@@ -126,6 +128,10 @@ async function handlers_initialize() {
   pathCommand_setup(program);
   manCommand_setup(program);
   chefsCommand_setup(program);
+  const pacsServerHandler: PACSServerGroupHandler = new PACSServerGroupHandler();
+  pacsServerHandler.pacsServerCommand_setup(program);
+  const pacsQueryHandler: PACSQueryGroupHandler = new PACSQueryGroupHandler();
+  pacsQueryHandler.pacsQueryCommand_setup(program);
   await inodeCommand_setup(program);
 
   const pluginGroupHandler: PluginGroupHandler = new PluginGroupHandler();
