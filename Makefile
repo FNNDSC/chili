@@ -58,7 +58,7 @@ shop-cumin:
 		git clone $(CUMIN_REPO) $(CUMIN_DIR); \
 	else \
 		echo "🔄 Updating cumin..."; \
-		(cd $(CUMIN_DIR) && git pull) || echo "⚠️ Failed to update cumin. Please resolve manually."; \
+		(cd $(CUMIN_DIR) && git pull --rebase --autostash) || echo "⚠️ Failed to update cumin. Please resolve manually."; \
 	fi
 
 shop-salsa:
@@ -67,7 +67,7 @@ shop-salsa:
 		git clone $(SALSA_REPO) $(SALSA_DIR); \
 	else \
 		echo "🔄 Updating salsa..."; \
-		(cd $(SALSA_DIR) && git pull) || echo "⚠️ Failed to update salsa. Please resolve manually."; \
+		(cd $(SALSA_DIR) && git pull --rebase --autostash) || echo "⚠️ Failed to update salsa. Please resolve manually."; \
 	fi
 
 # --- Prep (Install Dependencies) ---
