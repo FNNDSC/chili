@@ -31,14 +31,67 @@
   - Renders studies with nested series when JSON is present.
   - `--raw` prints the decoded JSON prettified.
 
+== PACS Retrieves
+
+- **Pull**: `chili pacsretrieve pull <queryId>`
+  - Triggers a PACS retrieve to pull DICOM data from PACS to ChRIS.
+  - Creates a retrieve record and initiates the external service.
+  - Prints: `Created PACS retrieve id=<ID> query=<queryId> status=<status>`.
+- **Report**: `chili pacsretrieve report <queryId>`
+  - Shows detailed status report with series-level progress.
+  - Displays studies, series descriptions, and file counts (`Pulling (X/Y images)`).
+  - Automatically detects completion when all series are pulled.
+  - Example output:
+  ```
+  Query ID: 123
+  Retrieve ID: 456
+  Retrieve Status: Retrieving / Completed
+
+  Study 1
+    Description: XR-Wrist 3+ Views Left
+    PA: Pulled (1 images)
+    OBLIQUE: Pulling (50/220 images)
+    LATERAL: Pending (0/180 images)
+  ```
+- **Cancel**: `chili pacsretrieve cancel <retrieveId>`
+  - Cancels (deletes) an in-progress retrieve.
+  - Note: Partially-pulled data may remain in ChRIS.
+
 == Typical Flow
 
-```
+=== Query Only
+
+```bash
 chili context set --pacsserver PACSDCM
 chili pacsservers list --table
 chili pacsqueries create "PatientID:4456554" --title "PID 4456554"
 chili pacsqueries list --fields id,title,status,pacs_id,query
 chili pacsqueries decode <id>
+```
+
+=== Query + Retrieve with Monitoring
+
+```bash
+# 1. Set PACS context
+chili context set --pacsserver PACSDCM
+
+# 2. Create query
+chili pacsqueries create "PatientID:4456554" --title "Patient scan"
+# Returns: Created PACS query id=123
+
+# 3. See what's available on PACS
+chili pacsqueries decode 123
+
+# 4. Pull DICOM data to ChRIS
+chili pacsretrieve pull 123
+# Returns: Created PACS retrieve id=456
+
+# 5. Monitor progress
+chili pacsretrieve report 123
+# Shows series-level status: Pending / Pulling / Pulled
+
+# 6. Cancel if needed
+chili pacsretrieve cancel 456
 ```
 
 == Notes
