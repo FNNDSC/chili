@@ -22,8 +22,8 @@ This tool is designed for developers and power-users who want to script and cont
     *   **Models (`src/models`)**: Explicit interfaces (e.g., `Plugin`, `Feed`, `ListingItem`) defining data structures.
     *   **Views (`src/views`)**: Pure functions that render Models into formatted strings/tables.
     *   **CLI (`src/chefs`, `src/index.ts`)**: The command-line entry point that orchestrates Commands and Views.
-2.  **[`salsa`](../salsa/README.md) (Logic)**: The **S**hared **A**pplication **L**ogic and **S**ervice **A**ssets layer. It defines high-level "intents".
-3.  **[`cumin`](../cumin/README.md) (Infrastructure)**: The state and operations layer. It manages authentication, persistent context, and low-level API interactions.
+2.  **[`salsa`](https://github.com/FNNDSC/salsa) (Logic)**: The **S**hared **A**pplication **L**ogic and **S**ervice **A**ssets layer. It defines high-level "intents".
+3.  **[`cumin`](https://github.com/FNNDSC/cumin) (Infrastructure)**: The state and operations layer. It manages authentication, persistent context, and low-level API interactions.
 
 ## Installation & Development (The Kitchen 👨‍🍳)
 
