@@ -40,8 +40,9 @@ export function pluginList_render(plugins: Plugin[], selectedFields: string[], o
 
   const rows = plugins.map(p => {
     return effectiveFields.map(field => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      let value = String((p as any)[field] || ''); // Access dynamically
+      const fieldKey = field as keyof Plugin;
+      const rawValue = p[fieldKey];
+      let value = rawValue !== undefined && rawValue !== null ? String(rawValue) : '';
 
       // Apply basic styling for key fields only in non-CSV/non-Table output
       if (!options.csv && !options.table) {
@@ -62,10 +63,11 @@ export function pluginList_render(plugins: Plugin[], selectedFields: string[], o
   } else if (options.table) {
     // Prepare data for screen.table_output
     const tableDataForScreen = plugins.map(plugin => {
-      const row: Record<string, unknown> = {};
+      const row: Record<string, string | number | boolean | null | undefined> = {};
       effectiveFields.forEach(field => {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        row[field] = (plugin as any)[field] || '';
+        const fieldKey = field as keyof Plugin;
+        const val = plugin[fieldKey];
+        row[field] = val !== undefined && val !== null ? (val as string | number | boolean) : '';
       });
       return row;
     });

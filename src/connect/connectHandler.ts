@@ -26,11 +26,11 @@ export function connectCommand_setup(program: Command): void {
     .option("-u, --user <user>", "username")
     .option("-p, --password <password>", "password")
     .action(async (url: string, options: CLIoptions) => {
-      const user = options.user || 'unknown';
+      const user = (options.user as string) || 'unknown';
       const connectOptions: ConnectOptions = {
         url,
-        user: options.user,
-        password: options.password,
+        user: (options.user as string) || '',
+        password: (options.password as string) || '',
         debug: false,
       };
       

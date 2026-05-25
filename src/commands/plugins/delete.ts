@@ -16,7 +16,7 @@ import { CLIoptions, options_toParams } from "../../utils/cli.js";
  * @param searchable - The search string.
  * @returns A Promise resolving to an array of plugin items (table data).
  */
-export async function plugins_searchByTerm(searchable: string): Promise<Record<string, any>[]> {
+export async function plugins_searchByTerm(searchable: string): Promise<Record<string, unknown>[]> {
   const options: CLIoptions = { search: searchable };
   const params: Record<string, string | number | boolean> = options_toParams(options);
   const results: FilteredResourceData | null = await salsaPlugins_list(params);

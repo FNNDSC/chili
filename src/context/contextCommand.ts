@@ -12,7 +12,7 @@ import {
 } from "@fnndsc/salsa";
 import chalk from "chalk";
 // import Table from "cli-table3";
-import { screen, border_draw, table_display } from "../screen/screen.js";
+import { screen, border_draw, table_display, TableDataRow } from "../screen/screen.js";
 
 /**
  * Retrieves and formats ChRIS context information based on CLI options.
@@ -40,7 +40,7 @@ function context_displayFull(options: ContextOptions): string {
   const currentUser: string | null = fullContext.currentUser;
   const currentURL: string | null = fullContext.currentURL;
 
-  interface ContextRow {
+  interface ContextRow extends TableDataRow {
     URL: string;
     Folder: string;
     Feed: string;

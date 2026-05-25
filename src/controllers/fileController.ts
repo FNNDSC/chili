@@ -89,7 +89,7 @@ export class FileController extends BaseController {
       return;
     }
     const shareOptions: FileShareOptions = { ...options }; // Pass all CLI options as share options for now
-    await salsaFiles_share(fileId, shareOptions);
+    await salsaFiles_share(fileId as number, shareOptions);
   }
 
   /**

@@ -25,7 +25,7 @@ export interface FileResource {
   fsize?: number;
   owner_username?: string;
   creation_date?: string;
-  [key: string]: any;
+  [key: string]: string | number | boolean | null | undefined;
 }
 
 /**
@@ -48,7 +48,8 @@ export function fileList_render(
 
   const rows = files.map(f => {
     return effectiveFields.map(field => {
-      let value = String((f as any)[field] || '');
+      const rawValue = f[field];
+      let value = rawValue !== undefined && rawValue !== null ? String(rawValue) : '';
 
       // Apply basic styling for key fields only in non-CSV/non-Table output
       if (!options.csv && !options.table) {
@@ -72,9 +73,10 @@ export function fileList_render(
   } else if (options.table) {
     // Prepare data for screen.table_output
     const tableDataForScreen = files.map(file => {
-      const row: Record<string, any> = {};
+      const row: Record<string, string | number | boolean | null | undefined> = {};
       effectiveFields.forEach(field => {
-        row[field] = (file as any)[field] || '';
+        const val = file[field];
+        row[field] = val !== undefined && val !== null ? val : '';
       });
       return row;
     });

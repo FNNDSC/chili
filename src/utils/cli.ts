@@ -17,8 +17,7 @@ export interface CLIoptions {
   csv?: boolean; // Added option for CSV format
   sort?: string; // Sort field name
   reverse?: boolean; // Reverse sort order
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  [key: string]: any; // Allow dynamic CLI options from commander
+  [key: string]: unknown; // Allow dynamic CLI options from commander
 }
 
 export function options_toParams(

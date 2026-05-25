@@ -4,7 +4,7 @@ import {
   ChRISinode_create,
   ListOptions,
   FilteredResourceData,
-  params_fromOptions,
+  listParams_fromOptions,
   ResourcesByFields,
   BrowserType,
 } from "@fnndsc/cumin";
@@ -14,8 +14,7 @@ interface FSCLIoptions {
   filefields?: string;
   dirfields?: string;
   linkfields?: string;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  [key: string]: any; // Allow dynamic CLI options from commander
+  [key: string]: unknown; // Allow dynamic CLI options from commander
 }
 
 /**
@@ -33,7 +32,7 @@ async function inodeResources_list(
     console.error(`Could not find path '${path}' in the CUBE filesystem.`);
     return;
   }
-  const params: ListOptions = params_fromOptions({
+  const params: ListOptions = listParams_fromOptions({
     ...options,
     returnFilter: "limit,offset",
   });

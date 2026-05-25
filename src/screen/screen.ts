@@ -1,7 +1,13 @@
 import { table, getBorderCharacters, TableUserConfig } from "table";
 import chalk from "chalk";
 
+export interface ChalkColorFunction {
+  (text: string): string;
+  bold: (text: string) => string;
+}
+
 type Justification = "left" | "center" | "right";
+type CellValue = string | number | boolean | null | undefined | object | unknown;
 
 export interface ColumnOptions {
   width?: number;
@@ -34,6 +40,10 @@ interface Borders {
   bottom?: boolean;
 }
 
+export interface TableDataRow {
+  [key: string]: string | number | boolean | null | undefined | object | unknown;
+}
+
 interface TableContent {
   headers: string[];
   body: unknown[][];
@@ -42,15 +52,15 @@ interface TableContent {
 /**
  * Processes raw table input data and headers into a standardized format.
  *
- * @param tableData - The raw table data, can be `any[] | string[][] | string[]`.
+ * @param tableData - The raw table data, can be `TableDataRow[] | string[][] | string[]`.
  * @param headers - The headers for the table, can be `string[] | string`.
  * @returns An object containing the processed table data and headers.
  */
 function tableInput_process(
-  tableData: any[] | string[][] | string[],
+  tableData: TableDataRow[] | string[][] | string[],
   headers: string[] | string
-): { processedTableData: any[]; processedHeaders: string[] } {
-  let processedTableData: any[];
+): { processedTableData: TableDataRow[]; processedHeaders: string[] } {
+  let processedTableData: TableDataRow[];
   let processedHeaders: string[];
 
   processedHeaders = Array.isArray(headers)
@@ -63,24 +73,24 @@ function tableInput_process(
     typeof tableData[0][0] === "string"
   ) {
     // tableData is a string[][]
-    processedTableData = tableData.map((row) => {
+    processedTableData = (tableData as string[][]).map((row) => {
       return processedHeaders.reduce((rowObj, header, index) => {
         rowObj[header] = row[index];
         return rowObj;
-      }, {} as Record<string, any>);
+      }, {} as TableDataRow);
     });
   } else if (Array.isArray(tableData) && typeof tableData[0] === "string") {
     // tableData is a string[]
-    processedTableData = tableData.map((rowStr) => {
+    processedTableData = (tableData as string[]).map((rowStr) => {
       const rowValues = rowStr.split(",");
       return processedHeaders.reduce((rowObj, header, index) => {
         rowObj[header] = rowValues[index];
         return rowObj;
-      }, {} as Record<string, any>);
+      }, {} as TableDataRow);
     });
   } else {
     // tableData is neither string[][] nor string[]
-    processedTableData = tableData as any[];
+    processedTableData = tableData as TableDataRow[];
   }
   return { processedTableData, processedHeaders };
 }
@@ -93,11 +103,11 @@ function tableInput_process(
  * @returns A `TableContent` object or null if invalid data.
  */
 function tableContent_pack(
-  tableData: any[],
+  tableData: TableDataRow[],
   selectedFields: string[]
 ): TableContent | null {
   let headers: string[];
-  let body: any[][];
+  let body: unknown[][];
 
   if (Array.isArray(tableData) && tableData.length > 0) {
     headers = selectedFields;
@@ -171,7 +181,7 @@ function firstColumnSettings_apply(columns: ColumnOptions[]): ColumnOptions[] {
  * @returns The `TableContent` object or null on error.
  */
 export function table_display(
-  tableData: any[] | string[][] | string[],
+  tableData: TableDataRow[] | string[][] | string[],
   headers: string[] | string,
   options: TableOptions = {}
 ): TableContent | null {
@@ -220,19 +230,19 @@ export function table_display(
  * Provides screen utilities for logging and table output.
  */
 export class Screen {
-  log(...args: any[]): void {
+  log(...args: unknown[]): void {
     console.log(...args);
   }
 
-  error(...args: any[]): void {
+  error(...args: unknown[]): void {
     console.error(chalk.red(...args));
   }
 
-  warn(...args: any[]): void {
+  warn(...args: unknown[]): void {
     console.warn(chalk.yellow(...args));
   }
 
-  info(...args: any[]): void {
+  info(...args: unknown[]): void {
     console.info(chalk.blue(...args));
   }
 
@@ -243,7 +253,7 @@ export class Screen {
    * @param options - Options for table formatting, including headers, columns, and title.
    * @returns A string representation of the formatted table.
    */
-  public table_output(data: any[] | Object, options: TableOptions = {}): string {
+  public table_output(data: TableDataRow[] | Object, options: TableOptions = {}): string {
     try {
       const { tableData, headers } = this.data_prepare(data, options);
       const safeColumns = this.safeColumns_prepare(tableData, headers, options);
@@ -293,9 +303,9 @@ export class Screen {
    * @returns An object containing `tableData` (2D array) and `headers`.
    */
   private data_prepare(
-    data: any[] | Object,
+    data: TableDataRow[] | Object,
     options: TableOptions
-  ): { tableData: any[][]; headers: string[] } {
+  ): { tableData: unknown[][]; headers: string[] } {
     if (Array.isArray(data)) {
       const headers = options.head || Object.keys(data[0]);
       const tableData = data.map((row) =>
@@ -324,7 +334,7 @@ export class Screen {
    * @returns An array of `ColumnOptions` with enough entries for all columns.
    */
   private safeColumns_prepare(
-    tableData: any[][],
+    tableData: unknown[][],
     headers: string[],
     options: TableOptions
   ): ColumnOptions[] {
@@ -348,7 +358,7 @@ export class Screen {
    * @returns An array of numbers representing the calculated width for each column.
    */
   private columnWidths_calculate(
-    tableData: any[][],
+    tableData: unknown[][],
     headers: string[],
     safeColumns: ColumnOptions[]
   ): number[] {
@@ -365,10 +375,10 @@ export class Screen {
    * @param columnIndex - The index of the column to calculate width for.
    * @returns The maximum visible length in the column.
    */
-  private columnWidth_calculate(data: any[][], columnIndex: number): number {
-    const columnData: any[] = data.map((row: any[]): any => row[columnIndex]);
+  private columnWidth_calculate(data: unknown[][], columnIndex: number): number {
+    const columnData: unknown[] = data.map((row: unknown[]): unknown => row[columnIndex]);
     const maxWidth: number = Math.max(
-      ...columnData.map((cell: any): number =>
+      ...columnData.map((cell: unknown): number =>
         this.visibleLength_get(this.string_safeConvert(cell))
       ),
       0
@@ -387,14 +397,14 @@ export class Screen {
    * @returns A 2D array of styled strings.
    */
   private data_applyStyle(
-    tableData: any[][],
+    tableData: unknown[][],
     headers: string[],
     safeColumns: ColumnOptions[],
     colWidths: number[],
     options: TableOptions
   ): string[][] {
-    const styledData: string[][] = tableData.map((row: any[]): string[] =>
-      row.map((cell: any, index: number): string =>
+    const styledData: string[][] = tableData.map((row: unknown[]): string[] =>
+      row.map((cell: unknown, index: number): string =>
         this.cell_style(cell, index, safeColumns, colWidths, options)
       )
     );
@@ -418,7 +428,7 @@ export class Screen {
    * @returns The styled and justified cell string.
    */
   private cell_style(
-    cell: any,
+    cell: unknown,
     index: number,
     safeColumns: ColumnOptions[],
     colWidths: number[],
@@ -450,10 +460,13 @@ export class Screen {
       color = this.color_determine(cell, options.typeColors);
     }
 
+    const chalkColors = chalk as unknown as Record<string, ChalkColorFunction>;
+    const colorFn = color ? chalkColors[color] : undefined;
+
     const coloredCell: string = cellString.includes("\u001b")
       ? cellString
-      : color
-      ? (chalk as any)[color](cellString)
+      : colorFn
+      ? colorFn(cellString)
       : cellString;
 
     return this.text_justify(coloredCell, width, justification);
@@ -478,7 +491,9 @@ export class Screen {
     const color: string = columnOptions.color || "white";
     const justification: Justification = columnOptions.justification || "left";
     const width: number = colWidths[index];
-    return this.text_justify((chalk as any)[color].bold(header), width, justification);
+    const chalkColors = chalk as unknown as Record<string, ChalkColorFunction>;
+    const colorFn = chalkColors[color] || chalkColors.white;
+    return this.text_justify(colorFn.bold(header), width, justification);
   }
 
   /**
@@ -489,7 +504,7 @@ export class Screen {
    * @returns The color string or undefined if no specific color for the type.
    */
   private color_determine(
-    cell: any,
+    cell: CellValue,
     typeColors: TableOptions["typeColors"]
   ): string | undefined {
     if (typeof cell === "number" && typeColors?.number) {
@@ -588,7 +603,7 @@ export class Screen {
    * @param value - The value to convert.
    * @returns The string representation of the value.
    */
-  private string_safeConvert(value: any): string {
+  private string_safeConvert(value: unknown): string {
     if (value === null || value === undefined) {
       return "";
     }

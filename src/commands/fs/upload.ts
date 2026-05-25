@@ -217,7 +217,7 @@ export async function files_uploadWithProgress(
   for (const [index, file] of fileList.entries()) {
     try {
       const fileContent = await fs.promises.readFile(file.hostPath);
-      const fileBlob = new Blob([fileContent as any]);
+      const fileBlob = new Blob([fileContent as unknown as BlobPart]);
 
       // Split chrisPath into dir and filename for the new API
       const lastSlash = file.chrisPath.lastIndexOf('/');

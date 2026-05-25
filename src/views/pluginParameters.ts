@@ -2,6 +2,19 @@ import chalk from 'chalk';
 import { FilteredResourceData } from '@fnndsc/cumin';
 
 /**
+ * Plugin parameter object structure.
+ */
+interface PluginParameter {
+  name?: string;
+  flag?: string;
+  action?: string;
+  type?: string;
+  default?: string | number | boolean;
+  help?: string;
+  [key: string]: unknown;
+}
+
+/**
  * Renders plugin parameters in a "man page" style format.
  * 
  * Format:
@@ -17,7 +30,7 @@ export function pluginParameters_renderMan(data: FilteredResourceData): void {
     return;
   }
 
-  data.tableData.forEach((param: any) => {
+  data.tableData.forEach((param: PluginParameter) => {
     // 1. Construct the first line: Flags and Value
     let line1Parts: string[] = [];
 

@@ -3,7 +3,7 @@ import { BaseGroupHandler } from "../handlers/baseGroupHandler.js";
 import { CLIoptions, options_toParams } from "../utils/cli.js";
 import { PluginContextController } from "../controllers/pluginContextController.js";
 import { pluginParameters_renderMan } from "../views/pluginParameters.js";
-import { FilteredResourceData } from "@fnndsc/cumin";
+import { FilteredResourceData, ChRISEmbeddedResourceGroup } from "@fnndsc/cumin";
 
 class InitializationError extends Error {
   constructor(message: string) {
@@ -26,11 +26,10 @@ export class PluginContextGroupHandler {
   ) {
     this.controller = controller;
     this.assetName = assetName;
-    // Use 'any' cast here because BaseGroupHandler expects specific types but controller exposes generic BaseController interface property which might be broader.
-    // In practice, ChRISEmbeddedResourceGroup<Plugin> is compatible.
+    // Cast ChRISEmbeddedResourceGroup to ChRISEmbeddedResourceGroup<unknown> safely.
     this.baseGroupHandler = new BaseGroupHandler(
       this.assetName,
-      this.controller.chrisObject as any
+      this.controller.chrisObject as unknown as ChRISEmbeddedResourceGroup<unknown>
     );
   }
 
@@ -63,7 +62,7 @@ export class PluginContextGroupHandler {
   async parameters_listMan(options: CLIoptions): Promise<void> {
     try {
       // We access the asset directly from the controller
-      const asset = (this.controller.chrisObject as any).asset;
+      const asset = this.controller.chrisObject.asset;
       
       if (!asset || typeof asset.resources_listAndFilterByOptions !== 'function') {
          console.error("Underlying resource does not support listing.");

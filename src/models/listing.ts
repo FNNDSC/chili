@@ -7,11 +7,13 @@
  * @module
  */
 
+import { SimpleRecord } from '@fnndsc/cumin';
+
 /**
  * Interface representing a rich file system item.
  * Contains all metadata required for various views (Grid, Long, JSON).
  */
-export interface ListingItem {
+export interface ListingItem extends SimpleRecord {
   /** The display name of the item. */
   name: string;
   

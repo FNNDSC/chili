@@ -115,8 +115,9 @@ function colorStyle_apply(text: string, style: ColorStyle): string {
   let styledText: string = text;
 
   // Apply color
-  if (style.color && (chalk as any)[style.color]) {
-    styledText = (chalk as any)[style.color](styledText);
+  if (style.color && typeof (chalk as unknown as Record<string, unknown>)[style.color] === 'function') {
+    const colorFn = (chalk as unknown as Record<string, (text: string) => string>)[style.color];
+    styledText = colorFn(styledText);
   }
 
   // Apply modifiers

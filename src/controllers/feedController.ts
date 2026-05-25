@@ -2,7 +2,7 @@ import {
   ChRISFeedGroup,
   ChRISFeed,
   SimpleRecord,
-  params_fromOptions,
+  listParams_fromOptions,
   ChRISObjectParams
 } from "@fnndsc/cumin";
 import { BaseController } from "./baseController.js";
@@ -48,7 +48,7 @@ export class FeedController extends BaseController {
     const chrisFeed: ChRISFeed = new ChRISFeed();
     try {
       const dirs = options.dirs as string;
-      const feedParams = params_fromOptions({ ...options, returnFilter: "params" }) as ChRISObjectParams;
+      const feedParams = listParams_fromOptions({ ...options, returnFilter: "params" }) as ChRISObjectParams;
       return await chrisFeed.createFromDirs(dirs, feedParams);
     } catch (error) {
         // Logging handled by cumin errorStack or caller

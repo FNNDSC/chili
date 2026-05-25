@@ -32,7 +32,9 @@ export function feedList_render(feeds: Feed[], selectedFields: string[], options
 
   const rows = feeds.map(f => {
     return effectiveFields.map(field => {
-      let value = String((f as any)[field] || ''); // Access dynamically
+      const fieldKey = field as keyof Feed;
+      const rawValue = f[fieldKey];
+      let value = rawValue !== undefined && rawValue !== null ? String(rawValue) : '';
       
       // Apply basic styling for key fields only in non-CSV/non-Table output
       if (!options.csv && !options.table) {
@@ -53,10 +55,15 @@ export function feedList_render(feeds: Feed[], selectedFields: string[], options
     return [csvHeader, csvRows].join('\n');
   } else if (options.table) {
     // Prepare data for screen.table_output
-    const tableDataForScreen = feeds.map(feed => {
-      const row: Record<string, any> = {};
+    interface FeedTableRow {
+      [key: string]: string | number | boolean | null | undefined;
+    }
+    const tableDataForScreen: FeedTableRow[] = feeds.map(feed => {
+      const row: FeedTableRow = {};
       effectiveFields.forEach(field => {
-        row[field] = (feed as any)[field] || '';
+        const fieldKey = field as keyof Feed;
+        const val = feed[fieldKey];
+        row[field] = val !== undefined && val !== null ? (val as string | number | boolean) : '';
       });
       return row;
     });

@@ -3,6 +3,7 @@ import {
   chrisIO,
   ChrisIO,
   chrisContext,
+  SingleContext,
   errorStack,
   ChRISEmbeddedResourceGroup,
   ListOptions,
@@ -536,7 +537,7 @@ async function chrisFS_scan(
  */
 export async function scan_do(options: CLIscan): Promise<ScanRecord | null> {
   const chrisFolder: string | null = await chrisContext.current_get(
-    "folder" as any
+    "folder" as keyof SingleContext
   );
   if (!chrisFolder) {
     console.error(
@@ -696,7 +697,7 @@ async function filesToUpload_get(
  */
 async function localFS_scan(options: TransferCLI): Promise<ScanRecord | null> {
   await chrisContext.currentContext_update();
-  const folder = chrisContext.singleContext.folder as any as string | undefined;
+  const folder: string | null = chrisContext.singleContext.folder;
   if (!folder) {
     console.error("ChRIS folder context is undefined, cannot initialize chrisIO.");
     return null;
@@ -802,7 +803,7 @@ function transmissionSummary_get(transfer: TransferDetail): Tranmission {
  * @returns The parent directory name or an empty string.
  */
 function pulledParentDir_resolve(): string {
-  const chrisFolder: string | undefined = chrisContext.singleContext.folder as any as string | undefined;
+  const chrisFolder: string | null = chrisContext.singleContext.folder;
 
   if (!chrisFolder) {
     return "";
@@ -896,7 +897,7 @@ async function chris_push(
         continue;
       }
       const fileContent: Buffer = await fs.promises.readFile(file.hostPath);
-      const fileBlob: Blob = new Blob([fileContent as any]);
+      const fileBlob: Blob = new Blob([fileContent as unknown as BlobPart]);
       const uploadResult: boolean = await chrisIO.file_upload(
         fileBlob,
         file.chrisPath
@@ -940,7 +941,7 @@ async function chris_push(
  */
 async function download_handle(options: TransferCLI): Promise<boolean> { // Renamed
   await chrisContext.currentContext_update();
-  const folder = chrisContext.singleContext.folder as any as string | undefined;
+  const folder: string | null = chrisContext.singleContext.folder;
   if (!folder) {
     console.error(chalk.red("No ChRIS folder context set. Use 'connect' to establish a session."));
     return false;

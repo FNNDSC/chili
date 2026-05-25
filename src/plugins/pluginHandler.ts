@@ -124,7 +124,7 @@ export class PluginGroupHandler {
            if (!confirmed) continue;
         }
 
-        const success = await plugin_deleteById(item.id);
+        const success = await plugin_deleteById(item.id as number);
         if (success) {
             console.log(`Deleted plugin ${item.id}`);
         } else {

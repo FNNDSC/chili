@@ -94,10 +94,10 @@ export class PACSQueryGroupHandler {
 
     const renderStudy = (studyIdx: number, studyObj: Record<string, unknown>): void => {
       const seriesArr: unknown[] | null =
-        Array.isArray((studyObj as any).series) ? ((studyObj as any).series as unknown[]) :
-        Array.isArray((studyObj as any).Series) ? ((studyObj as any).Series as unknown[]) :
-        Array.isArray((studyObj as any).results) ? ((studyObj as any).results as unknown[]) :
-        Array.isArray((studyObj as any).data) ? ((studyObj as any).data as unknown[]) :
+        Array.isArray(studyObj['series']) ? (studyObj['series'] as unknown[]) :
+        Array.isArray(studyObj['Series']) ? (studyObj['Series'] as unknown[]) :
+        Array.isArray(studyObj['results']) ? (studyObj['results'] as unknown[]) :
+        Array.isArray(studyObj['data']) ? (studyObj['data'] as unknown[]) :
         null;
 
       const studyFields = extractFields(studyObj, [

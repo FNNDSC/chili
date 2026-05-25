@@ -27,7 +27,7 @@ export class BaseGroupHandler {
   chrisObject:
     | ChRISPluginGroup
     | ChRISFeedGroup
-    | ChRISEmbeddedResourceGroup<any>
+    | ChRISEmbeddedResourceGroup<unknown>
     | ChRISPACSGroup;
 
   constructor(
@@ -35,7 +35,7 @@ export class BaseGroupHandler {
     chrisObject:
       | ChRISPluginGroup
       | ChRISFeedGroup
-      | ChRISEmbeddedResourceGroup<any>
+      | ChRISEmbeddedResourceGroup<unknown>
       | ChRISPACSGroup
   ) {
     this.assetName = assetName;
@@ -59,9 +59,9 @@ export class BaseGroupHandler {
     ) as string[];
 
     const uniqueTableData = results.tableData.map((row) =>
-      uniqueHeaders.reduce<Record<string, any>>((acc, header) => {
+      uniqueHeaders.reduce<Record<string, unknown>>((acc, header) => {
         if (typeof header === "string" && header in row) {
-          acc[header] = (row as Record<string, any>)[header];
+          acc[header] = (row as Record<string, unknown>)[header];
         }
         return acc;
       }, {})
@@ -129,7 +129,7 @@ export class BaseGroupHandler {
           const header = uniqueResults.selectedFields.map(h => `"${h.toUpperCase()}"`).join(',');
           const rows = uniqueResults.tableData.map(row => {
              return uniqueResults.selectedFields.map(field => {
-               const val = (row as any)[field];
+               const val = (row as Record<string, unknown>)[field];
                return `"${String(val !== undefined ? val : '').split('"').join('""')}"`;
              }).join(',');
           }).join('\n');
@@ -356,7 +356,7 @@ export class BaseGroupHandler {
       return;
     }
     if (nIDs) {
-      await this.resources_delete(nIDs, options.force);
+      await this.resources_delete(nIDs, options.force as boolean);
     }
   }
 

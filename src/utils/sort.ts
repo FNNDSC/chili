@@ -7,6 +7,8 @@
  * @module
  */
 
+import { SimpleRecord } from "@fnndsc/cumin";
+
 /**
  * Sorts an array of objects by a specified field.
  *
@@ -16,7 +18,7 @@
  * @param reverse - Whether to reverse the sort order (default: false).
  * @returns A new sorted array (non-destructive).
  */
-export function items_sort<T extends Record<string, any>>(
+export function items_sort<T extends SimpleRecord>(
   items: T[],
   sortBy?: string,
   reverse: boolean = false
@@ -62,7 +64,7 @@ export function items_sort<T extends Record<string, any>>(
  * @param reverse - Whether to reverse the sort order.
  * @returns Sorted or original array.
  */
-export function list_applySort<T extends Record<string, any>>(
+export function list_applySort<T extends SimpleRecord>(
   items: T[],
   sortField?: string,
   reverse?: boolean

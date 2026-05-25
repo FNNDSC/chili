@@ -12,7 +12,7 @@ import { path_resolveChrisFs } from "../../utils/cli.js";
 import { ListingItem } from "../../models/listing.js";
 import { ChrisFileOrDirRaw } from "../../models/resource.js";
 import { list_applySort } from "../../utils/sort.js";
-import { errorStack, chrisConnection } from "@fnndsc/cumin";
+import { errorStack, chrisConnection, FilteredResourceData } from "@fnndsc/cumin";
 
 export interface LsOptions {
   path?: string;
@@ -132,11 +132,11 @@ async function enrichItemsWithTitles(items: ListingItem[]): Promise<void> {
     if (feedMatch) {
       const feedId: number = parseInt(feedMatch[1], 10);
       try {
-        const feedData: any = await feeds_list({ id: feedId, limit: 1 });
+        const feedData: FilteredResourceData | null = await feeds_list({ id: feedId, limit: 1 });
         if (feedData && feedData.tableData && feedData.tableData.length > 0) {
-          const feed: any = feedData.tableData[0];
-          if (feed && feed.name) {
-            item.title = feed.name;
+          const feed = feedData.tableData[0];
+          if (feed && typeof feed['name'] === 'string') {
+            item.title = feed['name'];
           }
         }
       } catch (e: unknown) {
@@ -150,12 +150,12 @@ async function enrichItemsWithTitles(items: ListingItem[]): Promise<void> {
     if (pluginMatch) {
       const pluginInstanceId: number = parseInt(pluginMatch[2], 10);
       try {
-        const instanceData: any = await pluginInstances_list({ id: pluginInstanceId, limit: 1 });
+        const instanceData: FilteredResourceData | null = await pluginInstances_list({ id: pluginInstanceId, limit: 1 });
         if (instanceData && instanceData.tableData && instanceData.tableData.length > 0) {
-          const instance: any = instanceData.tableData[0];
+          const instance = instanceData.tableData[0];
           if (instance) {
-            const pluginName: string = instance.plugin_name || '';
-            const pluginVersion: string = instance.plugin_version || '';
+            const pluginName: string = typeof instance['plugin_name'] === 'string' ? instance['plugin_name'] : '';
+            const pluginVersion: string = typeof instance['plugin_version'] === 'string' ? instance['plugin_version'] : '';
             item.title = pluginVersion ? `${pluginName} v${pluginVersion}` : pluginName;
           }
         }

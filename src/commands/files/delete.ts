@@ -17,7 +17,7 @@ import { CLIoptions, options_toParams } from "../../utils/cli.js";
  * @param assetName - The asset name ('files', 'links', 'dirs').
  * @returns A Promise resolving to an array of file items (table data).
  */
-export async function files_searchByTerm(searchable: string, assetName: string): Promise<Record<string, any>[]> {
+export async function files_searchByTerm(searchable: string, assetName: string): Promise<Record<string, unknown>[]> {
   const options: CLIoptions = { search: searchable };
   const params: Record<string, string | number | boolean> = options_toParams(options);
   const results: FilteredResourceData | null = await salsaFiles_list(params, assetName);

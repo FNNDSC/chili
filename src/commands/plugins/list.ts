@@ -35,7 +35,7 @@ export async function plugins_fetchList(options: CLIoptions): Promise<PluginList
   let result: FilteredResourceData | null;
 
   if (options.all) {
-    result = await salsaPlugins_listAll(params as any);
+    result = await salsaPlugins_listAll(params);
   } else {
     result = await salsaPlugins_list(params);
   }

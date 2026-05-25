@@ -28,6 +28,16 @@ interface CachedMapping {
 }
 
 /**
+ * Listing item from ChRIS filesystem.
+ */
+interface ListingItem {
+  name: string;
+  type?: string;
+  target?: string;
+  [key: string]: unknown;
+}
+
+/**
  * Statistics for cache performance monitoring.
  */
 export interface CacheStats {
@@ -311,8 +321,7 @@ export class PathMapper {
     
     if (cached && cached.data && Array.isArray(cached.data)) {
       // Look for the item in the cached listing
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const item = cached.data.find((i: any) => i.name === itemName);
+      const item = (cached.data as ListingItem[]).find((i: ListingItem) => i.name === itemName);
       
       if (item) {
         // Item found in cache!

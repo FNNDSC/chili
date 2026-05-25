@@ -13,7 +13,7 @@ import { BaseGroupHandler } from "../handlers/baseGroupHandler.js";
 import { CLIoptions, path_resolveChrisFs } from "../utils/cli.js";
 import { FileController } from "../controllers/fileController.js";
 import { files_create } from "../commands/fs/create.js";
-import { FilteredResourceData, errorStack } from "@fnndsc/cumin";
+import { FilteredResourceData, errorStack, SimpleRecord } from "@fnndsc/cumin";
 import { table_display } from "../screen/screen.js";
 import { files_fetchList } from "../commands/files/list.js";
 import { fileFields_fetch } from "../commands/files/fields.js";
@@ -78,9 +78,9 @@ export class FileGroupHandler {
     ) as string[];
 
     const uniqueTableData = results.tableData.map((row) =>
-      uniqueHeaders.reduce<Record<string, any>>((acc, header) => {
+      uniqueHeaders.reduce<SimpleRecord>((acc, header) => {
         if (typeof header === "string" && header in row) {
-          acc[header] = (row as Record<string, any>)[header];
+          acc[header] = (row as SimpleRecord)[header];
         }
         return acc;
       }, {})
@@ -117,7 +117,7 @@ export class FileGroupHandler {
                               uniqueResults.selectedFields,
                               { table: options.table, csv: options.csv }
                           ));
-                      }    } catch (error: any) {
+                      }    } catch (error: unknown) {
       const errors = errorStack.stack_search(this.assetName);
       if (errors.length > 0) {
         console.log(errors[0]);
@@ -125,8 +125,14 @@ export class FileGroupHandler {
         const msg = error instanceof Error ? error.message : String(error);
         console.error(`Error: ${msg}`);
 
-        // Check for 500 Internal Server Error
-        if (msg.includes("Internal server error") || (error.response && error.response.status === 500)) {
+        interface AxiosLikeError {
+          response?: {
+            status?: number;
+            [key: string]: unknown;
+          };
+        }
+        const errObj = error as AxiosLikeError;
+        if (msg.includes("Internal server error") || (errObj && errObj.response && errObj.response.status === 500)) {
             console.error(chalk.yellow("\nHint: This indicates a problem on the ChRIS server (CUBE)."));
             console.error(chalk.yellow("      Please contact your system administrator or check the CUBE logs."));
             console.error(chalk.yellow("      To see full debug output, run the command again with CHILI_DEBUG=true:"));
@@ -178,7 +184,7 @@ export class FileGroupHandler {
            if (!confirmed) continue;
         }
 
-        const success = await files_deleteById(item.id, this.assetName);
+        const success = await files_deleteById(item.id as number, this.assetName);
         if (success) {
             console.log(`Deleted ${this.assetName} ${item.id}`);
         } else {
