@@ -23,6 +23,39 @@ describe('files_cp', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     path_resolveChrisFs.mockImplementation(async (p: string | undefined) => p ?? '/');
+
+    const path_checkIsDir_test = async (targetPath: string): Promise<boolean> => {
+      const parent = targetPath.split('/').slice(0, -1).join('/') || '/';
+      const name = targetPath.split('/').pop() || '';
+      try {
+        const results = await files_listAll({ limit: 1000, offset: 0 }, 'dirs', parent);
+        if (!results || !results.tableData) return false;
+        return results.tableData.some((entry: any) => {
+          const candidate = entry.path || entry.fname || '';
+          return candidate === targetPath || candidate.split('/').pop() === name;
+        });
+      } catch {
+        return false;
+      }
+    };
+
+    (salsa.vfsDispatcher.cp as jest.Mock).mockImplementation(async (src: string, dest: string, options: any) => {
+      const srcIsDir = await path_checkIsDir_test(src);
+      if (srcIsDir && !options.recursive) {
+        (cumin.errorStack.stack_push as jest.Mock)('error', `Source is a directory. Re-run with --recursive to copy: ${src}`);
+        return false;
+      }
+      const destIsDir = await path_checkIsDir_test(dest);
+      const destLooksDir = dest.endsWith('/');
+      const finalDest = (destIsDir || destLooksDir)
+        ? dest + '/' + src.split('/').pop()
+        : dest;
+      if (options.recursive) {
+        return await files_copyRecursively(src, finalDest);
+      } else {
+        return await files_copy(src, finalDest);
+      }
+    });
   });
 
   it('appends basename when destination is an existing directory', async () => {

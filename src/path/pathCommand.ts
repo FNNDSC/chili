@@ -11,6 +11,7 @@ import {
   objContext_create,
   ChrisPathNode,
 } from "@fnndsc/cumin";
+import { vfsDispatcher } from "@fnndsc/salsa";
 import chalk from "chalk";
 import fs from "fs";
 import path from "path";
@@ -473,36 +474,80 @@ async function chrisFS_scan(
     currentPath: string,
     linkedPath: string = ""
   ): Promise<void> {
-    const resourceGroups: ResourceGroups | null = await resourceGroups_create( // Renamed
-      currentPath
-    );
-    if (!resourceGroups) return;
-    const { filesGroup, dirsGroup, linksGroup } = resourceGroups;
+    const listResult = await vfsDispatcher.list(currentPath);
+    if (!listResult.ok) {
+      return;
+    }
+    const items = listResult.value || [];
 
-    const dirInfos = await dirs_scan(
-      dirsGroup,
-      chrisPath,
-      hostBasePath,
-      linkedPath
-    );
+    // Separate items into directories/vfs roots, files, and links
+    const dirs = items.filter((item) => item.type === "dir" || item.type === "vfs");
+    const normalFiles = items.filter((item) => item.type === "file");
+    const links = items.filter((item) => item.type === "link");
+
+    const dirInfos: FileInfo[] = dirs.map((dir) => {
+      const fullPath: string =
+        currentPath === "/" ? "/" + dir.name : path.join(currentPath, dir.name);
+      const relativeChrisPath: string = linkedPath
+        ? path.join(linkedPath, dir.name)
+        : fullPath;
+      return {
+        id: 0,
+        hostPath: path.join(
+          hostBasePath,
+          path.relative(chrisPath, relativeChrisPath)
+        ),
+        chrisPath: relativeChrisPath,
+        size: 0,
+        isLink: false,
+        linkTarget: "",
+        isDirectory: true,
+      };
+    });
     files.push(...dirInfos);
 
     if (!dirsOnly) {
-      const fileInfos = await files_scan(
-        filesGroup,
-        chrisPath,
-        hostBasePath,
-        linkedPath
-      );
+      const fileInfos: FileInfo[] = normalFiles.map((file) => {
+        const fullPath: string =
+          currentPath === "/" ? "/" + file.name : path.join(currentPath, file.name);
+        const relativeChrisPath: string = linkedPath
+          ? path.join(linkedPath, file.name)
+          : fullPath;
+        return {
+          id: 0,
+          hostPath: path.join(
+            hostBasePath,
+            path.relative(chrisPath, relativeChrisPath)
+          ),
+          chrisPath: relativeChrisPath,
+          size: file.size,
+          isLink: !!linkedPath,
+          linkTarget: linkedPath ? fullPath : "",
+          isDirectory: false,
+        };
+      });
       files.push(...fileInfos);
-      totalSize += fileInfos.reduce((sum, file) => sum + file.size, 0);
+      totalSize += fileInfos.reduce((sum, f) => sum + f.size, 0);
 
-      const linkInfos = await links_scan(
-        linksGroup,
-        chrisPath,
-        hostBasePath,
-        linkedPath
-      );
+      const linkInfos: FileInfo[] = links.map((link) => {
+        const fullPath: string =
+          currentPath === "/" ? "/" + link.name : path.join(currentPath, link.name);
+        const relativeChrisPath: string = linkedPath
+          ? path.join(linkedPath, link.name)
+          : fullPath;
+        return {
+          id: 0,
+          hostPath: path.join(
+            hostBasePath,
+            path.relative(chrisPath, relativeChrisPath)
+          ),
+          chrisPath: relativeChrisPath,
+          isLink: true,
+          linkTarget: link.linkTarget || "",
+          size: 0,
+          isDirectory: false,
+        };
+      });
       files.push(...linkInfos);
 
       if (followLinks) {
@@ -512,10 +557,12 @@ async function chrisFS_scan(
       }
     }
 
-    for (const dir of dirInfos) {
+    for (const dir of dirs) {
+      const fullPath: string =
+        currentPath === "/" ? "/" + dir.name : path.join(currentPath, dir.name);
       await chrisDir_walk(
-        dir.chrisPath,
-        linkedPath ? path.join(linkedPath, path.basename(dir.chrisPath)) : ""
+        fullPath,
+        linkedPath ? path.join(linkedPath, dir.name) : ""
       );
     }
   }
