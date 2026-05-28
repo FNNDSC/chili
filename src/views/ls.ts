@@ -111,15 +111,16 @@ export function grid_render(items: ListingItem[], options: ViewOptions = {}): st
   const padding: number = 2;
 
   const maxLen: number = Math.max(...formattedItems.map(string_lengthVisible));
-  const colWidth: number = maxLen + padding;
+  // Cap colWidth at termWidth so padding never causes a terminal line wrap.
+  const colWidth: number = Math.min(maxLen + padding, termWidth);
   const cols: number = Math.max(1, Math.floor(termWidth / colWidth));
 
   let output: string = "";
   for (let i: number = 0; i < formattedItems.length; i++) {
     const item: string = formattedItems[i];
     const visibleLen: number = string_lengthVisible(item);
-    const padLen: number = colWidth - visibleLen;
-    
+    const padLen: number = Math.max(0, colWidth - visibleLen);
+
     output += item + " ".repeat(padLen);
     
     if ((i + 1) % cols === 0) {
