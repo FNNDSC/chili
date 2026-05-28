@@ -17,6 +17,7 @@ import { fileSystemItem_colorize } from '../config/colorConfig.js';
  */
 export interface ViewOptions {
   human?: boolean; // Human-readable sizes
+  oneColumn?: boolean; // Force single-column output (like ls -1)
   // Note: sort and reverse are now handled at the command layer
   // These are kept for backwards compatibility but should not be used
   sort?: 'name' | 'size' | 'date' | 'owner'; // DEPRECATED: Sort at command layer instead
@@ -94,10 +95,10 @@ export function grid_render(items: ListingItem[], options: ViewOptions = {}): st
   if (items.length === 0) return '';
 
   // Legacy sorting support (deprecated - sort at command layer instead)
-  let displayItems = items;
+  let displayItems: ListingItem[] = items;
   if (options.sort) {
-    const sortBy = options.sort;
-    const reverse = options.reverse || false;
+    const sortBy: 'name' | 'size' | 'date' | 'owner' = options.sort;
+    const reverse: boolean = options.reverse || false;
     displayItems = items_sort(items, sortBy, reverse);
   }
 
@@ -106,6 +107,10 @@ export function grid_render(items: ListingItem[], options: ViewOptions = {}): st
     if (item.version) str += chalk.dim(` (${item.version})`);
     return str;
   });
+
+  if (options.oneColumn) {
+    return formattedItems.join('\n');
+  }
 
   const termWidth: number = process.stdout.columns || 80;
   const padding: number = 2;
@@ -122,13 +127,13 @@ export function grid_render(items: ListingItem[], options: ViewOptions = {}): st
     const padLen: number = Math.max(0, colWidth - visibleLen);
 
     output += item + " ".repeat(padLen);
-    
+
     if ((i + 1) % cols === 0) {
       output += "\n";
     }
   }
-  
-  return output.trimEnd(); // Trim trailing newline
+
+  return output.trimEnd();
 }
 
 /**
