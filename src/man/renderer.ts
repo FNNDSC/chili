@@ -74,7 +74,7 @@ export function projectDir_get(): string {
  * @param content - The AsciiDoc content string.
  * @returns The converted HTML string.
  */
-function adoc_HTMLconvert(content: string): string {
+function adoc_htmlConvert(content: string): string {
   const ascii: ReturnType<typeof asciidoctor> = asciidoctor();
   let result: string = ascii.convert(content, {
     standalone: false,
@@ -126,7 +126,7 @@ export async function asciidoc_render(
   style: "figlet" | "ascii",
   width?: number,
 ): Promise<string> {
-  let result: string = adoc_HTMLconvert(content);
+  let result: string = adoc_htmlConvert(content);
 
   function ASCII_create(text: string, style: ASCIIHeadingStyle): string {
     const transformedText = style.textTransform(text);
@@ -147,7 +147,6 @@ export async function asciidoc_render(
     }
   };
 
-  // Process headings
   for (let i = 0; i < headingStyles.length; i++) {
     const figletStyle = headingStyles[i];
     const asciiStyle = asciiHeadingStyles[i];
@@ -166,7 +165,6 @@ export async function asciidoc_render(
     }
   }
 
-  // Process other elements
   result = result
     .replace(/<code>(.*?)<\/code>/g, (_, p1) => chalk.cyan(p1))
     .replace(/<em>(.*?)<\/em>/g, (_, p1) => chalk.italic(p1))
@@ -204,20 +202,16 @@ export function browser_open(filePath: string): void {
   );
 
   try {
-    // Read the AsciiDoc content
     const content: string = fs.readFileSync(filePath, "utf-8");
 
-    // Convert AsciiDoc to HTML
     const html: string = ascii.convert(content, {
       safe: "safe",
       standalone: true,
       attributes: { showtitle: true },
     }) as string;
 
-    // Write the HTML to a temporary file
     fs.writeFileSync(tempHtmlPath, html);
 
-    // Open the HTML file in the default browser
     const command: string =
       process.platform === "win32"
         ? "start"

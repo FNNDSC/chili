@@ -27,7 +27,7 @@ import { path_resolveChrisFs } from '../utils/cli.js';
  * @param options - Listing options.
  * @param pathStr - The path to list.
  */
-async function ls(options: LsOptions, pathStr: string = ""): Promise<void> {
+async function chefs_ls(options: LsOptions, pathStr: string = ""): Promise<void> {
   const items: ListingItem[] = await files_list(options, pathStr); // Call the core logic
 
   if (items.length === 0) {
@@ -48,7 +48,7 @@ async function ls(options: LsOptions, pathStr: string = ""): Promise<void> {
  * @param dest - Destination path.
  * @param options - Copy options.
  */
-async function cp(src: string, dest: string, options: CpOptions): Promise<void> {
+async function chefs_cp(src: string, dest: string, options: CpOptions): Promise<void> {
   const success: boolean = await files_cp(src, dest, options);
   console.log(cp_render(src, dest, success));
 }
@@ -60,7 +60,7 @@ async function cp(src: string, dest: string, options: CpOptions): Promise<void> 
  * @param dest - Destination path.
  * @param options - Move options.
  */
-async function mv(src: string, dest: string, _options: MvOptions): Promise<void> {
+async function chefs_mv(src: string, dest: string, _options: MvOptions): Promise<void> {
   const success: boolean = await files_mv(src, dest);
   console.log(mv_render(src, dest, success));
 }
@@ -70,7 +70,7 @@ async function mv(src: string, dest: string, _options: MvOptions): Promise<void>
  *
  * @param dirPath - The path of the directory to create.
  */
-async function mkdir(dirPath: string): Promise<void> {
+async function chefs_mkdir(dirPath: string): Promise<void> {
   const success: boolean = await files_mkdir(dirPath);
   console.log(mkdir_render(dirPath, success));
 }
@@ -80,7 +80,7 @@ async function mkdir(dirPath: string): Promise<void> {
  *
  * @param filePath - The path of the file to create.
  */
-async function touch(filePath: string): Promise<void> {
+async function chefs_touch(filePath: string): Promise<void> {
   const success: boolean = await files_touch(filePath);
   console.log(touch_render(filePath, success));
 }
@@ -91,7 +91,7 @@ async function touch(filePath: string): Promise<void> {
  * @param localPath - Local path.
  * @param remotePath - Remote ChRIS path.
  */
-async function upload(localPath: string, remotePath: string): Promise<void> {
+async function chefs_upload(localPath: string, remotePath: string): Promise<void> {
   console.log(`Uploading ${localPath} to ${remotePath}...`);
   const success: boolean = await files_upload(localPath, remotePath);
   console.log(upload_render(localPath, remotePath, success));
@@ -102,19 +102,19 @@ async function upload(localPath: string, remotePath: string): Promise<void> {
  *
  * @param path - The path to change to.
  */
-async function cd(path?: string): Promise<void> {
+async function chefs_cd(path?: string): Promise<void> {
   if (!path) {
-    await pwd();
+    await chefs_pwd();
     return;
   }
   await chrisContext.current_set(Context.ChRISfolder, path);
-  await pwd();
+  await chefs_pwd();
 }
 
 /**
  * Prints the current working directory.
  */
-async function pwd(): Promise<void> {
+async function chefs_pwd(): Promise<void> {
   const current: string | null = await chrisContext.current_get(Context.ChRISfolder);
   console.log(current || "/");
 }
@@ -124,7 +124,7 @@ async function pwd(): Promise<void> {
  *
  * @param filePath - The path of the file to read.
  */
-async function cat(filePath: string): Promise<void> {
+async function chefs_cat(filePath: string): Promise<void> {
   const content: string | null = await files_cat(filePath);
   console.log(cat_render(content, filePath));
 }
@@ -135,7 +135,7 @@ async function cat(filePath: string): Promise<void> {
  * @param targetPath - The path to remove.
  * @param options - Options including recursive flag.
  */
-async function rm(targetPath: string, options: RmOptions): Promise<void> {
+async function chefs_rm(targetPath: string, options: RmOptions): Promise<void> {
   const result: RmResult = await files_rm(targetPath, options);
   console.log(rm_render(result));
 }
@@ -156,7 +156,7 @@ export function chefsCommand_setup(program: Command): void {
     .option("-l, --long", "Long listing format")
     .option("-h, --human", "Human readable sizes")
     .action(async (path: string | undefined, options: LsOptions) => {
-      await ls(options, path || "");
+      await chefs_ls(options, path || "");
     });
 
   chefsCommand
@@ -164,56 +164,56 @@ export function chefsCommand_setup(program: Command): void {
     .description("Copy files or directories")
     .option("-r, --recursive", "Recursive copy")
     .action(async (src: string, dest: string, options: CpOptions) => {
-      await cp(src, dest, options);
+      await chefs_cp(src, dest, options);
     });
 
   chefsCommand
     .command("mv <src> <dest>")
     .description("Move or rename files or directories")
     .action(async (src: string, dest: string, options: MvOptions) => {
-      await mv(src, dest, options);
+      await chefs_mv(src, dest, options);
     });
 
   chefsCommand
     .command("cat <path>")
     .description("Display file content")
     .action(async (path: string) => {
-      await cat(path);
+      await chefs_cat(path);
     });
 
   chefsCommand
     .command("mkdir <path>")
     .description("Create a new folder")
     .action(async (path: string) => {
-      await mkdir(path);
+      await chefs_mkdir(path);
     });
 
   chefsCommand
     .command("touch <path>")
     .description("Create an empty file")
     .action(async (path: string) => {
-      await touch(path);
+      await chefs_touch(path);
     });
 
   chefsCommand
     .command("upload <local> <remote>")
     .description("Upload a local file or directory to ChRIS")
     .action(async (local: string, remote: string) => {
-      await upload(local, remote);
+      await chefs_upload(local, remote);
     });
 
   chefsCommand
     .command("cd [path]")
     .description("Change current working directory")
     .action(async (path: string | undefined) => {
-      await cd(path);
+      await chefs_cd(path);
     });
 
   chefsCommand
     .command("pwd")
     .description("Print working directory")
     .action(async () => {
-      await pwd();
+      await chefs_pwd();
     });
 
   chefsCommand
@@ -222,6 +222,6 @@ export function chefsCommand_setup(program: Command): void {
     .option("-r, --recursive", "Remove directories and their contents recursively")
     .option("-f, --force", "Force removal (ignore nonexistent files)")
     .action(async (path: string, options: RmOptions) => {
-      await rm(path, options);
+      await chefs_rm(path, options);
     });
 }

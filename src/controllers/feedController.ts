@@ -50,7 +50,7 @@ export class FeedController extends BaseController {
       const dirs = options.dirs as string;
       const feedParams = listParams_fromOptions({ ...options, returnFilter: "params" }) as ChRISObjectParams;
       return await chrisFeed.createFromDirs(dirs, feedParams);
-    } catch (error) {
+    } catch (error: unknown) {
         // Logging handled by cumin errorStack or caller
       return null;
     }

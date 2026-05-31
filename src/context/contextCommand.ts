@@ -3,6 +3,7 @@ import {
   FullContext,
   URLContext,
   UserContext,
+  errorStack,
 } from "@fnndsc/cumin";
 import {
   context_getFull,
@@ -20,7 +21,7 @@ import { screen, border_draw, table_display, TableDataRow } from "../screen/scre
  * @param options - CLI options for context retrieval.
  * @returns A formatted string of context information.
  */
-function context_get(options: ContextOptions): string {
+async function context_get(options: ContextOptions): Promise<string> {
   const results: string[] = [];
   if (options.all) {
     return context_displayFull(options);
@@ -88,8 +89,8 @@ function context_displayFull(options: ContextOptions): string {
  * @param options - CLI options for context retrieval (e.g., --full, --ChRISurl).
  * @returns A formatted string of context information, or an empty string if output handled by `screen.table_output`.
  */
-function context_displaySingle(options: ContextOptions): string {
-  const singleContext = context_getSingle();
+async function context_displaySingle(options: ContextOptions): Promise<string> {
+  const singleContext = await context_getSingle();
 
   if (options.full) {
     const tableData = [
@@ -186,19 +187,16 @@ function context_displaySingle(options: ContextOptions): string {
  * @returns A formatted string summarizing the context changes.
  */
 async function context_set(options: ContextOptions): Promise<string> {
-  try {
-    const results = await salsa_context_set(options);
-    
-    if (results.length === 0) {
-      return "No context value was set. Use --ChRISurl, --ChRISuser, --ChRISFolder, --ChRISfeed, or --ChRISPlugin";
-    }
-
-    return results.join("\n");
-  } catch (e: unknown) {
-    const errorMessage: string = e instanceof Error ? e.message : String(e);
-    border_draw(`${chalk.red(`ERROR: ${errorMessage}`)}`);
+  const result = await salsa_context_set(options);
+  if (!result.ok) {
+    const errors = errorStack.allOfType_get('error');
+    border_draw(chalk.red(`ERROR: ${errors.join('\n')}`));
     return "";
   }
+  if (result.value.length === 0) {
+    return "No context value was set. Use --ChRISurl, --ChRISuser, --ChRISFolder, --ChRISfeed, or --ChRISPlugin";
+  }
+  return result.value.join("\n");
 }
 
 /**
@@ -226,8 +224,8 @@ export async function contextCommand_setup(program: Command): Promise<void> {
     .option("--pacsserver", "get the current PACS server context")
     .option("--full", "get full current context")
     .option("--all", "get all contexts for current session")
-    .action((options) => {
-      const result: string = context_get(options);
+    .action(async (options) => {
+      const result: string = await context_get(options);
       console.log(result);
     });
 

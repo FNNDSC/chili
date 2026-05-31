@@ -18,7 +18,7 @@ export interface ListingItem extends SimpleRecord {
   name: string;
   
   /** The type of the item. */
-  type: 'dir' | 'file' | 'link' | 'plugin' | 'vfs';
+  type: 'dir' | 'file' | 'link' | 'plugin' | 'pipeline' | 'vfs';
   
   /** Size in bytes. */
   size: number;

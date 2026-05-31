@@ -166,6 +166,7 @@ export function long_render(items: ListingItem[], options: ViewOptions = {}): st
     if (item.type === 'dir') typeChar = 'd';
     else if (item.type === 'link') typeChar = 'l';
     else if (item.type === 'plugin') typeChar = 'p';
+    else if (item.type === 'pipeline') typeChar = 'P';
     else if (item.type === 'vfs') typeChar = 'v';
 
     // Owner

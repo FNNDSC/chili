@@ -168,7 +168,7 @@ async function handlers_initialize() {
       "dirs"
     );
     dirsGroupHandler.fileGroupCommand_setup(program);
-  } catch (e) {
+  } catch (e: unknown) {
     const err = e instanceof Error ? e.message : String(e);
     const errors = errorStack_getAllOfType("error");
     const warnings = errorStack_getAllOfType("warning");
@@ -195,7 +195,7 @@ async function handlers_initialize() {
     const pluginParametersHandler: PluginContextGroupHandler =
       await PluginContextGroupHandler.handler_create("parametersofplugin");
     pluginParametersHandler.pluginContextGroupCommand_setup(program);
-  } catch (e) {
+  } catch (e: unknown) {
     const err = e instanceof Error ? e.message : String(e);
     const errors = errorStack_getAllOfType("error");
     const warnings = errorStack_getAllOfType("warning");
@@ -239,7 +239,6 @@ function context_parse(args: string[]): [string | undefined, string[]] {
  * Handles initialization, context parsing, and command execution.
  */
 async function main() {
-  // Initialize storage provider and ChrisConnection
   const nodeStorageProvider = new NodeStorageProvider();
   const connection = await chrisConnection_init(nodeStorageProvider);
 
@@ -263,7 +262,6 @@ async function main() {
   connectCommand_setup(program);
   await handlers_initialize(); // Call handlers_initialize here
   
-  // Parse arguments to handle global options
   program.parseOptions(process.argv);
   const options = program.opts();
 
@@ -272,7 +270,6 @@ async function main() {
     console.log("ChILI handles Intelligent Line Interactions");
   }
 
-  // Parse the command
   program.parse(process.argv);
 }
 

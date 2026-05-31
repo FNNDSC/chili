@@ -74,7 +74,7 @@ async function inodeResources_list(
       } else {
         console.error(`${browserType} resources: not found or could not be filtered`);
       }
-    } catch (error) {
+    } catch (error: unknown) {
       console.error(`${browserType} resources: not found`);
     }
   }

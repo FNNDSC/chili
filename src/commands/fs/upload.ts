@@ -79,7 +79,7 @@ export function rate_format(rateBytesPerSec: number): string {
  * @param remotePath - The target ChRIS path.
  * @returns Array of UploadFileInfo objects.
  */
-async function scanLocalFiles(localPath: string, remotePath: string): Promise<UploadFileInfo[]> {
+async function localFiles_scan(localPath: string, remotePath: string): Promise<UploadFileInfo[]> {
   const files: UploadFileInfo[] = [];
 
   async function walkDir(currentLocal: string, currentRemote: string): Promise<void> {
@@ -104,7 +104,6 @@ async function scanLocalFiles(localPath: string, remotePath: string): Promise<Up
     }
   }
 
-  // Check if localPath is a directory or file
   const stats = await fs.promises.stat(localPath);
   if (stats.isDirectory()) {
     // Preserve directory basename in remote path (Unix cp semantics)
@@ -140,12 +139,11 @@ export async function files_uploadWithProgress(
   remotePath: string,
   options: { force?: boolean } = {}
 ): Promise<UploadSummary> {
-  // Resolve remote path
   const resolvedRemote: string = await path_resolveChrisFs(remotePath, {});
 
   // Scan files
   console.log(chalk.cyan("Scanning files to upload..."));
-  const fileList: UploadFileInfo[] = await scanLocalFiles(localPath, resolvedRemote);
+  const fileList: UploadFileInfo[] = await localFiles_scan(localPath, resolvedRemote);
 
   const totalSize: number = fileList.reduce(
     (sum: number, f: UploadFileInfo) => sum + f.size,
@@ -180,7 +178,6 @@ export async function files_uploadWithProgress(
     // Force mode: if target exists and is a directory, no prompt. If it's a file and we're uploading a single file, proceed.
   }
 
-  // Setup progress bar
   const showProgress: boolean = !!process.stdout.isTTY;
   const progressBar = showProgress
     ? new cliProgress.SingleBar(
@@ -276,7 +273,6 @@ export async function files_uploadWithProgress(
  * @returns Promise<boolean> true if successful.
  */
 export async function files_upload(localPath: string, remotePath: string): Promise<boolean> {
-  // Resolve remote path context relative to current ChRIS CWD
   const resolvedRemote: string = await path_resolveChrisFs(remotePath, {});
 
   return await files_uploadPath(localPath, resolvedRemote);

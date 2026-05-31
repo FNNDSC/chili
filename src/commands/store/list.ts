@@ -16,7 +16,7 @@ export interface StoreOptions extends CLIoptions {
 /**
  * Maps raw store plugin data to ListingItem model.
  */
-function mapToStoreItem(plugin: Record<string, unknown>): ListingItem {
+function storeItem_map(plugin: Record<string, unknown>): ListingItem {
   const name = (plugin.name as string) || 'unknown';
   const version = (plugin.version as string) || '';
   
@@ -43,7 +43,7 @@ function mapToStoreItem(plugin: Record<string, unknown>): ListingItem {
  */
 export async function store_listPlugins(options: StoreOptions): Promise<ListingItem[]> {
   const plugins = await store_list(options.store);
-  return plugins.map(mapToStoreItem);
+  return plugins.map(storeItem_map);
 }
 
 /**
@@ -55,5 +55,5 @@ export async function store_listPlugins(options: StoreOptions): Promise<ListingI
  */
 export async function store_searchPlugins(query: string, options: StoreOptions): Promise<ListingItem[]> {
   const plugins = await store_search(query, options.store);
-  return plugins.map(mapToStoreItem);
+  return plugins.map(storeItem_map);
 }

@@ -254,7 +254,6 @@ export class PathMapper {
     for (let i: number = 0; i < parts.length; i++) {
       const part: string = parts[i];
 
-      // Build candidate paths
       const candidatePhysical: string = physicalCurrent === '/'
         ? `/${part}`
         : `${physicalCurrent}/${part}`;
@@ -264,7 +263,6 @@ export class PathMapper {
         : `${logicalCurrent}/${part}`;
 
       try {
-        // Check if this component is a link
         const linkTarget: string | null = await this.link_checkAndResolve(candidatePhysical, candidateLogical);
 
         if (linkTarget) {
@@ -336,7 +334,6 @@ export class PathMapper {
     }
 
     // 2. Slow Path: Check API using physical path
-    // Extract parent directory
     const parts: string[] = candidatePhysical.split('/');
     parts.pop(); // Remove filename
     const parentDir: string = parts.join('/') || '/';

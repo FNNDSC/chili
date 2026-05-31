@@ -79,7 +79,6 @@ export async function shellCommand_runWithDetails(command: string): Promise<{
  * @returns True if Docker is available, false otherwise.
  */
 export async function docker_checkAvailability(): Promise<boolean> {
-  // Use a simple docker command to check availability
   const result = await shellCommand_run("docker info > /dev/null 2>&1 && echo OK");
   if (result === "OK") {
     return true;
@@ -119,7 +118,6 @@ export async function docker_imageExistsLocally(image: string): Promise<boolean>
  * @returns Promise resolving to true if pull succeeded or image already exists, false otherwise.
  */
 export async function docker_pullImage(image: string, quiet: boolean = true): Promise<boolean> {
-  // Check if image exists locally first
   const existsLocally = await docker_imageExistsLocally(image);
   if (existsLocally) {
     console.log(`Docker image ${image} already exists locally.`);

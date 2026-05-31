@@ -95,7 +95,7 @@ export async function adminCredentials_prompt(
 
     rl.close();
     return { username, password };
-  } catch (error) {
+  } catch (error: unknown) {
     rl.close();
     console.error('\nPrompt cancelled or error occurred.');
     return null;

@@ -60,7 +60,7 @@ export class FileGroupHandler {
         throw new Error(`Failed to create FileController for asset type: ${assetName}`);
       }
       return new FileGroupHandler(controller, assetName);
-    } catch (error) {
+    } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       throw new Error(`Failed to initialize FileGroupHandler for ${assetName}: ${errorMessage}`);
     }
@@ -111,7 +111,6 @@ export class FileGroupHandler {
         console.log(`No ${this.assetName} found matching the criteria.`);
                       } else {
                           const uniqueResults = this.columns_removeDuplicates(results);
-                          // Use the new view layer with table/csv support
                           console.log(fileList_render(
                               uniqueResults.tableData,
                               uniqueResults.selectedFields,
@@ -153,7 +152,7 @@ export class FileGroupHandler {
       } else {
         console.log(`No resource fields found for ${this.assetName}.`);
       }
-    } catch (error) {
+    } catch (error: unknown) {
       console.log(errorStack.stack_search(this.assetName)[0]);
     }
   }
@@ -227,7 +226,6 @@ export class FileGroupHandler {
       .command(this.assetName)
       .description(`Interact with a group of ChRIS ${this.assetName}`);
 
-    // Use base list command generator
     const listCommand = this.baseGroupHandler.baseListCommand_create(
       async (options: CLIoptions) => {
         await this.files_list(options);
@@ -305,7 +303,7 @@ export class FileMemberHandler {
         throw new Error(`Failed to create FileController for path: ${path}`);
       }
       return new FileMemberHandler(controller);
-    } catch (error) {
+    } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       throw new Error(`Failed to initialize FileMemberHandler for path ${path}: ${errorMessage}`);
     }

@@ -59,14 +59,12 @@ export async function files_touch(
   let content: string | undefined;
 
   if (options.withContentsFromFile) {
-    // Read content from local file
     const result: Result<string> = fileContents_read(options.withContentsFromFile);
     if (!result.ok) {
       return false;
     }
     content = result.value;
   } else if (options.withContents !== undefined) {
-    // Use provided string content
     content = options.withContents;
   }
 

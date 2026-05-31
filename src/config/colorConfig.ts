@@ -34,6 +34,7 @@ export interface IconConfig {
   file: string;
   link: string;
   plugin: string;
+  pipeline: string;
   vfs: string;
 }
 
@@ -47,6 +48,7 @@ export interface ColorConfig {
     file: ColorStyle;
     link: ColorStyle;
     plugin: ColorStyle;
+    pipeline: ColorStyle;
     vfs: ColorStyle;
   };
   specialPaths: {
@@ -79,7 +81,6 @@ function colorConfig_load(): ColorConfig {
     const msg: string = e instanceof Error ? e.message : String(e);
     console.error(`Warning: Could not load color config: ${msg}`);
 
-    // Return default configuration
     return {
       icons: {
         enabled: true,
@@ -87,6 +88,7 @@ function colorConfig_load(): ColorConfig {
         file: '\uF15B',
         link: '\uF0C1',
         plugin: '\uF013',
+        pipeline: '\uF013',
         vfs: '\uF0C8'
       },
       fileTypes: {
@@ -94,6 +96,7 @@ function colorConfig_load(): ColorConfig {
         file: { color: 'white', bold: false },
         link: { color: 'magenta', bold: false },
         plugin: { color: 'green', bold: true },
+        pipeline: { color: 'magenta', bold: true },
         vfs: { color: 'cyanBright', bold: true }
       },
       specialPaths: {
@@ -141,18 +144,17 @@ function colorStyle_apply(text: string, style: ColorStyle): string {
  */
 export function fileSystemItem_colorize(
   name: string,
-  type: 'dir' | 'file' | 'link' | 'plugin' | 'vfs',
+  type: 'dir' | 'file' | 'link' | 'plugin' | 'pipeline' | 'vfs',
   fullPath?: string
 ): string {
   const config: ColorConfig = colorConfig_load();
 
-  // Get icon if enabled
   let icon: string = '';
   if (config.icons && config.icons.enabled) {
-    icon = config.icons[type] + ' ';
+    const iconKey = type in config.icons ? type : 'file';
+    icon = (config.icons as unknown as Record<string, string>)[iconKey] + ' ';
   }
 
-  // Check for special path styling first
   if (fullPath && config.specialPaths[fullPath]) {
     const styled: string = colorStyle_apply(name, config.specialPaths[fullPath]);
     return icon ? colorStyle_apply(icon, config.specialPaths[fullPath]) + styled : styled;
@@ -191,8 +193,15 @@ export function fileSystemItem_colorize(
     return iconStyled + styled;
   }
 
+  // Pipeline: bold magenta
+  if (type === 'pipeline') {
+    const styled: string = chalk.magenta.bold(name);
+    const iconStyled: string = icon ? chalk.magenta.bold(icon) : '';
+    return iconStyled + styled;
+  }
+
   // Apply file type styling
-  const style: ColorStyle = config.fileTypes[type];
+  const style: ColorStyle = config.fileTypes[type as keyof typeof config.fileTypes] ?? config.fileTypes.file;
   const styled: string = colorStyle_apply(name, style);
   const iconStyled: string = icon ? colorStyle_apply(icon, style) : '';
   return iconStyled + styled;

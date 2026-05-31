@@ -64,7 +64,6 @@ export async function files_downloadWithProgress(
   localPath: string,
   options: { force?: boolean } = {}
 ): Promise<DownloadSummary> {
-  // Resolve ChRIS path
   const resolvedChris: string = await path_resolveChrisFs(chrisPath, {});
 
   // Check if local path exists (only block overwriting regular files unless force)
@@ -89,7 +88,6 @@ export async function files_downloadWithProgress(
     speed: 0,
   };
 
-  // Check if ChRIS path is a file or directory
   const isDirectory: boolean = await chrisPath_isDirectory(resolvedChris);
 
   if (!isDirectory) {
@@ -236,7 +234,6 @@ export async function files_downloadWithProgress(
   // Ensure target directory exists
   await directory_ensureExists(targetDir);
 
-  // Setup progress bar
   const showProgress: boolean = !!process.stdout.isTTY;
   const progressBar = showProgress
     ? new cliProgress.SingleBar(

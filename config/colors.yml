@@ -19,6 +19,7 @@ icons:
   file: "\uF15B"       #
   link: "\uF0C1"       #
   plugin: "\uF013"     #
+  pipeline: "\uF013"   #  same as plugin \u2014 both are executables
   vfs: "\uF0C8"        #
 
 # File type color mappings
@@ -41,6 +42,11 @@ fileTypes:
   # Plugin executables (virtual files in /bin)
   plugin:
     color: green
+    bold: true
+
+  # Pipeline executables (virtual files in /bin, distinct from plugins by color)
+  pipeline:
+    color: magenta
     bold: true
 
   # Virtual file system markers (directories like /bin, /usr)

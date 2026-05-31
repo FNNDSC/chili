@@ -22,7 +22,7 @@ export async function plugin_execute(searchable: string, params: string): Promis
   let parsedParams: Dictionary = {};
   try {
     parsedParams = dictionary_fromCLI(params);
-  } catch (e) {
+  } catch (e: unknown) {
     throw new Error(`Error parsing plugin parameters: ${e}`);
   }
   const result = await salsaPlugin_run(searchable, parsedParams);

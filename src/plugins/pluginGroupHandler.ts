@@ -48,7 +48,7 @@ export class PluginContextGroupHandler {
     try {
         const controller = await PluginContextController.controller_create(assetName, id);
         return new PluginContextGroupHandler(controller, assetName);
-    } catch (error) {
+    } catch (error: unknown) {
         throw new InitializationError(`Failed to initialize PluginContextGroupHandler: ${error}`);
     }
   }
@@ -77,7 +77,7 @@ export class PluginContextGroupHandler {
       } else {
         console.log("No parameters found.");
       }
-    } catch (error) {
+    } catch (error: unknown) {
       console.error(`Error listing parameters: ${error}`);
     }
   }

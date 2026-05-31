@@ -135,7 +135,7 @@ async function resourceGroups_create(
     )) as ChRISEmbeddedResourceGroup<ChrisPathNode>;
 
     return { filesGroup, dirsGroup, linksGroup };
-  } catch (error) {
+  } catch (error: unknown) {
     errorStack.stack_push(
       "error",
       `Failed to create ChRISEmbeddedResourceGroup objects for path ${currentPath}: ${error}`
@@ -570,7 +570,7 @@ async function chrisFS_scan(
   try {
     await chrisDir_walk(chrisPath);
     return { fileInfo: files, totalSize };
-  } catch (error) {
+  } catch (error: unknown) {
     errorStack.stack_push("error", `Failed to scan ChRIS filesystem: ${error}`);
     return null;
   }
@@ -653,7 +653,7 @@ export async function scan_do(options: CLIscan): Promise<ScanRecord | null> {
           outputFile
         );
         console.log(`Mermaid diagram saved to: ${savedFilePath}`);
-      } catch (error) {
+      } catch (error: unknown) {
         console.error(`Failed to save Mermaid diagram: ${error}`);
       }
     } else {
@@ -757,7 +757,7 @@ async function localFS_scan(options: TransferCLI): Promise<ScanRecord | null> {
       console.error(chalk.red(`Folder context '${folder}' does not exist in CUBE. Please specify an existing directory.`));
       return null;
     }
-  } catch (error) {
+  } catch (error: unknown) {
     console.error(chalk.red(`Folder context '${folder}' does not exist in CUBE. Please specify an existing directory.`));
     return null;
   }
@@ -888,10 +888,8 @@ async function chris_pull(
         const hostPath: string = path.join(baseDir, parentDir, relativePath);
         const dirPath: string = path.dirname(hostPath);
 
-        // Create parent directory if it doesn't exist
         fs.mkdirSync(dirPath, { recursive: true });
 
-        // Write the file
         fs.writeFileSync(hostPath, fileBuffer);
 
         summary.transferredCount++;

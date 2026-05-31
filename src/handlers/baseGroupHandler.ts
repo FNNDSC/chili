@@ -168,7 +168,7 @@ export class BaseGroupHandler {
           );
         }
       }
-    } catch (error) {
+    } catch (error: unknown) {
       console.log(errorStack.stack_search(this.assetName)[0]);
     }
   }
@@ -192,7 +192,7 @@ export class BaseGroupHandler {
       } else {
         table_display(results.fields, ["fields"]);
       }
-    } catch (error) {
+    } catch (error: unknown) {
       console.log(errorStack.stack_search(this.assetName)[0]);
     }
   }
@@ -315,7 +315,7 @@ export class BaseGroupHandler {
         border_draw(
           `deleting ${this.assetName} id ${id} ... ${this.msg_OKorNot(true)}`
         );
-      } catch (error) {
+      } catch (error: unknown) {
         console.error(`${error}`);
         return false;
       }

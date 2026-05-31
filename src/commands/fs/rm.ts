@@ -32,7 +32,6 @@ export interface RmResult {
  * @returns An object with type, id, and name, or null if not found.
  */
 async function pathInfo_find(targetPath: string): Promise<{ type: 'file' | 'dir' | 'link'; id: number; name: string } | null> {
-  // Extract parent directory and basename
   const parts: string[] = targetPath.split('/').filter((p: string) => p);
   const basename: string = parts.pop() || '';
   const parentPath: string = '/' + parts.join('/');
@@ -55,7 +54,6 @@ async function pathInfo_find(targetPath: string): Promise<{ type: 'file' | 'dir'
     return name;
   };
 
-  // Check directories
   if (dirs && dirs.tableData) {
     for (const d of dirs.tableData) {
       if (extractName(d) === basename && d.id) {
@@ -64,7 +62,6 @@ async function pathInfo_find(targetPath: string): Promise<{ type: 'file' | 'dir'
     }
   }
 
-  // Check files
   if (files && files.tableData) {
     for (const f of files.tableData) {
       if (extractName(f) === basename && f.id) {
@@ -73,7 +70,6 @@ async function pathInfo_find(targetPath: string): Promise<{ type: 'file' | 'dir'
     }
   }
 
-  // Check links
   if (links && links.tableData) {
     for (const l of links.tableData) {
       if (extractName(l) === basename && l.id) {
@@ -94,10 +90,8 @@ async function pathInfo_find(targetPath: string): Promise<{ type: 'file' | 'dir'
  */
 export async function files_rm(targetPath: string, options: RmOptions = {}): Promise<RmResult> {
   try {
-    // Resolve the path
     const resolvedPath: string = await path_resolveChrisFs(targetPath, {});
 
-    // Find the target
     const info = await pathInfo_find(resolvedPath);
 
     if (!info) {

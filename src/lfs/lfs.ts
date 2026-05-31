@@ -25,7 +25,7 @@ export async function dirContents_list(filepath: string) {
     });
     const detailedFiles = await Promise.all(detailedFilesPromises);
     console.table(detailedFiles);
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("Error occurred while reading the directory!", error);
   }
 }

@@ -289,7 +289,7 @@ export class Screen {
       return titleString
         ? border_draw(titleString, { bottom: false }) + "\n" + output
         : output;
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Error in table_output method:", error);
       return "Error generating table";
     }

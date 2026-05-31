@@ -63,7 +63,7 @@ export class FeedGroupHandler {
       } else {
         console.log(`No resource fields found for ${this.assetName}.`);
       }
-    } catch (error) {
+    } catch (error: unknown) {
       console.log(errorStack.stack_search(this.assetName)[0]);
     }
   }
@@ -138,10 +138,8 @@ export class FeedGroupHandler {
       .command(this.assetName)
       .description(`Interact with a group of ChRIS ${this.assetName}`);
 
-    // Use base list command generator
     const listCommand = this.baseGroupHandler.baseListCommand_create(
       async (options: CLIoptions) => {
-        // Use the base generic renderer instead of the custom one
         await this.baseGroupHandler.resources_list(options);
       }
     );

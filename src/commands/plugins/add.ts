@@ -82,7 +82,6 @@ export async function plugin_add(
   const detected: DetectedFormat = input_detectFormat(input);
   console.log(`Detected input format: ${detected.format}`);
 
-  // Parse and validate compute resources
   const computeResources: string[] = options.compute
     ? computeResourceNames_parse(options.compute)
     : ['host'];
@@ -257,7 +256,6 @@ async function pluginFromDocker_register(
     return false;
   }
 
-  // Extract plugin descriptor
   console.log('Extracting plugin descriptor from image...');
   const pluginData = await pluginJSON_extractFromImage(image, options);
   if (!pluginData) {
@@ -362,7 +360,7 @@ async function pluginJSON_extractFromImage(
         const parsed: PluginInfo = JSON.parse(jsonString) as PluginInfo;
         console.log(`Successfully extracted plugin descriptor using ${method.name}`);
         return parsed;
-      } catch (e) {
+      } catch (e: unknown) {
         const msg = `Failed to parse JSON from ${method.name}`;
         console.error(msg);
         errorStack.stack_push('error', msg, 'pluginJSON_extractFromImage');
@@ -393,7 +391,6 @@ async function pluginJSON_tryChrisPluginInfoWithArgs(
 ): Promise<string | null> {
   const args: string[] = ['chris_plugin_info', '--dock-image', image];
 
-  // Add optional arguments if available
   if (options.public_repo) {
     args.push('--public-repo', options.public_repo);
   }
@@ -446,7 +443,6 @@ async function pluginJSON_tryChrisPluginInfo(image: string): Promise<string | nu
  * @returns Promise resolving to JSON string or null.
  */
 async function pluginJSON_tryOldChrisapp(image: string): Promise<string | null> {
-  // Get the CMD from the Docker image
   const cmd = await docker_getImageCmd(image);
 
   if (cmd.length === 0) {

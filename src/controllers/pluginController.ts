@@ -64,7 +64,7 @@ export class PluginController extends BaseController {
     let parsedParams: Dictionary = {};
     try {
       parsedParams = dictionary_fromCLI(params);
-    } catch (e) {
+    } catch (e: unknown) {
       console.error("Error parsing plugin parameters:", e);
       return null;
     }

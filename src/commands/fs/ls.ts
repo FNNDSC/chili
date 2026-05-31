@@ -31,7 +31,6 @@ export interface LsOptions {
 export async function files_list(options: LsOptions, pathStr: string = ""): Promise<ListingItem[]> {
   const items: ListingItem[] = [];
   
-  // Resolve path against ChRIS FS
   // Note: If pathStr is invalid, this might throw, which is handled by caller
   const resolvedPath: string = await path_resolveChrisFs(pathStr, {});
 
@@ -49,7 +48,6 @@ export async function files_list(options: LsOptions, pathStr: string = ""): Prom
 
   // Helper to map raw API objects to ListingItem
   const mapToItem = (raw: ChrisFileOrDirRaw, type: 'dir' | 'file' | 'link'): ListingItem => {
-    // Extract name from fname or path
     let name: string = raw.fname || raw.path || "";
     if (name.includes('/')) {
         name = name.split('/').pop() || name;
@@ -77,7 +75,6 @@ export async function files_list(options: LsOptions, pathStr: string = ""): Prom
     };
   };
 
-  // Handle directories
   if (dirsResult.status === 'fulfilled') {
     const dirs = dirsResult.value;
     if (dirs && dirs.tableData) {
@@ -87,7 +84,6 @@ export async function files_list(options: LsOptions, pathStr: string = ""): Prom
     errorStack.stack_push('error', `Failed to list directories: ${dirsResult.reason}`);
   }
 
-  // Handle files
   if (filesResult.status === 'fulfilled') {
     const files = filesResult.value;
     if (files && files.tableData) {
@@ -97,7 +93,6 @@ export async function files_list(options: LsOptions, pathStr: string = ""): Prom
     errorStack.stack_push('error', `Failed to list files: ${filesResult.reason}`);
   }
 
-  // Handle links
   if (linksResult.status === 'fulfilled') {
     const links = linksResult.value;
     if (links && links.tableData) {
@@ -108,7 +103,7 @@ export async function files_list(options: LsOptions, pathStr: string = ""): Prom
   }
 
   // Enrich items with titles for feeds and plugin instances
-  await enrichItemsWithTitles(items);
+  await listingItems_enrichTitles(items);
 
   // Apply sorting (default to name if not specified)
   const sortField = options.sort || 'name';
@@ -123,7 +118,7 @@ export async function files_list(options: LsOptions, pathStr: string = ""): Prom
  *
  * @param items - Array of listing items to enrich.
  */
-async function enrichItemsWithTitles(items: ListingItem[]): Promise<void> {
+async function listingItems_enrichTitles(items: ListingItem[]): Promise<void> {
   const enrichPromises: Promise<void>[] = items.map(async (item: ListingItem): Promise<void> => {
     if (item.type !== 'dir') return; // Only process directories
 

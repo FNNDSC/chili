@@ -43,7 +43,7 @@ export class BaseController {
       const results: FilteredResourceData | null =
         await this.chrisObject.asset.resources_listAndFilterByOptions(params);
       return results;
-    } catch (error) {
+    } catch (error: unknown) {
       // Error handling is delegated to the caller or logged to errorStack
       // For now, we let the errorStack mechanisms in cumin handle internal logging
       // but we might want to bubble up specific errors.
