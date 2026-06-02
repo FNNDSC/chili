@@ -5,10 +5,12 @@
  *
  * @module
  */
-import { SimpleRecord } from '@fnndsc/cumin'; // Import SimpleRecord
-import { Feed } from '../models/feed.js'; // Still used by feedList_render
+import { SimpleRecord } from '@fnndsc/cumin';
+import { Feed } from '../models/feed.js';
 import chalk from 'chalk';
 import { screen } from '../screen/screen.js';
+import type { FeedNote } from '../commands/feed/note.js';
+import type { FeedComment } from '../commands/feed/comments.js';
 
 /**
  * Options for rendering output.
@@ -92,4 +94,45 @@ export function feedList_render(feeds: Feed[], selectedFields: string[], options
  */
 export function feedCreate_render(feedRecord: SimpleRecord): string {
   return chalk.green(`Feed created successfully.\nID: ${feedRecord.id}\nName: ${feedRecord.name}`);
+}
+
+/**
+ * Renders a feed note.
+ *
+ * @param note - Note data.
+ * @param feedId - Feed ID for context header.
+ */
+export function feedNote_render(note: FeedNote, feedId: number): string {
+  const lines: string[] = [
+    chalk.bold.cyan(`Note for feed ${feedId}`),
+    chalk.gray('─'.repeat(40)),
+  ];
+  if (note.title) lines.push(`${chalk.bold('Title:')}   ${note.title}`);
+  lines.push(`${chalk.bold('Content:')} ${note.content || chalk.gray('(empty)')}`);
+  return lines.join('\n');
+}
+
+/**
+ * Renders a list of feed comments.
+ *
+ * @param comments - Array of comments.
+ * @param feedId - Feed ID for context header.
+ */
+export function feedComments_render(comments: FeedComment[], feedId: number): string {
+  if (comments.length === 0) {
+    return chalk.gray(`No comments on feed ${feedId}.`);
+  }
+  const lines: string[] = [
+    chalk.bold.cyan(`Comments on feed ${feedId}`) + chalk.gray(` (${comments.length})`),
+    chalk.gray('─'.repeat(50)),
+  ];
+  for (const c of comments) {
+    lines.push(
+      `${chalk.bold.gray(String(c.id).padStart(4))}  ` +
+      `${chalk.cyan(c.owner_username.padEnd(16))}  ` +
+      `${chalk.bold(c.title || chalk.gray('(no title)'))}`
+    );
+    if (c.content) lines.push(`      ${chalk.white(c.content)}`);
+  }
+  return lines.join('\n');
 }
