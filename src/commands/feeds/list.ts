@@ -6,7 +6,7 @@
  *
  * @module
  */
-import { feeds_list as salsaFeeds_list } from "@fnndsc/salsa";
+import { feeds_list as salsaFeeds_list, feeds_listAll as salsaFeeds_listAll } from "@fnndsc/salsa";
 import { FilteredResourceData } from "@fnndsc/cumin";
 import { CLIoptions, options_toParams } from "../../utils/cli.js";
 import { Feed } from "../../models/feed.js";
@@ -28,7 +28,9 @@ export interface FeedListResult {
  */
 export async function feeds_fetchList(options: CLIoptions): Promise<FeedListResult> {
   const params: Record<string, string | number | boolean> = options_toParams(options);
-  const result: FilteredResourceData | null = await salsaFeeds_list(params);
+  const result: FilteredResourceData | null = options.all
+    ? await salsaFeeds_listAll(params)
+    : await salsaFeeds_list(params);
 
   if (result && result.tableData) {
     let feeds = result.tableData as unknown as Feed[];
