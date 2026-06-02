@@ -10,6 +10,7 @@ import { list_applySort } from '../../utils/sort.js';
 export interface PluginMetaListResult {
   pluginMetas: Record<string, unknown>[];
   selectedFields: string[];
+  totalCount?: number;
 }
 
 export async function pluginMetas_fetchList(options: CLIoptions): Promise<PluginMetaListResult> {
@@ -21,7 +22,7 @@ export async function pluginMetas_fetchList(options: CLIoptions): Promise<Plugin
   if (result && result.tableData) {
     let pluginMetas = result.tableData as Record<string, unknown>[];
     if (options.sort) pluginMetas = list_applySort(pluginMetas, options.sort, options.reverse);
-    return { pluginMetas, selectedFields: result.selectedFields || [] };
+    return { pluginMetas, selectedFields: result.selectedFields || [], totalCount: result.totalCount };
   }
   return { pluginMetas: [], selectedFields: [] };
 }

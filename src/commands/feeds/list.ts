@@ -18,6 +18,7 @@ import { list_applySort } from "../../utils/sort.js";
 export interface FeedListResult {
   feeds: Feed[];
   selectedFields: string[];
+  totalCount?: number;
 }
 
 /**
@@ -42,7 +43,8 @@ export async function feeds_fetchList(options: CLIoptions): Promise<FeedListResu
 
     return {
       feeds,
-      selectedFields: result.selectedFields || []
+      selectedFields: result.selectedFields || [],
+      totalCount: result.totalCount,
     };
   }
   return { feeds: [], selectedFields: [] };

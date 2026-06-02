@@ -21,6 +21,7 @@ import { list_applySort } from "../../utils/sort.js";
 export interface PluginListResult {
   plugins: Plugin[];
   selectedFields: string[];
+  totalCount?: number;
 }
 
 /**
@@ -50,7 +51,8 @@ export async function plugins_fetchList(options: CLIoptions): Promise<PluginList
 
     return {
       plugins,
-      selectedFields: result.selectedFields || []
+      selectedFields: result.selectedFields || [],
+      totalCount: result.totalCount,
     };
   }
   return { plugins: [], selectedFields: [] };

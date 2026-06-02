@@ -10,6 +10,7 @@ import { list_applySort } from '../../utils/sort.js';
 export interface TagListResult {
   tags: Record<string, unknown>[];
   selectedFields: string[];
+  totalCount?: number;
 }
 
 export async function tags_fetchList(options: CLIoptions): Promise<TagListResult> {
@@ -21,7 +22,7 @@ export async function tags_fetchList(options: CLIoptions): Promise<TagListResult
   if (result && result.tableData) {
     let tags = result.tableData as Record<string, unknown>[];
     if (options.sort) tags = list_applySort(tags, options.sort, options.reverse);
-    return { tags, selectedFields: result.selectedFields || [] };
+    return { tags, selectedFields: result.selectedFields || [], totalCount: result.totalCount };
   }
   return { tags: [], selectedFields: [] };
 }

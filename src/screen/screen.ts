@@ -26,6 +26,8 @@ export interface TableOptions {
   };
   title?: Title;
   borderless?: boolean;
+  /** When set and shown < total, renders a pagination footer after the table. */
+  pagination?: { shown: number; total: number };
 }
 
 interface Title {
@@ -222,6 +224,13 @@ export function table_display(
 
   const result = screen.table_output(processedTableData, tableOptions);
   console.log(result);
+
+  if (options.pagination && options.pagination.shown < options.pagination.total) {
+    const { shown, total } = options.pagination;
+    console.log(
+      chalk.dim(`  ↓ showing ${shown} of ${total}  ·  --all to fetch all  ·  --limit <n> for page size`)
+    );
+  }
 
   return tableObj;
 }

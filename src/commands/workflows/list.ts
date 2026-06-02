@@ -10,6 +10,7 @@ import { list_applySort } from '../../utils/sort.js';
 export interface WorkflowListResult {
   workflows: Record<string, unknown>[];
   selectedFields: string[];
+  totalCount?: number;
 }
 
 export async function workflows_fetchList(options: CLIoptions): Promise<WorkflowListResult> {
@@ -21,7 +22,7 @@ export async function workflows_fetchList(options: CLIoptions): Promise<Workflow
   if (result && result.tableData) {
     let workflows = result.tableData as Record<string, unknown>[];
     if (options.sort) workflows = list_applySort(workflows, options.sort, options.reverse);
-    return { workflows, selectedFields: result.selectedFields || [] };
+    return { workflows, selectedFields: result.selectedFields || [], totalCount: result.totalCount };
   }
   return { workflows: [], selectedFields: [] };
 }

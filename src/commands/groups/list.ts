@@ -10,6 +10,7 @@ import { list_applySort } from '../../utils/sort.js';
 export interface GroupListResult {
   groups: Record<string, unknown>[];
   selectedFields: string[];
+  totalCount?: number;
 }
 
 export async function groups_fetchList(options: CLIoptions): Promise<GroupListResult> {
@@ -21,7 +22,7 @@ export async function groups_fetchList(options: CLIoptions): Promise<GroupListRe
   if (result && result.tableData) {
     let groups = result.tableData as Record<string, unknown>[];
     if (options.sort) groups = list_applySort(groups, options.sort, options.reverse);
-    return { groups, selectedFields: result.selectedFields || [] };
+    return { groups, selectedFields: result.selectedFields || [], totalCount: result.totalCount };
   }
   return { groups: [], selectedFields: [] };
 }
