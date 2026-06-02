@@ -28,7 +28,8 @@ export interface FeedListResult {
  * @returns A Promise resolving to a `FeedListResult` object.
  */
 export async function feeds_fetchList(options: CLIoptions): Promise<FeedListResult> {
-  const params: Record<string, string | number | boolean> = options_toParams(options);
+  const params = options_toParams(options);
+  if (options.user) params.owner_username = options.user;
   const result: FilteredResourceData | null = options.all
     ? await salsaFeeds_listAll(params)
     : await salsaFeeds_list(params);

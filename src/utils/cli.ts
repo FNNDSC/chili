@@ -13,6 +13,7 @@ export interface CLIoptions {
   path?: string; // New option for explicit base path
   name?: string; // New option for explicit filename
   all?: boolean; // New option for listing all items
+  user?: string; // Filter resources by owner username
   table?: boolean; // Added option for table format
   csv?: boolean; // Added option for CSV format
   sort?: string; // Sort field name
