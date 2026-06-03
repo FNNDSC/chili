@@ -19,18 +19,30 @@ export interface AdminCredentials {
   password: string;
 }
 
+/** Injected by the host (chell) so prompts route through the active readline. */
+let _askFn: ((prompt: string) => Promise<string>) | null = null;
+let _askHiddenFn: ((prompt: string) => Promise<string>) | null = null;
+
 /**
- * Extended Writable stream with muted property for password input.
+ * Registers question functions from the active REPL.
+ * Called by chell's plugin builtin before invoking plugin_add.
+ *
+ * @param askFn - Visible-input question function.
+ * @param askHiddenFn - Hidden-input (password) question function.
  */
-interface MutableWritable extends Writable {
-  muted?: boolean;
+export function adminPrompt_register(
+  askFn: (prompt: string) => Promise<string>,
+  askHiddenFn: (prompt: string) => Promise<string>
+): void {
+  _askFn = askFn;
+  _askHiddenFn = askHiddenFn;
 }
 
 /**
  * Prompts the user for admin credentials interactively.
  *
- * Displays verbose explanatory text suitable for interactive shell use.
- * Password input is hidden from terminal display.
+ * Uses injected REPL question functions when available so the REPL's
+ * readline interface is not duplicated on stdin.
  *
  * @param attempt - Current attempt number (for retry logic).
  * @param maxAttempts - Maximum number of attempts allowed.
@@ -40,7 +52,6 @@ export async function adminCredentials_prompt(
   attempt: number = 1,
   maxAttempts: number = 3
 ): Promise<AdminCredentials | null> {
-  // Display verbose explanatory message (for interactive use)
   if (attempt === 1) {
     console.log('\nAdmin credentials required to register plugins.');
     console.log('You can provide these via --adminUser and --adminPassword flags.');
@@ -50,56 +61,57 @@ export async function adminCredentials_prompt(
     console.log('');
   }
 
-  const mutableStdout: MutableWritable = new Writable({
-    write: function(chunk, encoding, callback) {
-      if (!(this as MutableWritable).muted)
-        process.stdout.write(chunk, encoding);
-      callback();
-    }
-  });
+  const askFn = _askFn ?? ask_fallback;
+  const askHiddenFn = _askHiddenFn ?? askHidden_fallback;
 
-  const rl = readline.createInterface({
-    input: process.stdin,
-    output: mutableStdout,
-    terminal: true
-  });
-
-  try {
-    mutableStdout.muted = false;
-    const username: string = await new Promise((resolve) => {
-      rl.question('Username: ', (answer: string) => {
-        resolve(answer.trim());
-      });
-    });
-
-    if (!username) {
-      console.log('Username cannot be empty.');
-      rl.close();
-      return null;
-    }
-
-    mutableStdout.muted = true;
-    process.stdout.write('Password: ');
-    const password: string = await new Promise((resolve) => {
-      rl.question('', (answer: string) => {
-        process.stdout.write('\n'); // Newline after hidden input
-        resolve(answer.trim());
-      });
-    });
-
-    if (!password) {
-      console.log('Password cannot be empty.');
-      rl.close();
-      return null;
-    }
-
-    rl.close();
-    return { username, password };
-  } catch (error: unknown) {
-    rl.close();
-    console.error('\nPrompt cancelled or error occurred.');
+  const username: string = await askFn('Username: ');
+  if (!username) {
+    console.log('Username cannot be empty.');
     return null;
   }
+
+  const password: string = await askHiddenFn('Password: ');
+  if (!password) {
+    console.log('Password cannot be empty.');
+    return null;
+  }
+
+  return { username, password };
+}
+
+/**
+ * Fallback visible-input prompt (used outside the REPL).
+ */
+function ask_fallback(prompt: string): Promise<string> {
+  return new Promise((resolve: (v: string) => void) => {
+    const rl: readline.Interface = readline.createInterface({
+      input: process.stdin,
+      output: process.stdout,
+    });
+    rl.question(prompt, (answer: string) => { rl.close(); resolve(answer.trim()); });
+  });
+}
+
+/**
+ * Fallback hidden-input prompt (used outside the REPL).
+ */
+function askHidden_fallback(prompt: string): Promise<string> {
+  return new Promise((resolve: (v: string) => void) => {
+    const muted: Writable = new Writable({
+      write(_chunk: unknown, _enc: unknown, cb: () => void) { cb(); }
+    });
+    const rl: readline.Interface = readline.createInterface({
+      input: process.stdin,
+      output: muted,
+      terminal: true,
+    });
+    process.stdout.write(prompt);
+    rl.question('', (answer: string) => {
+      process.stdout.write('\n');
+      rl.close();
+      resolve(answer.trim());
+    });
+  });
 }
 
 /**
@@ -112,7 +124,6 @@ export function adminCredentials_validate(credentials: AdminCredentials | null):
   if (!credentials) {
     return false;
   }
-
   return credentials.username.trim().length > 0 &&
          credentials.password.trim().length > 0;
 }
