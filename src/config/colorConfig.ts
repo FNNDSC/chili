@@ -144,7 +144,7 @@ function colorStyle_apply(text: string, style: ColorStyle): string {
  */
 export function fileSystemItem_colorize(
   name: string,
-  type: 'dir' | 'file' | 'link' | 'plugin' | 'pipeline' | 'vfs',
+  type: 'dir' | 'file' | 'link' | 'plugin' | 'pipeline' | 'vfs' | 'job',
   fullPath?: string
 ): string {
   const config: ColorConfig = colorConfig_load();

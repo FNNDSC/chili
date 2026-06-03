@@ -18,7 +18,7 @@ export interface ListingItem extends SimpleRecord {
   name: string;
   
   /** The type of the item. */
-  type: 'dir' | 'file' | 'link' | 'plugin' | 'pipeline' | 'vfs';
+  type: 'dir' | 'file' | 'link' | 'plugin' | 'pipeline' | 'vfs' | 'job';
   
   /** Size in bytes. */
   size: number;
@@ -37,4 +37,7 @@ export interface ListingItem extends SimpleRecord {
 
   /** Title or description (for feeds, plugin instances). */
   title?: string;
+
+  /** Execution status (for job type items). */
+  status?: string;
 }

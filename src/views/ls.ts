@@ -168,16 +168,25 @@ export function long_render(items: ListingItem[], options: ViewOptions = {}): st
     else if (item.type === 'plugin') typeChar = 'p';
     else if (item.type === 'pipeline') typeChar = 'P';
     else if (item.type === 'vfs') typeChar = 'v';
+    else if (item.type === 'job') typeChar = 'j';
 
     // Owner
     const owner: string = item.owner.padEnd(10);
 
-    // Size
-    let sizeStr: string = item.size.toString();
-    if (options.human) {
-      sizeStr = size_format(item.size);
+    // Size — for job entries replace with colour-coded status
+    let sizeStr: string;
+    if (item.type === 'job' && item.status) {
+      const s: string = item.status;
+      const statusColoured: string =
+        s === 'finishedSuccessfully' ? chalk.green(s) :
+        s === 'finishedWithError'    ? chalk.red(s) :
+        s === 'cancelled'            ? chalk.gray(s) :
+        s === 'started' || s === 'running' ? chalk.yellow(s) :
+        chalk.gray(s);
+      sizeStr = statusColoured.padEnd(30);
+    } else {
+      sizeStr = (options.human ? size_format(item.size) : item.size.toString()).padEnd(8);
     }
-    sizeStr = sizeStr.padEnd(8);
 
     // Date
     // Assuming date is ISO, just take the first 19 chars "YYYY-MM-DD HH:mm:ss"
