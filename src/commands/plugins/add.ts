@@ -28,6 +28,8 @@ import {
 import {
   computeResources_validate,
   computeResourceNames_parse,
+  computeResources_getAll,
+  ComputeResource,
   errorStack,
 } from '@fnndsc/cumin';
 import path from 'path';
@@ -82,15 +84,23 @@ export async function plugin_add(
   const detected: DetectedFormat = input_detectFormat(input);
   console.log(`Detected input format: ${detected.format}`);
 
-  const computeResources: string[] = options.compute
-    ? computeResourceNames_parse(options.compute)
-    : ['host'];
-
-  const validationResult = await computeResources_validate(computeResources);
-  if (!validationResult.ok) {
-    const errors = errorStack.allOfType_get('error');
-    errors.forEach((err: string) => console.error(err));
-    return false;
+  let computeResources: string[];
+  if (options.compute) {
+    computeResources = computeResourceNames_parse(options.compute);
+    const validationResult = await computeResources_validate(computeResources);
+    if (!validationResult.ok) {
+      const errors = errorStack.allOfType_get('error');
+      errors.forEach((err: string) => console.error(err));
+      return false;
+    }
+  } else {
+    const allResult = await computeResources_getAll();
+    if (allResult.ok && allResult.value.length > 0) {
+      computeResources = allResult.value.map((r: ComputeResource) => r.name);
+      console.log(`Using compute resources: ${computeResources.join(', ')}`);
+    } else {
+      computeResources = ['host'];
+    }
   }
 
   // Phase 1: Check if plugin exists in current CUBE
