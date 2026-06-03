@@ -481,7 +481,7 @@ async function chrisFS_scan(
     const items = listResult.value || [];
 
     // Separate items into directories/vfs roots, files, and links
-    const dirs = items.filter((item) => item.type === "dir" || item.type === "vfs");
+    const dirs = items.filter((item) => item.type === "dir" || item.type === "vfs" || item.type === "job");
     const normalFiles = items.filter((item) => item.type === "file");
     const links = items.filter((item) => item.type === "link");
 
