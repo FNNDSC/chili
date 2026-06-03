@@ -77,10 +77,12 @@ interface PluginAddOptions extends CLIoptions {
  * @param options - CLI options including compute resources, store URL, and admin credentials.
  * @returns A Promise resolving to `true` on successful registration, `false` otherwise.
  */
+export type PluginAddOutcome = 'installed' | 'already_exists' | 'failed';
+
 export async function plugin_add(
   input: string,
   options: PluginAddOptions
-): Promise<boolean> {
+): Promise<PluginAddOutcome> {
   // Detect input format
   const detected: DetectedFormat = input_detectFormat(input);
   console.log(`Detected input format: ${detected.format}`);
@@ -92,7 +94,7 @@ export async function plugin_add(
     if (!validationResult.ok) {
       const errors: string[] = errorStack.allOfType_get('error');
       errors.forEach((err: string) => console.error(err));
-      return false;
+      return 'failed';
     }
   } else {
     const allResult: Result<ComputeResource[]> = await computeResources_getAll();
@@ -112,22 +114,7 @@ export async function plugin_add(
 
   const existingPlugin = await plugin_checkExists(searchTerm);
   if (existingPlugin) {
-    console.log(`Plugin '${existingPlugin.name}' already exists in CUBE.`);
-
-    if (existingPlugin.id) {
-      const assigned = await plugin_assignToComputeResources(
-        existingPlugin.id,
-        computeResources
-      );
-      if (assigned) {
-        console.log(`Plugin assigned to compute resources: ${computeResources.join(', ')}`);
-        return true;
-      }
-    }
-
-    // Even if assignment failed, plugin exists
-    console.log('Plugin already registered.');
-    return true;
+    return 'already_exists';
   }
 
   console.log('Plugin not found in current CUBE.');
@@ -150,11 +137,12 @@ export async function plugin_add(
     const peerResult = await plugins_searchPeers(searchName, searchVersion, peerStoreUrls);
     if (peerResult) {
       console.log(`Found plugin in peer store: ${peerResult.storeName}`);
-      return await pluginFromStore_register(
+      const ok: boolean = await pluginFromStore_register(
         peerResult.plugin,
         computeResources,
         options
       );
+      return ok ? 'installed' : 'failed';
     }
 
     console.log('Plugin not found in peer stores.');
@@ -167,12 +155,13 @@ export async function plugin_add(
       ? detected.value
       : `${detected.value}:latest`;  // Assume latest tag for plugin names
 
-    return await pluginFromDocker_register(dockerImage, computeResources, options);
+    const ok: boolean = await pluginFromDocker_register(dockerImage, computeResources, options);
+    return ok ? 'installed' : 'failed';
   }
 
   // If we get here with a store URL, we couldn't process it
   console.error('Store URL import not yet fully supported.');
-  return false;
+  return 'failed';
 }
 
 /**
