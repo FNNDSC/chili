@@ -124,7 +124,7 @@ describe('plugin group commands', () => {
 
   it('add command should call plugin_add', async () => {
     const mockAddDo = jest.spyOn(pluginsAddCmd, 'plugin_add');
-    mockAddDo.mockResolvedValue(true);
+    mockAddDo.mockResolvedValue('installed');
 
     const options = { public_repo: 'http://repo', compute: 'local' };
     await pluginGroupHandler.plugins_add('mock/image', options);

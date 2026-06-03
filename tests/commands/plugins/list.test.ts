@@ -10,11 +10,10 @@ describe('commands/plugins/list', () => {
   });
 
   it('should call salsa.plugins_list with correct options', async () => {
-    const mockData = {
-      plugins: [{ id: 1, name: 'pl-test' }],
+    (salsa.plugins_list as jest.Mock).mockResolvedValue({
+      tableData: [{ id: 1, name: 'pl-test' }],
       selectedFields: ['id', 'name']
-    };
-    (salsa.plugins_list as jest.Mock).mockResolvedValue(mockData);
+    });
 
     const options = { page: '5', search: 'name:test' };
     const result = await plugins_fetchList(options);
@@ -22,13 +21,13 @@ describe('commands/plugins/list', () => {
     expect(salsa.plugins_list).toHaveBeenCalledWith(expect.objectContaining({
       limit: 5,
       offset: 0,
-      name: 'test' // options_toParams parses "name:test" into { name: "test" }
+      name: 'test'
     }));
-    expect(result).toEqual(mockData);
+    expect(result).toEqual({ plugins: [{ id: 1, name: 'pl-test' }], selectedFields: ['id', 'name'] });
   });
 
-  it('should return null if salsa.plugins_list returns null', async () => {
-    (salsa.plugins_list as jest.Mock).mockResolvedValue({ plugins: [], selectedFields: [] });
+  it('should return empty result if salsa.plugins_list returns no data', async () => {
+    (salsa.plugins_list as jest.Mock).mockResolvedValue({ tableData: [], selectedFields: [] });
 
     const options = {};
     const result = await plugins_fetchList(options);

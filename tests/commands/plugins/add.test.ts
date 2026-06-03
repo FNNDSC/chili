@@ -1,4 +1,4 @@
-import { plugin_add } from '../../../src/commands/plugins/add.js';
+import { plugin_add, type PluginAddOutcome } from '../../../src/commands/plugins/add.js';
 import * as salsa from '@fnndsc/salsa';
 import * as cumin from '@fnndsc/cumin';
 import * as docker from '../../../src/utils/docker.js';
@@ -10,6 +10,7 @@ jest.mock('@fnndsc/salsa');
 jest.mock('@fnndsc/cumin', () => ({
   computeResources_validate: jest.fn(),
   computeResourceNames_parse: jest.fn(),
+  computeResources_getAll: jest.fn().mockResolvedValue({ ok: false }),
   errorStack: {
     allOfType_get: jest.fn().mockReturnValue([]),
     stack_push: jest.fn(),
@@ -45,13 +46,11 @@ describe('plugin_add', () => {
 
   test('Phase 1: Exists in CUBE', async () => {
     (salsa.plugin_checkExists as jest.Mock).mockResolvedValue({ name: 'pl-test', id: 1 });
-    (salsa.plugin_assignToComputeResources as jest.Mock).mockResolvedValue(true);
 
-    const result = await plugin_add('pl-test', { compute: 'host' });
+    const result: PluginAddOutcome = await plugin_add('pl-test', { compute: 'host' });
 
-    expect(result).toBe(true);
+    expect(result).toBe('already_exists');
     expect(salsa.plugin_checkExists).toHaveBeenCalled();
-    expect(salsa.plugin_assignToComputeResources).toHaveBeenCalled();
   });
 
   test('Phase 2: Found in Peer Store', async () => {
@@ -62,20 +61,19 @@ describe('plugin_add', () => {
     });
     (salsa.plugin_importFromStore as jest.Mock).mockResolvedValue({ success: true, plugin: { name: 'pl-test' } });
 
-    const result = await plugin_add('pl-test', { compute: 'host' });
+    const result: PluginAddOutcome = await plugin_add('pl-test', { compute: 'host' });
 
-    expect(result).toBe(true);
+    expect(result).toBe('installed');
     expect(salsa.plugins_searchPeers).toHaveBeenCalled();
     expect(salsa.plugin_importFromStore).toHaveBeenCalled();
   });
 
   test('Phase 3: Docker Registration', async () => {
-    // Not in CUBE, not in Store
     (salsa.plugin_registerWithAdmin as jest.Mock).mockResolvedValue({ name: 'pl-test' });
 
-    const result = await plugin_add('pl-test:latest', { compute: 'host' });
+    const result: PluginAddOutcome = await plugin_add('pl-test:latest', { compute: 'host' });
 
-    expect(result).toBe(true);
+    expect(result).toBe('installed');
     expect(docker.docker_pullImage).toHaveBeenCalled();
     expect(salsa.plugin_registerWithAdmin).toHaveBeenCalled();
   });
@@ -83,9 +81,9 @@ describe('plugin_add', () => {
   test('Compute validation failure', async () => {
     (cumin.computeResources_validate as jest.Mock).mockResolvedValue({ ok: false });
 
-    const result = await plugin_add('pl-test', { compute: 'bad-resource' });
+    const result: PluginAddOutcome = await plugin_add('pl-test', { compute: 'bad-resource' });
 
-    expect(result).toBe(false);
+    expect(result).toBe('failed');
     expect(salsa.plugin_checkExists).not.toHaveBeenCalled();
   });
 
@@ -102,9 +100,9 @@ describe('plugin_add', () => {
     });
     const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
-    const result = await plugin_add('pl-test', { compute: 'host' });
+    const result: PluginAddOutcome = await plugin_add('pl-test', { compute: 'host' });
 
-    expect(result).toBe(false);
+    expect(result).toBe('failed');
     expect(salsa.plugin_importFromStore).toHaveBeenCalled();
     expect(errorSpy).toHaveBeenCalled();
     errorSpy.mockRestore();
@@ -115,9 +113,9 @@ describe('plugin_add', () => {
     (salsa.plugins_searchPeers as jest.Mock).mockResolvedValue(null);
     (docker.docker_checkAvailability as jest.Mock).mockResolvedValue(false);
 
-    const result = await plugin_add('pl-test:latest', { compute: 'host' });
+    const result: PluginAddOutcome = await plugin_add('pl-test:latest', { compute: 'host' });
 
-    expect(result).toBe(false);
+    expect(result).toBe('failed');
     expect(docker.docker_pullImage).not.toHaveBeenCalled();
   });
 });
