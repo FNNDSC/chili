@@ -31,6 +31,7 @@ import {
   computeResources_getAll,
   ComputeResource,
   errorStack,
+  Result,
 } from '@fnndsc/cumin';
 import path from 'path';
 import {
@@ -87,14 +88,14 @@ export async function plugin_add(
   let computeResources: string[];
   if (options.compute) {
     computeResources = computeResourceNames_parse(options.compute);
-    const validationResult = await computeResources_validate(computeResources);
+    const validationResult: Result<string[]> = await computeResources_validate(computeResources);
     if (!validationResult.ok) {
-      const errors = errorStack.allOfType_get('error');
+      const errors: string[] = errorStack.allOfType_get('error');
       errors.forEach((err: string) => console.error(err));
       return false;
     }
   } else {
-    const allResult = await computeResources_getAll();
+    const allResult: Result<ComputeResource[]> = await computeResources_getAll();
     if (allResult.ok && allResult.value.length > 0) {
       computeResources = allResult.value.map((r: ComputeResource) => r.name);
       console.log(`Using compute resources: ${computeResources.join(', ')}`);

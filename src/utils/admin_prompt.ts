@@ -61,8 +61,8 @@ export async function adminCredentials_prompt(
     console.log('');
   }
 
-  const askFn = _askFn ?? ask_fallback;
-  const askHiddenFn = _askHiddenFn ?? askHidden_fallback;
+  const askFn: (prompt: string) => Promise<string> = _askFn ?? ask_fallback;
+  const askHiddenFn: (prompt: string) => Promise<string> = _askHiddenFn ?? askHidden_fallback;
 
   const username: string = await askFn('Username: ');
   if (!username) {
