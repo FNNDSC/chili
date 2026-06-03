@@ -200,6 +200,13 @@ export function fileSystemItem_colorize(
     return iconStyled + styled;
   }
 
+  // Job (proc instance / feed dir): cyan bold like a directory — it IS navigable
+  if (type === 'job') {
+    const styled: string = chalk.cyan.bold(name);
+    const iconStyled: string = icon ? chalk.cyan.bold(icon) : '';
+    return iconStyled + styled;
+  }
+
   // Apply file type styling
   const style: ColorStyle = config.fileTypes[type as keyof typeof config.fileTypes] ?? config.fileTypes.file;
   const styled: string = colorStyle_apply(name, style);

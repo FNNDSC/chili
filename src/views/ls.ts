@@ -40,7 +40,12 @@ export function size_format(bytes: number): string {
  * Uses color configuration from cumin.
  */
 function name_format(item: ListingItem): string {
-  return fileSystemItem_colorize(item.name, item.type);
+  const base: string = fileSystemItem_colorize(item.name, item.type);
+  // Append / to navigable container types so they're visually distinct from files
+  if (item.type === 'dir' || item.type === 'job') {
+    return base + chalk.cyan.bold('/');
+  }
+  return base;
 }
 
 /**
