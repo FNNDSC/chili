@@ -7,82 +7,86 @@
 ```
 **ChILI handles Intelligent Line Interactions**
 
-`chili` is both a powerful CLI application and a reusable library for interacting with the ChRIS ecosystem. It serves as the "Controller" layer in the ChRIS interface stack, bridging the gap between raw business logic (`salsa`) and user presentation.
+`chili` is both a standalone CLI and a reusable library for interacting with the ChRIS ecosystem. It serves as the controller layer in the ChRIS interface stack, bridging raw business logic (`salsa`) and user presentation.
 
 ## Abstract
 
-This tool is designed for developers and power-users who want to script and control a ChRIS instance from the comfort of their terminal. It maintains a persistent local context, remembering your connection details and current location within the ChRIS filesystem.
+Designed for developers and power-users who want to script and control a ChRIS instance from the terminal. Maintains a persistent local context: connection details, active user, and current ChRIS working directory survive across invocations.
 
-## Architecture: The Sandwich Model 🥪
+## Architecture: The Sandwich Model
 
-`chili` implements the controller layer of the stack:
+`chili` implements the controller layer:
 
 1.  **`chili` (Library & CLI)**:
-    *   **Commands (`src/commands`)**: Headless controllers that execute logic (via `salsa`) and return typed **Models**. These are consumable by other apps like `chell`.
-    *   **Models (`src/models`)**: Explicit interfaces (e.g., `Plugin`, `Feed`, `ListingItem`) defining data structures.
-    *   **Views (`src/views`)**: Pure functions that render Models into formatted strings/tables.
-    *   **CLI (`src/chefs`, `src/index.ts`)**: The command-line entry point that orchestrates Commands and Views.
-2.  **[`salsa`](../salsa/README.md) (Logic)**: The **S**hared **A**pplication **L**ogic and **S**ervice **A**ssets layer. It defines high-level "intents".
-3.  **[`cumin`](../cumin/README.md) (Infrastructure)**: The state and operations layer. It manages authentication, persistent context, and low-level API interactions.
+    *   **Commands (`src/commands`)**: Headless controllers that execute logic via `salsa` and return typed **Models**. Consumed directly by `chell`.
+    *   **Models (`src/models`)**: Explicit interfaces (`Plugin`, `Feed`, `ListingItem`, etc.) defining data structures.
+    *   **Views (`src/views`)**: Pure functions that render Models into formatted strings and tables.
+    *   **CLI (`src/index.ts`)**: Commander.js entry point orchestrating Commands and Views.
+2.  **[`salsa`](../salsa/README.md) (Logic)**: Shared Application Logic and Service Assets — high-level business intents.
+3.  **[`cumin`](../cumin/README.md) (Infrastructure)**: State and connection layer — authentication, context persistence, low-level API.
 
-## Installation & Development (The Kitchen 👨‍🍳)
+## Installation & Development
 
-ChILI uses a "Cooking" metaphor for its development workflow. The `Makefile` in the `chili/` directory orchestrates the entire ecosystem (`cumin`, `salsa`, `chili`).
-
-### The Full Meal 🥘
-To set up the entire environment from scratch (Clone -> Install -> Build -> Test -> Link), simply run:
-
-> **Note:** It is highly recommended to use [NVM (Node Version Manager)](https://github.com/nvm-sh/nvm) to manage your Node.js installation. This allows `make meal` to link packages globally without requiring `sudo`.
+### Full build (all layers)
 
 ```bash
 cd chili
 make meal
 ```
 
-### The Menu (Individual Commands)
-You can also run individual steps:
+### Individual steps
 
-*   **`make shop`**: Clones the `cumin` and `salsa` repositories if they are missing.
-*   **`make prep`**: Installs NPM dependencies for all projects (`npm install`).
-*   **`make cook`**: Builds (compiles) all projects (`npm run build`).
-*   **`make taste`**: Runs the tests (`npm test`).
-*   **`make serve`**: Links the packages globally so you can run `chili` anywhere.
-*   **`make scrub`**: Cleans up build artifacts and `node_modules`.
+| Target | Action |
+|--------|--------|
+| `make shop` | Clone `cumin` and `salsa` if missing |
+| `make prep` | `npm install` across all packages |
+| `make cook` | Build (compile TypeScript) all packages |
+| `make taste` | Run tests |
+| `make serve` | Link packages globally |
+| `make scrub` | Clean build artifacts and `node_modules` |
+
+> Use [NVM](https://github.com/nvm-sh/nvm) to avoid needing `sudo` for global links.
 
 ## Core Features
 
--   **Context-Aware**: Remembers your active server, user, and working directory.
--   **Chefs Shell**: Familiar Unix-like commands (`chili chefs ls`, `cd`, `pwd`, `mkdir`, `touch`, `upload`) for browsing and managing the ChRIS filesystem.
--   **Library Mode**: Exports strict-typed commands and views for consumption by `chell`.
--   **Recursive Upload**: Robust directory uploading via `chili chefs upload`.
+- **Context-Aware**: Remembers active server, user, and working directory between invocations.
+- **Library Mode**: Exports strictly-typed commands and views consumed by `chell` and other frontends.
+- **Resource Commands**: Full CRUD for plugins, feeds, files, links, pipelines, compute resources, groups, tags, and more.
+- **Plugin Management**: Search, install (from peer store or Docker), and register plugins.
+- **Feed Sub-resources**: Notes and comments on feeds (create, read, update, delete).
 
 ## Quick Start
 
-1.  **Connect to ChRIS:**
-    ```bash
-    chili connect <URL> --user <USERNAME> --password <PASSWORD>
-    ```
+**Connect to ChRIS:**
+```bash
+chili connect <URL> --user <USERNAME> --password <PASSWORD>
+```
 
-2.  **Explore with Chefs:**
-    ```bash
-    # List root directory
-    chili chefs ls /
+**Plugins:**
+```bash
+chili plugins list
+chili plugins list --search "name:pl-dircopy"
+chili plugin run pl-dircopy-v2.1.0 --args "..."
+```
 
-    # Create a folder
-    chili chefs mkdir /home/user/new_project
-    ```
+**Feeds:**
+```bash
+chili feeds list
+chili feeds list --user rudolphpienaar
+chili feed note 42
+chili feed comments 42
+```
 
-3.  **Upload Data:**
-    ```bash
-    # Upload local directory recursively
-    chili chefs upload ./local_data /home/user/study/
-    ```
+**Store / plugin install:**
+```bash
+chili plugins add pl-fshack               # auto-discovers compute resources
+chili plugins add pl-fshack --compute ares,argentum
+```
 
-4.  **Plugins & Feeds:**
-    ```bash
-    chili plugins list
-    chili feeds list
-    ```
+**Files:**
+```bash
+chili files list --path /home/user/uploads
+```
 
 ---
 _-30-_
