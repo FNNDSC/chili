@@ -3,7 +3,7 @@
  * @module
  */
 import { files_rm, RmResult } from './rm.js';
-import { files_upload } from './upload.js';
+import { files_uploadPath } from '@fnndsc/salsa';
 
 export interface EditResult {
   success: boolean;
@@ -26,7 +26,7 @@ export async function file_replaceContent(
   if (!rmResult.success) {
     return { success: false, error: rmResult.error ?? 'Delete failed' };
   }
-  const uploaded: boolean = await files_upload(localPath, chrisPath);
+  const uploaded: boolean = await files_uploadPath(localPath, chrisPath);
   return {
     success: uploaded,
     error: uploaded ? undefined : 'Upload failed after delete — original is gone, check tmp file',
